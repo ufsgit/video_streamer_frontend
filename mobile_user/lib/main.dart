@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'views/auth/auth_gate.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MeridianHealthApp());
 }
 
@@ -15,7 +17,9 @@ class MeridianHealthApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-        fontFamily: 'Roboto',
+        textTheme: GoogleFonts.interTextTheme(
+          Theme.of(context).textTheme,
+        ),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF0052CC),
           primary: const Color(0xFF0052CC),
@@ -23,7 +27,7 @@ class MeridianHealthApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFFF7F9FC),
       ),
-      home: const LoginScreen(),
+      home: const AuthGate(),
     );
   }
 }

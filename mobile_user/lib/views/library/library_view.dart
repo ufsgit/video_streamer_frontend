@@ -1,10 +1,20 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../widgets/app_logo.dart';
-import 'category_details_screen.dart';
+import '../../viewmodels/library_viewmodel.dart';
+import '../../widgets/app_logo.dart';
+import 'category_details_view.dart';
 
-class LibraryScreen extends StatelessWidget {
-  const LibraryScreen({super.key});
+class LibraryView extends StatefulWidget {
+  final LibraryViewModel? viewModel;
+
+  const LibraryView({super.key, this.viewModel});
+
+  @override
+  State<LibraryView> createState() => _LibraryViewState();
+}
+
+class _LibraryViewState extends State<LibraryView> {
+  late final LibraryViewModel _viewModel;
 
   static const String preOpImageUrl =
       'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1000&q=80';
@@ -12,112 +22,129 @@ class LibraryScreen extends StatelessWidget {
       'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1000&q=80';
 
   @override
+  void initState() {
+    super.initState();
+    _viewModel = widget.viewModel ?? LibraryViewModel();
+    _viewModel.fetchCategoryVideos();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Header Bar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ListenableBuilder(
+      listenable: _viewModel,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Top Header Bar
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const AppLogo(
-                        size: 46,
-                        iconSize: 26,
-                        isSquircle: true,
-                        backgroundColor: Color(0xFF5B67F6),
+                      const Row(
+                        children: [
+                          AppLogo(
+                            size: 46,
+                            iconSize: 26,
+                            isSquircle: true,
+                            backgroundColor: Color(0xFF5B67F6),
+                          ),
+                          SizedBox(width: 14),
+                          Text(
+                            'Library',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E293B),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 14),
-                      const Text(
-                        'Library',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
+                      // Search circular button
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.search_rounded,
                           color: Color(0xFF1E293B),
-                          letterSpacing: -0.5,
+                          size: 22,
                         ),
                       ),
                     ],
                   ),
-                  // Search circular button
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 12,
-                          offset: const Offset(0, 3),
+
+                  const SizedBox(height: 32),
+
+                  // Pre-op Category Card
+                  _buildCategoryCard(
+                    context,
+                    title: 'Pre-op',
+                    subtitle: 'Preparation &\nReadiness',
+                    imageUrl: preOpImageUrl,
+                    isStethoscope: true,
+                    onTap: () {
+                      _viewModel.selectCategory('Pre-op');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoryDetailsView(
+                            category: 'Pre-op',
+                            viewModel: _viewModel,
+                          ),
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.search_rounded,
-                      color: Color(0xFF1E293B),
-                      size: 22,
-                    ),
+                      );
+                    },
                   ),
+
+                  const SizedBox(height: 24),
+
+                  // Post-op Category Card
+                  _buildCategoryCard(
+                    context,
+                    title: 'Post-op',
+                    subtitle: 'Recovery &\nRehabilitation',
+                    imageUrl: postOpImageUrl,
+                    isStethoscope: false,
+                    onTap: () {
+                      _viewModel.selectCategory('Post-op');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoryDetailsView(
+                            category: 'Post-op',
+                            viewModel: _viewModel,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 28),
                 ],
               ),
-
-              const SizedBox(height: 32),
-
-              // Pre-op Category Card
-              _buildCategoryCard(
-                context,
-                title: 'Pre-op',
-                subtitle: 'Preparation &\nReadiness',
-                imageUrl: preOpImageUrl,
-                isStethoscope: true,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const CategoryDetailsScreen(category: 'Pre-op'),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 24),
-
-              // Post-op Category Card
-              _buildCategoryCard(
-                context,
-                title: 'Post-op',
-                subtitle: 'Recovery &\nRehabilitation',
-                imageUrl: postOpImageUrl,
-                isStethoscope: false,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const CategoryDetailsScreen(category: 'Post-op'),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 28),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  /// Category Card with Frosted Glass Overlay matching the design reference
   Widget _buildCategoryCard(
     BuildContext context, {
     required String title,
@@ -146,7 +173,6 @@ class LibraryScreen extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Clean Crisp Background Image
               Image.network(
                 imageUrl,
                 fit: BoxFit.cover,
@@ -161,8 +187,6 @@ class LibraryScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // Subtle contrast overlay
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -175,8 +199,6 @@ class LibraryScreen extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // Centered Frosted Glass Overlay Banner
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 18.0),
@@ -206,13 +228,12 @@ class LibraryScreen extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            // Icon on Left
                             if (isStethoscope)
-                              SizedBox(
+                              const SizedBox(
                                 width: 38,
                                 height: 38,
                                 child: CustomPaint(
-                                  painter: const StethoscopePainter(
+                                  painter: StethoscopePainter(
                                     color: Colors.white,
                                     strokeWidth: 2.8,
                                   ),
@@ -225,8 +246,6 @@ class LibraryScreen extends StatelessWidget {
                                 size: 36,
                               ),
                             const SizedBox(width: 18),
-
-                            // Text in Middle
                             Expanded(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -255,8 +274,6 @@ class LibraryScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-
-                            // Chevron on Right
                             const Icon(
                               Icons.chevron_right_rounded,
                               color: Colors.white,

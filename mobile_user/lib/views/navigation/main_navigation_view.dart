@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'library_screen.dart';
-import 'profile_screen.dart';
+import '../home/home_view.dart';
+import '../library/library_view.dart';
+import '../profile/profile_view.dart';
 
-class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+class MainNavigationView extends StatefulWidget {
+  final int initialIndex;
+
+  const MainNavigationView({super.key, this.initialIndex = 0});
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<MainNavigationView> createState() => _MainNavigationViewState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 1; // Default to Library screen or 0
+class _MainNavigationViewState extends State<MainNavigationView> {
+  late int _currentIndex;
 
   final List<Widget> _screens = const [
-    HomeScreen(),
-    LibraryScreen(),
-    ProfileScreen(),
+    HomeView(),
+    LibraryView(),
+    ProfileView(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   @override
   Widget build(BuildContext context) {

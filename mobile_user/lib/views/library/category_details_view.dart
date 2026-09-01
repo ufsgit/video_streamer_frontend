@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_logo.dart';
+import '../../viewmodels/library_viewmodel.dart';
+import '../../widgets/app_logo.dart';
 
-// API MENTION: CategoryDetailsScreen displays Pre-op and Post-op exercise video playlists.
-// API endpoint (GET /api/v1/library/videos?category={category}) is not ready yet.
-
-class CategoryDetailsScreen extends StatelessWidget {
+class CategoryDetailsView extends StatelessWidget {
   final String category;
+  final LibraryViewModel? viewModel;
 
-  const CategoryDetailsScreen({super.key, required this.category});
+  const CategoryDetailsView({
+    super.key,
+    required this.category,
+    this.viewModel,
+  });
 
   static const String exercise1Url =
       'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80';
@@ -26,7 +29,7 @@ class CategoryDetailsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Bar (Back Button + Logo + Library Title + Search Icon)
+              // Top Bar
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -80,20 +83,20 @@ class CategoryDetailsScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Pre Op / Post Op Title
+              // Category Title Badge
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(width: 1, color: Colors.blue),
+                  border: Border.all(width: 1, color: const Color(0xFF5B67F6)),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: Text(
                     isPreOp ? 'Pre Op' : 'Post Op',
                     style: const TextStyle(
-                      fontSize: 22,
+                      fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Color.fromARGB(255, 4, 85, 246),
+                      color: Color(0xFF5B67F6),
                     ),
                   ),
                 ),
@@ -117,7 +120,6 @@ class CategoryDetailsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Image Thumbnail with play overlay (Permitted in library)
                     SizedBox(
                       height: 170,
                       width: double.infinity,
@@ -168,16 +170,15 @@ class CategoryDetailsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 16.0,
                         vertical: 14.0,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Post-ACL Mobility Flow',
                             style: TextStyle(
                               fontSize: 15,
@@ -186,7 +187,7 @@ class CategoryDetailsScreen extends StatelessWidget {
                             ),
                           ),
                           Row(
-                            children: const [
+                            children: [
                               Icon(
                                 Icons.check,
                                 size: 18,
@@ -212,7 +213,7 @@ class CategoryDetailsScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Video Item 2 (In Progress - Active Blue Outline)
+              // Video Item 2 (In Progress)
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -232,7 +233,6 @@ class CategoryDetailsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Image Thumbnail with play overlay & IN PROGRESS badge
                     SizedBox(
                       height: 170,
                       width: double.infinity,
@@ -249,7 +249,6 @@ class CategoryDetailsScreen extends StatelessWidget {
                                 fit: BoxFit.cover,
                               ),
                             ),
-                            // Top Left Badge: IN PROGRESS
                             Positioned(
                               left: 12,
                               top: 12,
@@ -291,15 +290,14 @@ class CategoryDetailsScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 16.0,
                         vertical: 14.0,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
+                        children: [
                           Text(
                             'Scapular Stabilization',
                             style: TextStyle(

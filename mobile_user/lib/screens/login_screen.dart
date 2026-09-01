@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_user/screens/home_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/app_logo.dart';
-import 'main_navigation_screen.dart';
 
 // API MENTION: Login screen handles user authentication.
 // Backend API integration is not ready yet; API calls are stubbed in ApiService.
@@ -27,22 +27,38 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _handleLogin() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter both username and password'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
-    // API MENTION: Authentication API call stubbed here.
     final api = ApiService();
-    final success = await api.login(
-      username: _usernameController.text,
-      password: _passwordController.text,
-    );
+    final result = await api.login(username: username, password: password);
 
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (success) {
+    if (result['success'] == true) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Login failed. Please try again.'),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -122,11 +138,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFEDF2F7), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFEDF2F7),
+                        width: 1.5,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF0052CC), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0052CC),
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
@@ -150,7 +172,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         // API MENTION: Forgot password endpoint integration point.
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Forgot password link clicked. API integration pending.'),
+                            content: Text(
+                              'Forgot password link clicked. API integration pending.',
+                            ),
                           ),
                         );
                       },
@@ -206,11 +230,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFEDF2F7), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFEDF2F7),
+                        width: 1.5,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF0052CC), width: 1.5),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0052CC),
+                        width: 1.5,
+                      ),
                     ),
                   ),
                 ),
