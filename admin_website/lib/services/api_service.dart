@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
@@ -8,13 +9,19 @@ class ApiService {
   late Dio _dio;
   String? _authToken;
 
+  final Map<String, Uint8List> _imageCache = {};
+
   ApiService._internal() {
     _dio = Dio(
       BaseOptions(
         baseUrl: 'https://b52kcl7t-3000.inc1.devtunnels.ms/api',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'bypass-tunnel-reminder': 'true',
+          'X-Tunnel-Bypass': 'true',
+        },
       ),
     );
 
@@ -137,5 +144,43 @@ class ApiService {
 
   Future<Response> deleteUser(String id) async {
     return await _dio.delete('/admin/users/delete/$id');
+  }
+
+  // --- Image Fetching Helper (with bypass headers & caching) ---
+  Future<Uint8List?> fetchImageBytes(String url) async {
+    if (url.trim().isEmpty) return null;
+    String fullUrl = url.trim();
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+      if (fullUrl.startsWith('/')) {
+        fullUrl = 'https://b52kcl7t-3000.inc1.devtunnels.ms$fullUrl';
+      } else {
+        fullUrl = 'https://b52kcl7t-3000.inc1.devtunnels.ms/$fullUrl';
+      }
+    }
+
+    if (_imageCache.containsKey(fullUrl)) {
+      return _imageCache[fullUrl];
+    }
+
+    try {
+      final response = await _dio.get<List<int>>(
+        fullUrl,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            'bypass-tunnel-reminder': 'true',
+            'X-Tunnel-Bypass': 'true',
+          },
+        ),
+      );
+      if (response.data != null && response.data!.isNotEmpty) {
+        final bytes = Uint8List.fromList(response.data!);
+        _imageCache[fullUrl] = bytes;
+        return bytes;
+      }
+    } catch (e) {
+      debugPrint("Error fetching image bytes: $e");
+    }
+    return null;
   }
 }

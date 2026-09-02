@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
@@ -11,9 +12,24 @@ class PatientsListViewModel extends ChangeNotifier {
   String searchQuery = '';
   int currentPage = 1;
   int totalPatients = 0;
+  Timer? _debounceTimer;
 
   PatientsListViewModel() {
     fetchPatients();
+  }
+
+  void searchPatients(String query) {
+    searchQuery = query;
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      fetchPatients(search: query, page: 1);
+    });
+  }
+
+  void clearSearch() {
+    searchQuery = '';
+    _debounceTimer?.cancel();
+    fetchPatients(search: '', page: 1);
   }
 
   Future<void> fetchPatients({String? search, int page = 1}) async {
@@ -27,7 +43,7 @@ class PatientsListViewModel extends ChangeNotifier {
 
     try {
       final response = await _apiService.listUsers(
-        search: searchQuery.isNotEmpty ? searchQuery : null,
+        search: searchQuery.trim().isNotEmpty ? searchQuery.trim() : null,
         page: currentPage,
         limit: 50,
       );
@@ -74,5 +90,11 @@ class PatientsListViewModel extends ChangeNotifier {
       debugPrint("deletePatient error: $e");
       return false;
     }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }

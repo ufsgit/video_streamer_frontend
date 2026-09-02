@@ -48,6 +48,7 @@ class DashboardViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   int totalLogins = 0;
+  int totalUsers = 0;
   double avgVideosWatched = 0.0;
   double completionRate = 0.0;
   List<UserActivity> activityLogs = [];
@@ -119,6 +120,27 @@ class DashboardViewModel extends ChangeNotifier {
       activityLogs = logsList
           .map((json) => UserActivity.fromJson(Map<String, dynamic>.from(json)))
           .toList();
+
+      // 5. Total Users count from users list
+      try {
+        final usersRes = await _apiService.listUsers(limit: 100);
+        final resData = usersRes.data;
+        if (resData is Map<String, dynamic>) {
+          if (resData['data'] is Map && resData['data']['total'] != null) {
+            totalUsers = (resData['data']['total'] as num).toInt();
+          } else if (resData['total'] != null) {
+            totalUsers = (resData['total'] as num).toInt();
+          } else if (resData['data'] is List) {
+            totalUsers = (resData['data'] as List).length;
+          } else if (resData['users'] is List) {
+            totalUsers = (resData['users'] as List).length;
+          }
+        } else if (resData is List) {
+          totalUsers = resData.length;
+        }
+      } catch (e) {
+        debugPrint("fetch total users error: $e");
+      }
     } catch (e) {
       errorMessage = "Failed to load dashboard data.";
       debugPrint("refreshData error: $e");

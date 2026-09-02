@@ -13,7 +13,25 @@ class _DashboardViewState extends State<DashboardView> {
   final DashboardViewModel _viewModel = DashboardViewModel();
 
   @override
+  void initState() {
+    super.initState();
+    _viewModel.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final displayedUsersCount = _viewModel.totalUsers > 0
+        ? _viewModel.totalUsers
+        : _viewModel.totalLogins;
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -44,7 +62,6 @@ class _DashboardViewState extends State<DashboardView> {
                     ),
                   ],
                 ),
-
               ],
             ),
             const SizedBox(height: 16),
@@ -53,10 +70,9 @@ class _DashboardViewState extends State<DashboardView> {
               children: [
                 Expanded(
                   child: _buildMetricCard(
-                    "Total Logins",
-                    _viewModel.totalLogins.toString(),
-                    Icons.login,
-                    "+ 12%",
+                    "Total Users",
+                    displayedUsersCount.toString(),
+                    Icons.people_outline_rounded,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -65,7 +81,6 @@ class _DashboardViewState extends State<DashboardView> {
                     "Avg. Videos Watched",
                     _viewModel.avgVideosWatched.toString(),
                     Icons.play_circle_outline,
-                    "- 0%",
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -74,7 +89,6 @@ class _DashboardViewState extends State<DashboardView> {
                     "Completion Rate",
                     "${_viewModel.completionRate}%",
                     Icons.check_circle_outline,
-                    "↓ 2%",
                   ),
                 ),
               ],
@@ -116,7 +130,10 @@ class _DashboardViewState extends State<DashboardView> {
                                   radius: 14,
                                   child: Text(
                                     log.id,
-                                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -184,7 +201,10 @@ class _DashboardViewState extends State<DashboardView> {
                                 TextButton(
                                   onPressed: () {},
                                   style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 0,
+                                    ),
                                     minimumSize: const Size(0, 32),
                                     textStyle: const TextStyle(fontSize: 12),
                                   ),
@@ -210,7 +230,6 @@ class _DashboardViewState extends State<DashboardView> {
     String title,
     String value,
     IconData icon,
-    String trend,
   ) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -229,35 +248,12 @@ class _DashboardViewState extends State<DashboardView> {
             style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: trend.contains("+")
-                      ? AppTheme.successLight
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  trend,
-                  style: TextStyle(
-                    color: trend.contains("+")
-                        ? Colors.green.shade700
-                        : Colors.grey,
-                    fontSize: 10,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

@@ -43,7 +43,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 // Search Bar
                 TextField(
                   decoration: InputDecoration(
-                    hintText: "Search conditions, exercises, or guidelines...",
+                    hintText: "Search titles...",
                     hintStyle: const TextStyle(fontSize: 13),
                     prefixIcon: const Icon(Icons.search, size: 20),
                     filled: true,
