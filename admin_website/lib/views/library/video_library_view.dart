@@ -18,79 +18,115 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
       backgroundColor: AppTheme.background,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Video Library",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              "Educational resources for patient care and rehabilitation.",
-              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            // Search Bar
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Search conditions, exercises, or guidelines...",
-                hintStyle: const TextStyle(fontSize: 13),
-                prefixIcon: const Icon(Icons.search, size: 20),
-                filled: true,
-                fillColor: Colors.white,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onChanged: _viewModel.updateSearchQuery,
-            ),
-            const SizedBox(height: 12),
-            // Category Chips
-            Row(
-              children: List.generate(_viewModel.categories.length, (index) {
-                final isSelected = _viewModel.selectedCategoryIndex == index;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: ChoiceChip(
-                    label: Text(_viewModel.categories[index]),
-                    selected: isSelected,
-                    onSelected: (selected) => _viewModel.selectCategory(index),
-                    selectedColor: AppTheme.primaryBlue,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textSecondary,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 12,
-                    ),
-                    backgroundColor: AppTheme.secondaryBlue,
-                    side: BorderSide.none,
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ListenableBuilder(
+          listenable: _viewModel,
+          builder: (context, _) {
+            final videos = _viewModel.videos;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Video Library",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
                   ),
-                );
-              }),
-            ),
-            const SizedBox(height: 16),
-            // Video Grid
-            Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.9,
                 ),
-                itemCount: _viewModel.videos.length,
-                itemBuilder: (context, index) {
-                  final video = _viewModel.videos[index];
-                  return _buildVideoCard(video);
-                },
-              ),
-            )
-          ],
+                const SizedBox(height: 4),
+                const Text(
+                  "Educational resources for patient care and rehabilitation.",
+                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                // Search Bar
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: "Search conditions, exercises, or guidelines...",
+                    hintStyle: const TextStyle(fontSize: 13),
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    filled: true,
+                    fillColor: Colors.white,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: _viewModel.updateSearchQuery,
+                ),
+                const SizedBox(height: 12),
+                // Category Chips (All, Pre-op, Post-op)
+                Row(
+                  children: List.generate(_viewModel.categories.length, (
+                    index,
+                  ) {
+                    final isSelected =
+                        _viewModel.selectedCategoryIndex == index;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ChoiceChip(
+                        label: Text(_viewModel.categories[index]),
+                        selected: isSelected,
+                        onSelected: (selected) =>
+                            _viewModel.selectCategory(index),
+                        selectedColor: AppTheme.categorySelectorColor,
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : AppTheme.textSecondary,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                        backgroundColor: AppTheme.secondaryBlue,
+                        side: BorderSide.none,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 0,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 16),
+                // Responsive Video Grid (auto adapts columns to window size)
+                Expanded(
+                  child: videos.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No videos found matching your selection",
+                            style: TextStyle(color: AppTheme.textSecondary),
+                          ),
+                        )
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            return GridView.builder(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 260,
+                                    crossAxisSpacing: 14,
+                                    mainAxisSpacing: 14,
+                                    childAspectRatio: 0.82,
+                                  ),
+                              itemCount: videos.length,
+                              itemBuilder: (context, index) {
+                                final video = videos[index];
+                                return _buildVideoCard(video);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -106,71 +142,129 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image placeholder (using container to simulate image from design)
+          // Image thumbnail takes top 56%
           Expanded(
+            flex: 56,
             child: Stack(
               fit: StackFit.expand,
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                  child: Image.network(video["imageUrl"], fit: BoxFit.cover),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
+                  child: Image.network(
+                    video["imageUrl"],
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: Colors.grey.shade200,
+                      child: const Center(
+                        child: Icon(Icons.broken_image, color: Colors.grey),
+                      ),
+                    ),
+                  ),
                 ),
                 Positioned(
-                  bottom: 8,
-                  left: 8,
+                  bottom: 6,
+                  left: 6,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withAlpha(150),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.access_time, color: Colors.white, size: 12),
-                        const SizedBox(width: 4),
-                        Text(video["duration"], style: const TextStyle(color: Colors.white, fontSize: 10)),
+                        const Icon(
+                          Icons.access_time,
+                          color: Colors.white,
+                          size: 11,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          video["duration"],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  video["title"],
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  video["description"],
-                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.medical_services_outlined, size: 14, color: AppTheme.primaryBlue),
-                        const SizedBox(width: 4),
-                        Text(video["category"], style: const TextStyle(color: AppTheme.primaryBlue, fontSize: 11)),
-                      ],
-                    ),
-                    const Icon(Icons.bookmark_border, size: 18, color: AppTheme.textSecondary),
-                  ],
-                )
-              ],
+          // White text area takes bottom 44% with overflow protection
+          Expanded(
+            flex: 44,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        video["title"],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        video["description"],
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 10.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.medical_services_outlined,
+                            size: 13,
+                            color: AppTheme.primaryBlue,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            video["category"],
+                            style: const TextStyle(
+                              color: AppTheme.primaryBlue,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Icon(
+                        Icons.bookmark_border,
+                        size: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          )
+          ),
         ],
       ),
     );

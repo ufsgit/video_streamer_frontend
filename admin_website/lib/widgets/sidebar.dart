@@ -25,13 +25,23 @@ class Sidebar extends StatelessWidget {
                   child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 16),
                 ),
                 const SizedBox(width: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Admin Portal", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                    Text("Central Hospital Staff", style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                  ],
-                )
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Admin Portal",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        "Central Hospital Staff",
+                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
