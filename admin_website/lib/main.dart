@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
+import 'views/auth/login_view.dart';
 import 'views/patient_layout.dart';
 
 void main() {
@@ -23,20 +24,31 @@ class MyApp extends StatelessWidget {
     if (fragment.isNotEmpty) {
       return fragment.startsWith('/') ? fragment : '/$fragment';
     }
-    if (path.isNotEmpty && path != '/') {
+    if (path.isNotEmpty && path != '/' && path != '/login') {
       return path;
     }
-    return '/dashboard';
+    return '/login';
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Admin Portal',
+      title: 'CarePulse Admin Portal',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: _getInitialRoute(),
       onGenerateRoute: (settings) {
+        final name = (settings.name ?? '').toLowerCase();
+        if (name == '/' || name == '/login' || name.contains('login')) {
+          return PageRouteBuilder(
+            settings: settings,
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const LoginView(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          );
+        }
+
         final index = _indexFromRoute(settings.name);
         return PageRouteBuilder(
           settings: settings,

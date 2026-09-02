@@ -41,7 +41,7 @@ class ApiService {
 
   // --- Auth ---
   Future<Response> login(Map<String, dynamic> credentials) async {
-    return await _dio.post('/auth', data: credentials);
+    return await _dio.post('/auth/admin/login', data: credentials);
   }
 
   // --- Dashboard Metrics ---
