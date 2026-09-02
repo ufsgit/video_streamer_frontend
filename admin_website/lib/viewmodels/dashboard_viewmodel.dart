@@ -22,13 +22,24 @@ class UserActivity {
 
   factory UserActivity.fromJson(Map<String, dynamic> json) {
     return UserActivity(
-      id: json['id'] ?? '',
-      patientName: json['patientName'] ?? '',
-      ward: json['ward'] ?? '',
-      lastLogin: json['lastLogin'] ?? '',
-      progressPercentage: json['progressPercentage'] ?? 0,
-      videosWatched: json['videosWatched'] ?? 0,
-      totalVideos: json['totalVideos'] ?? 0,
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      patientName: json['patientName']?.toString() ??
+          json['name']?.toString() ??
+          json['username']?.toString() ??
+          'Patient',
+      ward: json['ward']?.toString() ?? 'General Ward',
+      lastLogin: json['lastLogin']?.toString() ??
+          json['createdAt']?.toString() ??
+          'Recently',
+      progressPercentage: (json['progressPercentage'] is num)
+          ? (json['progressPercentage'] as num).toInt()
+          : 0,
+      videosWatched: (json['videosWatched'] is num)
+          ? (json['videosWatched'] as num).toInt()
+          : 0,
+      totalVideos: (json['totalVideos'] is num)
+          ? (json['totalVideos'] as num).toInt()
+          : 0,
     );
   }
 }
@@ -58,31 +69,62 @@ class DashboardViewModel extends ChangeNotifier {
       final completionRes = await _apiService.getCompletionRate();
       final logsRes = await _apiService.getActivityLogs();
 
-      totalLogins = loginsRes.data['totalLogins'] ?? 0;
-      avgVideosWatched = (avgVideosRes.data['avgVideos'] ?? 0).toDouble();
-      completionRate = (completionRes.data['completionRate'] ?? 0).toDouble();
-      
-      final logs = List<Map<String, dynamic>>.from(logsRes.data['logs'] ?? []);
-      activityLogs = logs.map((json) => UserActivity.fromJson(json)).toList();
+      // 1. Total Logins
+      final loginsData = loginsRes.data;
+      if (loginsData is Map<String, dynamic>) {
+        final d = loginsData['data'] ?? loginsData;
+        if (d is Map) {
+          totalLogins = d['totalLogins'] ?? d['count'] ?? d['total'] ?? 0;
+        } else if (d is num) {
+          totalLogins = d.toInt();
+        }
+      }
+
+      // 2. Avg Videos
+      final avgData = avgVideosRes.data;
+      if (avgData is Map<String, dynamic>) {
+        final d = avgData['data'] ?? avgData;
+        if (d is Map) {
+          avgVideosWatched = (d['avgVideos'] ?? d['average'] ?? 0).toDouble();
+        } else if (d is num) {
+          avgVideosWatched = d.toDouble();
+        }
+      }
+
+      // 3. Completion Rate
+      final compData = completionRes.data;
+      if (compData is Map<String, dynamic>) {
+        final d = compData['data'] ?? compData;
+        if (d is Map) {
+          completionRate = (d['completionRate'] ?? d['rate'] ?? 0).toDouble();
+        } else if (d is num) {
+          completionRate = d.toDouble();
+        }
+      }
+
+      // 4. Activity Logs
+      final logsData = logsRes.data;
+      List<dynamic> logsList = [];
+      if (logsData is Map<String, dynamic>) {
+        final d = logsData['data'] ?? logsData['logs'] ?? logsData;
+        if (d is List) {
+          logsList = d;
+        } else if (d is Map && d['logs'] is List) {
+          logsList = d['logs'];
+        }
+      } else if (logsData is List) {
+        logsList = logsData;
+      }
+
+      activityLogs = logsList
+          .map((json) => UserActivity.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
     } catch (e) {
-      errorMessage = "Failed to load dashboard data. (Using fallback data for preview)";
-      // Fallback data for preview purposes if API is unreachable
-      _loadFallbackData();
-      print(e);
+      errorMessage = "Failed to load dashboard data.";
+      debugPrint("refreshData error: $e");
     } finally {
       isLoading = false;
       notifyListeners();
     }
-  }
-
-  void _loadFallbackData() {
-    totalLogins = 1248;
-    avgVideosWatched = 3.4;
-    completionRate = 78.2;
-    activityLogs = [
-      UserActivity(id: "JD", patientName: "John_Doe88", ward: "Cardiology Ward", lastLogin: "10 mins ago", progressPercentage: 75, videosWatched: 15, totalVideos: 20),
-      UserActivity(id: "AS", patientName: "A.Smith_99", ward: "Orthopedics", lastLogin: "1 hr ago", progressPercentage: 20, videosWatched: 4, totalVideos: 20),
-      UserActivity(id: "MR", patientName: "MariaR_PT", ward: "Physical Therapy", lastLogin: "3 hrs ago", progressPercentage: 100, videosWatched: 20, totalVideos: 20),
-    ];
   }
 }

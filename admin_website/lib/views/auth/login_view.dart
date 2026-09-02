@@ -15,7 +15,6 @@ class _LoginViewState extends State<LoginView> {
   final TextEditingController _usernamecontroller = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _rememberMe = false;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -50,13 +49,21 @@ class _LoginViewState extends State<LoginView> {
         final data = response.data;
         String? token;
         if (data is Map<String, dynamic>) {
-          token =
-              data['token']?.toString() ??
+          token = data['token']?.toString() ??
               data['accessToken']?.toString() ??
-              (data['data'] is Map ? data['data']['token']?.toString() : null);
+              data['jwt']?.toString() ??
+              data['authToken']?.toString() ??
+              (data['data'] is Map
+                  ? (data['data']['token'] ?? data['data']['accessToken'])
+                      ?.toString()
+                  : null) ??
+              (data['admin'] is Map
+                  ? (data['admin']['token'] ?? data['admin']['accessToken'])
+                      ?.toString()
+                  : null);
         }
-        if (token != null) {
-          ApiService().setAuthToken(token);
+        if (token != null && token.isNotEmpty) {
+          await ApiService().setAuthToken(token);
         }
 
         if (!mounted) return;

@@ -18,7 +18,7 @@ class _PatientsListViewState extends State<PatientsListView> {
   void initState() {
     super.initState();
     _viewModel.addListener(() {
-      setState(() {});
+      if (mounted) setState(() {});
     });
   }
 
@@ -33,11 +33,14 @@ class _PatientsListViewState extends State<PatientsListView> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showDialog(
+        onPressed: () async {
+          final result = await showDialog<bool>(
             context: context,
             builder: (context) => const CreatePatientDialog(),
           );
+          if (result == true) {
+            _viewModel.fetchPatients();
+          }
         },
         backgroundColor: const Color(0xFF0D47A1),
         foregroundColor: Colors.white,
@@ -45,42 +48,73 @@ class _PatientsListViewState extends State<PatientsListView> {
         label: const Text("Add Patient"),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               "Patients",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
               "Manage and view patient information and progress.",
-              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: TextField(
+                    onChanged: (val) {
+                      _viewModel.fetchPatients(search: val);
+                    },
                     decoration: InputDecoration(
-                      hintText: "Search patients by name, ID, or email...",
-                      hintStyle: const TextStyle(fontSize: 13),
-                      prefixIcon: const Icon(Icons.search, size: 20),
+                      hintText: "Search patients by name or username...",
+                      hintStyle: const TextStyle(
+                        fontSize: 13.5,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        size: 20,
+                        color: Color(0xFF64748B),
+                      ),
                       filled: true,
                       fillColor: Colors.white,
                       isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppTheme.primaryBlue,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
@@ -88,28 +122,27 @@ class _PatientsListViewState extends State<PatientsListView> {
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.filter_list, size: 20, color: AppTheme.textSecondary),
+                      Icon(
+                        Icons.filter_list,
+                        size: 20,
+                        color: AppTheme.textSecondary,
+                      ),
                       SizedBox(width: 8),
-                      Text("Filter", style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                      Text(
+                        "Filter",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Expanded(
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  mainAxisExtent: 210, // Fixed height for cards to match the design, increased to prevent overflow
-                ),
-                itemCount: _viewModel.patients.length,
-                itemBuilder: (context, index) {
-                  return _buildPatientCard(_viewModel.patients[index]);
-                },
-              ),
+              child: _buildPatientsContent(),
             ),
           ],
         ),
@@ -117,8 +150,75 @@ class _PatientsListViewState extends State<PatientsListView> {
     );
   }
 
+  Widget _buildPatientsContent() {
+    if (_viewModel.isLoading && _viewModel.patients.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryBlue),
+      );
+    }
+
+    if (_viewModel.patients.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.people_outline_rounded,
+              size: 56,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _viewModel.errorMessage ?? "No patients registered yet.",
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _viewModel.fetchPatients(),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text("Refresh List"),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primaryBlue,
+                side: const BorderSide(color: AppTheme.primaryBlue),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        int crossAxisCount = 3;
+        if (constraints.maxWidth < 750) {
+          crossAxisCount = 1;
+        } else if (constraints.maxWidth < 1100) {
+          crossAxisCount = 2;
+        }
+
+        return GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            mainAxisExtent: 228,
+          ),
+          itemCount: _viewModel.patients.length,
+          itemBuilder: (context, index) {
+            return _buildPatientCard(_viewModel.patients[index]);
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildPatientCard(UserModel patient) {
-    final isActive = patient.status == "Active";
+    final isActive =
+        patient.status.toLowerCase() == "active" || patient.status.isEmpty;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -126,34 +226,37 @@ class _PatientsListViewState extends State<PatientsListView> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Top Row: Avatar & Basic Info
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  patient.imageUrl,
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
-                ),
-              ),
+              _buildPatientAvatar(patient),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
-                            patient.name,
+                            patient.name.isNotEmpty
+                                ? patient.name
+                                : (patient.username.isNotEmpty
+                                    ? patient.username
+                                    : 'Unnamed'),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -163,16 +266,24 @@ class _PatientsListViewState extends State<PatientsListView> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: isActive ? AppTheme.successLight : Colors.grey.shade100,
+                            color: isActive
+                                ? AppTheme.successLight
+                                : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            patient.status,
+                            isActive ? "Active" : patient.status,
                             style: TextStyle(
-                              color: isActive ? Colors.green.shade700 : Colors.grey.shade600,
+                              color: isActive
+                                  ? Colors.green.shade700
+                                  : Colors.grey.shade600,
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                             ),
@@ -180,28 +291,54 @@ class _PatientsListViewState extends State<PatientsListView> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
-                      "${patient.age}, ${patient.gender}",
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                      "${patient.age > 0 ? '${patient.age} yrs' : 'Age N/A'}, ${patient.gender}",
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(Icons.phone_outlined, size: 12, color: AppTheme.textSecondary),
-                        const SizedBox(width: 6),
-                        Text(patient.phone, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.email_outlined, size: 12, color: AppTheme.textSecondary),
-                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.phone_outlined,
+                          size: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 5),
                         Expanded(
                           child: Text(
-                            patient.email,
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                            patient.phone.isNotEmpty ? patient.phone : "N/A",
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.email_outlined,
+                          size: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            patient.email.isNotEmpty ? patient.email : "N/A",
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -213,25 +350,120 @@ class _PatientsListViewState extends State<PatientsListView> {
               ),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12.0),
-            child: Divider(height: 1),
-          ),
+
+          const Divider(height: 16, color: Color(0xFFF1F5F9)),
+
+          // Bottom Metadata Row
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined, size: 12, color: AppTheme.textSecondary),
-              const SizedBox(width: 6),
-              Text(patient.date, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-              const SizedBox(width: 12),
-              const Icon(Icons.local_fire_department_outlined, size: 12, color: AppTheme.textSecondary),
-              const SizedBox(width: 6),
-              Text(patient.streak, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-              const Spacer(),
-              const Icon(Icons.chevron_right, size: 16, color: AppTheme.textSecondary),
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 12,
+                color: AppTheme.textSecondary,
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  _formatDate(patient.date),
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.local_fire_department_outlined,
+                size: 12,
+                color: AppTheme.textSecondary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                patient.streak.isNotEmpty ? patient.streak : "0 days",
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: AppTheme.textSecondary,
+              ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildPatientAvatar(UserModel patient) {
+    String url = patient.imageUrl.trim();
+    if (url.startsWith('/')) {
+      url = 'https://b52kcl7t-3000.inc1.devtunnels.ms$url';
+    }
+
+    final hasValidUrl = url.isNotEmpty &&
+        (url.startsWith('http://') || url.startsWith('https://'));
+
+    if (!hasValidUrl) {
+      return _buildInitialsAvatar(patient);
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        url,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildInitialsAvatar(patient);
+        },
+      ),
+    );
+  }
+
+  Widget _buildInitialsAvatar(UserModel patient) {
+    final name = patient.name.trim().isNotEmpty
+        ? patient.name.trim()
+        : (patient.username.trim().isNotEmpty ? patient.username.trim() : 'P');
+    final parts = name.split(' ');
+    final initials = parts
+        .where((e) => e.isNotEmpty)
+        .take(2)
+        .map((e) => e[0])
+        .join()
+        .toUpperCase();
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppTheme.secondaryBlue,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          initials.isNotEmpty ? initials : 'P',
+          style: const TextStyle(
+            color: AppTheme.primaryBlue,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(String rawDate) {
+    if (rawDate.isEmpty) return "Today";
+    if (rawDate.length >= 10) {
+      return rawDate.substring(0, 10);
+    }
+    return rawDate;
   }
 }

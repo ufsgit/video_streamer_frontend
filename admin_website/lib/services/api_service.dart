@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -8,43 +9,83 @@ class ApiService {
   String? _authToken;
 
   ApiService._internal() {
-    _dio = Dio(BaseOptions(
-      baseUrl: 'https://b52kcl7t-3000.inc1.devtunnels.ms/api',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: 'https://b52kcl7t-3000.inc1.devtunnels.ms/api',
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
+
+    // Initialize token from storage if available
+    _initTokenFromStorage();
+
     // Interceptor to add auth token to headers
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        if (_authToken != null && _authToken!.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $_authToken';
-        }
-        return handler.next(options);
-      },
-    ));
-    
-    // Add interceptors for logging or auth if needed in the future
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (_authToken == null || _authToken!.isEmpty) {
+            try {
+              final prefs = await SharedPreferences.getInstance();
+              _authToken = prefs.getString('auth_token');
+            } catch (_) {
+              // Fallback to in-memory token if plugin channel is not registered yet
+            }
+          }
+          if (_authToken != null && _authToken!.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $_authToken';
+          }
+          return handler.next(options);
+        },
+      ),
+    );
+
+    // Logging interceptor for debugging
     _dio.interceptors.add(LogInterceptor(responseBody: true));
   }
 
-  // --- Auth Token Management ---
-  void setAuthToken(String token) {
-    _authToken = token;
-  }
-  
-  void clearAuthToken() {
-    _authToken = null;
+  Future<void> _initTokenFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _authToken = prefs.getString('auth_token');
+    } catch (_) {}
   }
 
-  // --- Auth ---
+  // --- Auth Token Management ---
+  Future<void> setAuthToken(String token) async {
+    _authToken = token;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', token);
+    } catch (_) {}
+  }
+
+  Future<void> clearAuthToken() async {
+    _authToken = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+    } catch (_) {}
+  }
+
+  String? get authToken => _authToken;
+
+  // --- 1. System Health Check ---
+  Future<Response> healthCheck() async {
+    return await _dio.get('/health');
+  }
+
+  // --- 2. Authentication ---
   Future<Response> login(Map<String, dynamic> credentials) async {
     return await _dio.post('/auth/admin/login', data: credentials);
   }
 
-  // --- Dashboard Metrics ---
+  Future<Response> userLogin(Map<String, dynamic> credentials) async {
+    return await _dio.post('/auth/user/login', data: credentials);
+  }
+
+  // --- 3. Admin Dashboard Statistics ---
   Future<Response> getTotalLogins() async {
     return await _dio.get('/admin/dashboard/total-logins');
   }
@@ -61,21 +102,36 @@ class ApiService {
     return await _dio.get('/admin/dashboard/activity-logs');
   }
 
-  // --- Users Management ---
-  Future<Response> createUser(Map<String, dynamic> userData) async {
-    return await _dio.post('/admin/users/create', data: userData);
-  }
+  // --- 4. Admin User Management ---
+  Future<Response> listUsers({
+    int? page,
+    int? limit,
+    String? search,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    final Map<String, dynamic> queryParams = {};
+    if (page != null) queryParams['page'] = page;
+    if (limit != null) queryParams['limit'] = limit;
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    if (dateFrom != null && dateFrom.isNotEmpty) queryParams['dateFrom'] = dateFrom;
+    if (dateTo != null && dateTo.isNotEmpty) queryParams['dateTo'] = dateTo;
 
-  Future<Response> listUsers() async {
-    return await _dio.get('/admin/users/list');
+    return await _dio.get(
+      '/admin/users/list',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
   }
 
   Future<Response> getUserById(String id) async {
     return await _dio.get('/admin/users/get/$id');
   }
 
-  Future<Response> editUser(String id, Map<String, dynamic> updateData) async {
-    // Assuming PUT or PATCH for edit, using PUT as standard
+  Future<Response> createUser(dynamic userData) async {
+    return await _dio.post('/admin/users/create', data: userData);
+  }
+
+  Future<Response> editUser(String id, dynamic updateData) async {
     return await _dio.put('/admin/users/edit/$id', data: updateData);
   }
 

@@ -4,40 +4,75 @@ import '../services/api_service.dart';
 
 class PatientsListViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
-  
+
   List<UserModel> patients = [];
   bool isLoading = false;
   String? errorMessage;
+  String searchQuery = '';
+  int currentPage = 1;
+  int totalPatients = 0;
 
   PatientsListViewModel() {
     fetchPatients();
   }
 
-  Future<void> fetchPatients() async {
+  Future<void> fetchPatients({String? search, int page = 1}) async {
     isLoading = true;
     errorMessage = null;
+    currentPage = page;
+    if (search != null) {
+      searchQuery = search;
+    }
     notifyListeners();
 
     try {
-      final response = await _apiService.listUsers();
-      final List<dynamic> data = response.data['users'] ?? [];
-      patients = data.map((json) => UserModel.fromJson(json)).toList();
+      final response = await _apiService.listUsers(
+        search: searchQuery.isNotEmpty ? searchQuery : null,
+        page: currentPage,
+        limit: 50,
+      );
+
+      final resData = response.data;
+      List<dynamic> rawList = [];
+
+      if (resData is Map<String, dynamic>) {
+        if (resData['data'] is List) {
+          rawList = resData['data'];
+        } else if (resData['data'] is Map && resData['data']['users'] is List) {
+          rawList = resData['data']['users'];
+          totalPatients = resData['data']['total'] ?? rawList.length;
+        } else if (resData['users'] is List) {
+          rawList = resData['users'];
+          totalPatients = resData['total'] ?? rawList.length;
+        }
+      } else if (resData is List) {
+        rawList = resData;
+      }
+
+      patients = rawList
+          .map((json) => UserModel.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
     } catch (e) {
-      errorMessage = "Failed to load patients. Using fallback data.";
-      _loadFallbackData();
-      print(e);
+      errorMessage = "Failed to load patients.";
+      debugPrint("fetchPatients error: $e");
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  void _loadFallbackData() {
-    patients = [
-      UserModel(id: "1", name: "Arthur Pendelton", age: 65, gender: "Male", phone: "(555) 123-4567", email: "arthur.p@example.com", status: "Active", date: "Oct 12, 2023", streak: "5 days", imageUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80"),
-      UserModel(id: "2", name: "Martha Stewart", age: 72, gender: "Female", phone: "(555) 987-6543", email: "martha.s@example.com", status: "Inactive", date: "Sep 28, 2023", streak: "0 days", imageUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80"),
-      UserModel(id: "3", name: "James Wilson", age: 58, gender: "Male", phone: "(555) 456-7890", email: "j.wilson@example.com", status: "Active", date: "Nov 01, 2023", streak: "12 days", imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80"),
-      UserModel(id: "4", name: "Eleanor Rigby", age: 61, gender: "Female", phone: "(555) 321-0987", email: "eleanor.r@example.com", status: "Active", date: "Oct 15, 2023", streak: "2 days", imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80"),
-    ];
+  Future<bool> deletePatient(String id) async {
+    try {
+      final response = await _apiService.deleteUser(id);
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        patients.removeWhere((p) => p.id == id);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("deletePatient error: $e");
+      return false;
+    }
   }
 }
