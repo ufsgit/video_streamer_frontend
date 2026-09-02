@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import 'create_patient_dialog.dart';
+import '../../viewmodels/patients_list_viewmodel.dart';
+import '../../models/user_model.dart';
 
 class PatientsListView extends StatefulWidget {
   const PatientsListView({super.key});
@@ -10,53 +12,21 @@ class PatientsListView extends StatefulWidget {
 }
 
 class _PatientsListViewState extends State<PatientsListView> {
-  // Dummy data for the UI demonstration
-  final List<Map<String, dynamic>> patients = [
-    {
-      "name": "Arthur Pendelton",
-      "age": 65,
-      "gender": "Male",
-      "phone": "(555) 123-4567",
-      "email": "arthur.p@example.com",
-      "status": "Active",
-      "date": "Oct 12, 2023",
-      "streak": "5 days",
-      "imageUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80",
-    },
-    {
-      "name": "Martha Stewart",
-      "age": 72,
-      "gender": "Female",
-      "phone": "(555) 987-6543",
-      "email": "martha.s@example.com",
-      "status": "Inactive",
-      "date": "Sep 28, 2023",
-      "streak": "0 days",
-      "imageUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80",
-    },
-    {
-      "name": "James Wilson",
-      "age": 58,
-      "gender": "Male",
-      "phone": "(555) 456-7890",
-      "email": "j.wilson@example.com",
-      "status": "Active",
-      "date": "Nov 01, 2023",
-      "streak": "12 days",
-      "imageUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
-    },
-    {
-      "name": "Eleanor Rigby",
-      "age": 61,
-      "gender": "Female",
-      "phone": "(555) 321-0987",
-      "email": "eleanor.r@example.com",
-      "status": "Active",
-      "date": "Oct 15, 2023",
-      "streak": "2 days",
-      "imageUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80",
-    },
-  ];
+  final PatientsListViewModel _viewModel = PatientsListViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,9 +105,9 @@ class _PatientsListViewState extends State<PatientsListView> {
                   mainAxisSpacing: 16,
                   mainAxisExtent: 210, // Fixed height for cards to match the design, increased to prevent overflow
                 ),
-                itemCount: patients.length,
+                itemCount: _viewModel.patients.length,
                 itemBuilder: (context, index) {
-                  return _buildPatientCard(patients[index]);
+                  return _buildPatientCard(_viewModel.patients[index]);
                 },
               ),
             ),
@@ -147,8 +117,8 @@ class _PatientsListViewState extends State<PatientsListView> {
     );
   }
 
-  Widget _buildPatientCard(Map<String, dynamic> patient) {
-    final isActive = patient["status"] == "Active";
+  Widget _buildPatientCard(UserModel patient) {
+    final isActive = patient.status == "Active";
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -166,7 +136,7 @@ class _PatientsListViewState extends State<PatientsListView> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  patient["imageUrl"],
+                  patient.imageUrl,
                   width: 56,
                   height: 56,
                   fit: BoxFit.cover,
@@ -183,7 +153,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                       children: [
                         Expanded(
                           child: Text(
-                            patient["name"],
+                            patient.name,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -200,7 +170,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            patient["status"],
+                            patient.status,
                             style: TextStyle(
                               color: isActive ? Colors.green.shade700 : Colors.grey.shade600,
                               fontSize: 10,
@@ -212,7 +182,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "${patient["age"]}, ${patient["gender"]}",
+                      "${patient.age}, ${patient.gender}",
                       style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
                     ),
                     const SizedBox(height: 8),
@@ -220,7 +190,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                       children: [
                         const Icon(Icons.phone_outlined, size: 12, color: AppTheme.textSecondary),
                         const SizedBox(width: 6),
-                        Text(patient["phone"], style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                        Text(patient.phone, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -230,7 +200,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
-                            patient["email"],
+                            patient.email,
                             style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -251,11 +221,11 @@ class _PatientsListViewState extends State<PatientsListView> {
             children: [
               const Icon(Icons.calendar_today_outlined, size: 12, color: AppTheme.textSecondary),
               const SizedBox(width: 6),
-              Text(patient["date"], style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+              Text(patient.date, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
               const SizedBox(width: 12),
               const Icon(Icons.local_fire_department_outlined, size: 12, color: AppTheme.textSecondary),
               const SizedBox(width: 6),
-              Text(patient["streak"], style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+              Text(patient.streak, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
               const Spacer(),
               const Icon(Icons.chevron_right, size: 16, color: AppTheme.textSecondary),
             ],
