@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../viewmodels/library_viewmodel.dart';
+import 'assign_videos_dialog.dart';
 
 class VideoLibraryView extends StatefulWidget {
   const VideoLibraryView({super.key});
@@ -60,41 +61,116 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 const SizedBox(height: 12),
                 // Category Chips (All, Pre-op, Post-op)
                 Row(
-                  children: List.generate(_viewModel.categories.length, (
-                    index,
-                  ) {
-                    final isSelected =
-                        _viewModel.selectedCategoryIndex == index;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ChoiceChip(
-                        label: Text(_viewModel.categories[index]),
-                        selected: isSelected,
-                        onSelected: (selected) =>
-                            _viewModel.selectCategory(index),
-                        selectedColor: AppTheme.categorySelectorColor,
-                        labelStyle: TextStyle(
-                          color: isSelected
-                              ? Colors.white
-                              : AppTheme.textSecondary,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          fontSize: 12,
+                  children: [
+                    ...List.generate(_viewModel.categories.length, (
+                      index,
+                    ) {
+                      final isSelected =
+                          _viewModel.selectedCategoryIndex == index;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(_viewModel.categories[index]),
+                          selected: isSelected,
+                          onSelected: (selected) =>
+                              _viewModel.selectCategory(index),
+                          selectedColor: AppTheme.categorySelectorColor,
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : AppTheme.textSecondary,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            fontSize: 12,
+                          ),
+                          backgroundColor: AppTheme.secondaryBlue,
+                          side: BorderSide.none,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 0,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                        backgroundColor: AppTheme.secondaryBlue,
-                        side: BorderSide.none,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 0,
-                        ),
+                      );
+                    }),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _viewModel.toggleSelectionMode,
+                      icon: const Icon(Icons.checklist, size: 16),
+                      label: Text(_viewModel.isSelectionMode ? "Cancel Selection" : "Select Videos"),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryBlue,
+                        side: const BorderSide(color: AppTheme.primaryBlue),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                    );
-                  }),
+                    ),
+                    const Spacer(),
+                    Text(
+                      "\u25CF ${videos.length} Videos Available",
+                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                    ),
+                  ],
                 ),
+                if (_viewModel.isSelectionMode) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: AppTheme.primaryBlue,
+                          child: Text(
+                            "${_viewModel.selectedVideos.length}",
+                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          "Videos Selected",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        const SizedBox(width: 12),
+                        TextButton(
+                          onPressed: _viewModel.clearSelection,
+                          child: const Text("Cancel / Clear Selection", style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        ),
+                        const Spacer(),
+                        ElevatedButton.icon(
+                          onPressed: _viewModel.selectedVideos.isEmpty ? null : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AssignVideosDialog(
+                                selectedVideos: _viewModel.selectedVideos.toList(),
+                                onAssigned: () {
+                                  _viewModel.exitSelectionMode();
+                                },
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.check, size: 16),
+                          label: Text("OK — Proceed to Assign (${_viewModel.selectedVideos.length})", style: const TextStyle(fontSize: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryBlue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 // Responsive Video Grid (auto adapts columns to window size)
                 Expanded(
@@ -133,12 +209,22 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
   }
 
   Widget _buildVideoCard(Map<String, dynamic> video) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    final isSelected = _viewModel.selectedVideos.contains(video);
+
+    return InkWell(
+      onTap: _viewModel.isSelectionMode
+          ? () => _viewModel.toggleVideoSelection(video)
+          : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -195,6 +281,25 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                     ),
                   ),
                 ),
+                if (_viewModel.isSelectionMode)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppTheme.primaryBlue : Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: isSelected
+                          ? const Icon(Icons.check, color: Colors.white, size: 16)
+                          : null,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -266,6 +371,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

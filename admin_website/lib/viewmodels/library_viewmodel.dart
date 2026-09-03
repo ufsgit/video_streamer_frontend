@@ -4,6 +4,9 @@ class VideoLibraryViewModel extends ChangeNotifier {
   String searchQuery = "";
   int selectedCategoryIndex = 0;
 
+  bool isSelectionMode = false;
+  final Set<Map<String, dynamic>> selectedVideos = {};
+
   final List<String> categories = [
     "All",
     "Pre-op",
@@ -12,6 +15,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
 
   final List<Map<String, dynamic>> allVideos = [
     {
+      "id": "v1",
       "title": "Pre-Operative Knee Conditioning Protocol",
       "description": "Essential exercises to build strength and improve mobility prior to knee surgery.",
       "category": "Pre-op",
@@ -19,6 +23,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
       "imageUrl": "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60",
     },
     {
+      "id": "v2",
       "title": "Anxiety Management Before Procedures",
       "description": "Guided breathing techniques and cognitive framing strategies to reduce pre-surgery stress.",
       "category": "Pre-op",
@@ -26,6 +31,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
       "imageUrl": "https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=500&q=60",
     },
     {
+      "id": "v3",
       "title": "Patient Positioning & Bed Mobility Safety",
       "description": "Comprehensive guide on safe transfers, turning techniques, and post-surgery care.",
       "category": "Post-op",
@@ -33,6 +39,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
       "imageUrl": "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=500&q=60",
     },
     {
+      "id": "v4",
       "title": "Post-ACL Mobility & Gentle Flow",
       "description": "Guided rehabilitation routines for progressive knee recovery and flexibility.",
       "category": "Post-op",
@@ -40,6 +47,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
       "imageUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=500&q=60",
     },
     {
+      "id": "v5",
       "title": "Scapular Stabilization Exercises",
       "description": "Targeted shoulder blade mobility and posture stabilization drills.",
       "category": "Post-op",
@@ -72,6 +80,34 @@ class VideoLibraryViewModel extends ChangeNotifier {
 
   void selectCategory(int index) {
     selectedCategoryIndex = index;
+    notifyListeners();
+  }
+
+  void toggleSelectionMode() {
+    isSelectionMode = !isSelectionMode;
+    if (!isSelectionMode) {
+      selectedVideos.clear();
+    }
+    notifyListeners();
+  }
+
+  void toggleVideoSelection(Map<String, dynamic> video) {
+    if (selectedVideos.contains(video)) {
+      selectedVideos.remove(video);
+    } else {
+      selectedVideos.add(video);
+    }
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    selectedVideos.clear();
+    notifyListeners();
+  }
+
+  void exitSelectionMode() {
+    isSelectionMode = false;
+    selectedVideos.clear();
     notifyListeners();
   }
 }
