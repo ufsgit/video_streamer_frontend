@@ -5,6 +5,7 @@ import '../../services/api_service.dart';
 import 'create_patient_dialog.dart';
 import '../../viewmodels/patients_list_viewmodel.dart';
 import '../../models/user_model.dart';
+import 'patient_detail_view.dart';
 
 class PatientsListView extends StatefulWidget {
   const PatientsListView({super.key});
@@ -226,9 +227,21 @@ class _PatientsListViewState extends State<PatientsListView> {
           ),
           itemCount: _viewModel.patients.length,
           itemBuilder: (context, index) {
+            final patient = _viewModel.patients[index];
             return Padding(
               padding: const EdgeInsets.all(8.0),
-              child: _buildPatientCard(_viewModel.patients[index]),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PatientDetailView(patient: patient),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: _buildPatientCard(patient),
+              ),
             );
           },
         );
