@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/sidebar.dart';
 import 'dashboard/dashboard_view.dart';
 import 'library/video_library_view.dart';
-import 'patient/patient_profile_view.dart';
+import 'profile/patient_profile_view.dart';
 import 'patient/patients_list_view.dart';
 
 class PatientLayout extends StatefulWidget {
@@ -68,9 +68,7 @@ class _PatientLayoutState extends State<PatientLayout> {
             selectedIndex: _selectedIndex,
             onItemSelected: _onItemSelected,
           ),
-          Expanded(
-            child: _views[_selectedIndex],
-          )
+          Expanded(child: _views[_selectedIndex]),
         ],
       ),
     );
