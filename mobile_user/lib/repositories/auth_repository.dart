@@ -48,10 +48,7 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final response = await _client.dio.post(
         ApiConstants.userLoginPath,
-        data: {
-          'username': cleanUsername,
-          'password': password,
-        },
+        data: {'username': cleanUsername, 'password': password},
       );
 
       final data = response.data;
@@ -102,10 +99,7 @@ class AuthRepositoryImpl implements AuthRepository {
             : 'Connection error (${e.type}). Please check your connection.',
       };
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'Unexpected error: $e',
-      };
+      return {'success': false, 'message': 'Unexpected error: $e'};
     }
   }
 

@@ -14,7 +14,7 @@ class ApiService {
   ApiService._internal() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://b52kcl7t-3000.inc1.devtunnels.ms/api',
+        baseUrl: 'https://7qh4z02n-3000.inc1.devtunnels.ms/api',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {
