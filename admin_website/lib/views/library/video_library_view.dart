@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import 'assign_videos_dialog.dart';
+import 'add_video_dialog.dart';
 
 class VideoLibraryView extends StatefulWidget {
   const VideoLibraryView({super.key});
@@ -17,6 +18,16 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => const AddVideoDialog(),
+          );
+        },
+        backgroundColor: AppTheme.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListenableBuilder(
