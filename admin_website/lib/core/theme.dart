@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static const Color primaryBlue = Color(0xFF0F3D81);
@@ -21,7 +22,7 @@ class AppTheme {
         secondary: secondaryBlue,
         surface: surface,
       ),
-      fontFamily: 'Inter',
+      textTheme: GoogleFonts.interTextTheme(),
       appBarTheme: const AppBarTheme(
         backgroundColor: surface,
         elevation: 0,

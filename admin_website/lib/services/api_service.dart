@@ -118,12 +118,21 @@ class ApiService {
     String? dateTo,
   }) async {
     final Map<String, dynamic> queryParams = {};
-    if (page != null) queryParams['page'] = page;
-    if (limit != null) queryParams['limit'] = limit;
-    if (search != null && search.isNotEmpty) queryParams['search'] = search;
-    if (dateFrom != null && dateFrom.isNotEmpty)
+    if (page != null) {
+      queryParams['page'] = page;
+    }
+    if (limit != null) {
+      queryParams['limit'] = limit;
+    }
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+    if (dateFrom != null && dateFrom.isNotEmpty) {
       queryParams['dateFrom'] = dateFrom;
-    if (dateTo != null && dateTo.isNotEmpty) queryParams['dateTo'] = dateTo;
+    }
+    if (dateTo != null && dateTo.isNotEmpty) {
+      queryParams['dateTo'] = dateTo;
+    }
 
     return await _dio.get(
       '/admin/users/list',
@@ -132,7 +141,14 @@ class ApiService {
   }
 
   Future<Response> getUserById(String id) async {
-    return await _dio.get('/admin/users/get/$id');
+    try {
+      return await _dio.get('/admin/users/get/$id');
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 404) {
+        return await _dio.get('/api/admin/users/get/$id');
+      }
+      rethrow;
+    }
   }
 
   Future<Response> createUser(dynamic userData) async {

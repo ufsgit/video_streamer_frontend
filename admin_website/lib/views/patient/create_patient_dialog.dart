@@ -3,10 +3,13 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme.dart';
+import '../../models/user_model.dart';
 import '../../services/api_service.dart';
 
 class CreatePatientDialog extends StatefulWidget {
-  const CreatePatientDialog({super.key});
+  final UserModel? patientToEdit;
+
+  const CreatePatientDialog({super.key, this.patientToEdit});
 
   @override
   State<CreatePatientDialog> createState() => _CreatePatientDialogState();
@@ -36,6 +39,30 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
 
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
+
+  bool get isEditing => widget.patientToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.patientToEdit != null) {
+      final p = widget.patientToEdit!;
+      _nameController.text = p.name;
+      _usernameController.text = p.username;
+      _emailController.text = p.email;
+      _phoneController.text = p.phone == "N/A" ? "" : p.phone;
+      _dobController.text = p.dob;
+      _ageController.text = p.age > 0 ? p.age.toString() : '';
+      _noteController.text = p.note;
+      if (p.gender.isNotEmpty) {
+        final match = _sexOptions.firstWhere(
+          (s) => s.toLowerCase() == p.gender.toLowerCase(),
+          orElse: () => 'Male',
+        );
+        _selectedSex = match;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -118,11 +145,13 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       return;
     }
 
-    if (_passwordController.text != _confirmPasswordController.text) {
-      setState(() {
-        _errorMessage = 'Passwords do not match.';
-      });
-      return;
+    if (!isEditing || _passwordController.text.isNotEmpty) {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        setState(() {
+          _errorMessage = 'Passwords do not match.';
+        });
+        return;
+      }
     }
 
     setState(() {
@@ -133,7 +162,6 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
     try {
       final Map<String, dynamic> payload = {
         'username': _usernameController.text.trim(),
-        'password': _passwordController.text.trim(),
         'name': _nameController.text.trim(),
         'dob': _dobController.text.trim(),
         'sex': _selectedSex,
@@ -141,6 +169,10 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
         'phone_number': _phoneController.text.trim(),
         'age': int.tryParse(_ageController.text.trim()) ?? 0,
       };
+
+      if (_passwordController.text.trim().isNotEmpty) {
+        payload['password'] = _passwordController.text.trim();
+      }
 
       if (_noteController.text.trim().isNotEmpty) {
         payload['note'] = _noteController.text.trim();
@@ -160,14 +192,28 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
         );
       }
 
-      final response = await ApiService().createUser(formData);
+      final Response response;
+      if (isEditing) {
+        response = await ApiService().editUser(
+          widget.patientToEdit!.id,
+          formData,
+        );
+      } else {
+        response = await ApiService().createUser(formData);
+      }
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Patient profile created successfully!'),
-            backgroundColor: Color(0xFF10B981),
+          SnackBar(
+            content: Text(
+              isEditing
+                  ? 'Patient profile updated successfully!'
+                  : 'Patient profile created successfully!',
+            ),
+            backgroundColor: const Color(0xFF10B981),
           ),
         );
         Navigator.pop(context, true);
@@ -175,12 +221,17 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
         setState(() {
           _errorMessage =
               response.data?['message']?.toString() ??
-              'Failed to create patient profile.';
+              (isEditing
+                  ? 'Failed to update patient profile.'
+                  : 'Failed to create patient profile.');
         });
       }
     } catch (e) {
       if (mounted) {
-        String errorMsg = 'Failed to create patient. Please check input.';
+        String errorMsg =
+            isEditing
+                ? 'Failed to update patient. Please check input.'
+                : 'Failed to create patient. Please check input.';
         if (e is DioException) {
           if (e.response?.data is Map && e.response?.data['message'] != null) {
             errorMsg = e.response!.data['message'].toString();
@@ -234,29 +285,33 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                       color: AppTheme.secondaryBlue,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.person_add_alt_1,
+                    child: Icon(
+                      isEditing ? Icons.edit_note : Icons.person_add_alt_1,
                       color: AppTheme.primaryBlue,
                       size: 24,
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Create New Patient Profile",
-                          style: TextStyle(
+                          isEditing
+                              ? "Edit Patient Profile"
+                              : "Create New Patient Profile",
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.textPrimary,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          "Enter primary details to register a new patient in the hospital system.",
-                          style: TextStyle(
+                          isEditing
+                              ? "Update details for this patient in the hospital system."
+                              : "Enter primary details to register a new patient in the hospital system.",
+                          style: const TextStyle(
                             color: AppTheme.textSecondary,
                             fontSize: 13,
                           ),
@@ -330,16 +385,55 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                               CircleAvatar(
                                 radius: 36,
                                 backgroundColor: const Color(0xFFF1F5F9),
-                                backgroundImage: _selectedImageBytes != null
-                                    ? MemoryImage(_selectedImageBytes!)
-                                    : null,
-                                child: _selectedImageBytes == null
-                                    ? const Icon(
-                                        Icons.person_outline_rounded,
-                                        size: 38,
-                                        color: Color(0xFF94A3B8),
-                                      )
-                                    : null,
+                                backgroundImage:
+                                    _selectedImageBytes != null
+                                        ? MemoryImage(_selectedImageBytes!)
+                                        : null,
+                                child:
+                                    _selectedImageBytes == null
+                                        ? (isEditing &&
+                                                widget
+                                                    .patientToEdit!
+                                                    .imageUrl
+                                                    .isNotEmpty
+                                            ? ClipOval(
+                                              child: FutureBuilder<Uint8List?>(
+                                                future: ApiService()
+                                                    .fetchImageBytes(
+                                                      widget
+                                                          .patientToEdit!
+                                                          .imageUrl,
+                                                    ),
+                                                builder: (context, snapshot) {
+                                                  if (snapshot
+                                                              .connectionState ==
+                                                          ConnectionState
+                                                              .done &&
+                                                      snapshot.data != null &&
+                                                      snapshot
+                                                          .data!
+                                                          .isNotEmpty) {
+                                                    return Image.memory(
+                                                      snapshot.data!,
+                                                      width: 72,
+                                                      height: 72,
+                                                      fit: BoxFit.cover,
+                                                    );
+                                                  }
+                                                  return const Icon(
+                                                    Icons.person_outline_rounded,
+                                                    size: 38,
+                                                    color: Color(0xFF94A3B8),
+                                                  );
+                                                },
+                                              ),
+                                            )
+                                            : const Icon(
+                                              Icons.person_outline_rounded,
+                                              size: 38,
+                                              color: Color(0xFF94A3B8),
+                                            ))
+                                        : null,
                               ),
                               if (_selectedImageBytes != null)
                                 Positioned(
@@ -379,7 +473,12 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                   size: 18,
                                 ),
                                 label: Text(
-                                  _selectedImageBytes != null
+                                  _selectedImageBytes != null ||
+                                          (isEditing &&
+                                              widget
+                                                  .patientToEdit!
+                                                  .imageUrl
+                                                  .isNotEmpty)
                                       ? "Change Photo"
                                       : "Upload Patient Photo",
                                   style: const TextStyle(fontSize: 13),
@@ -436,10 +535,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 _buildTextFormField(
                                   controller: _nameController,
                                   hint: "e.g. Jane Doe",
-                                  validator: (v) =>
-                                      (v == null || v.trim().isEmpty)
-                                      ? 'Name is required'
-                                      : null,
+                                  validator:
+                                      (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                              ? 'Name is required'
+                                              : null,
                                 ),
                               ],
                             ),
@@ -454,10 +554,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 _buildTextFormField(
                                   controller: _usernameController,
                                   hint: "e.g. janedoe",
-                                  validator: (v) =>
-                                      (v == null || v.trim().isEmpty)
-                                      ? 'Username is required'
-                                      : null,
+                                  validator:
+                                      (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                              ? 'Username is required'
+                                              : null,
                                 ),
                               ],
                             ),
@@ -503,10 +604,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                   controller: _phoneController,
                                   hint: "(555) 000-0000",
                                   keyboardType: TextInputType.phone,
-                                  validator: (v) =>
-                                      (v == null || v.trim().isEmpty)
-                                      ? 'Phone number is required'
-                                      : null,
+                                  validator:
+                                      (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                              ? 'Phone number is required'
+                                              : null,
                                 ),
                               ],
                             ),
@@ -522,11 +624,18 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildLabel("Password *"),
+                                _buildLabel(
+                                  isEditing
+                                      ? "New Password (Leave blank to keep current)"
+                                      : "Password *",
+                                ),
                                 const SizedBox(height: 8),
                                 _buildTextFormField(
                                   controller: _passwordController,
-                                  hint: "••••••••",
+                                  hint:
+                                      isEditing
+                                          ? "Leave blank to keep unchanged"
+                                          : "••••••••",
                                   obscureText: _obscurePassword,
                                   suffixIcon: IconButton(
                                     icon: Icon(
@@ -543,10 +652,16 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                     },
                                   ),
                                   validator: (v) {
-                                    if (v == null || v.trim().isEmpty) {
+                                    if (!isEditing &&
+                                        (v == null || v.trim().isEmpty)) {
                                       return 'Password is required';
                                     }
-
+                                    if (isEditing &&
+                                        v != null &&
+                                        v.isNotEmpty &&
+                                        v.length < 6) {
+                                      return 'Password must be at least 6 characters';
+                                    }
                                     return null;
                                   },
                                 ),
@@ -558,11 +673,18 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildLabel("Confirm Password *"),
+                                _buildLabel(
+                                  isEditing
+                                      ? "Confirm New Password"
+                                      : "Confirm Password *",
+                                ),
                                 const SizedBox(height: 8),
                                 _buildTextFormField(
                                   controller: _confirmPasswordController,
-                                  hint: "••••••••",
+                                  hint:
+                                      isEditing
+                                          ? "Confirm new password"
+                                          : "••••••••",
                                   obscureText: _obscureConfirmPassword,
                                   suffixIcon: IconButton(
                                     icon: Icon(
@@ -580,7 +702,12 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                     },
                                   ),
                                   validator: (v) {
-                                    if (v == null || v.trim().isEmpty) {
+                                    if (!isEditing &&
+                                        (v == null || v.trim().isEmpty)) {
+                                      return 'Confirm password is required';
+                                    }
+                                    if (_passwordController.text.isNotEmpty &&
+                                        (v == null || v.isEmpty)) {
                                       return 'Confirm password is required';
                                     }
                                     return null;
@@ -609,10 +736,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                   readOnly: true,
                                   onTap: _selectDateOfBirth,
                                   trailingIcon: Icons.calendar_today_outlined,
-                                  validator: (v) =>
-                                      (v == null || v.trim().isEmpty)
-                                      ? 'DOB is required'
-                                      : null,
+                                  validator:
+                                      (v) =>
+                                          (v == null || v.trim().isEmpty)
+                                              ? 'DOB is required'
+                                              : null,
                                 ),
                               ],
                             ),
@@ -652,18 +780,19 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 const SizedBox(height: 8),
                                 DropdownButtonFormField<String>(
                                   initialValue: _selectedSex,
-                                  items: _sexOptions.map((sex) {
-                                    return DropdownMenuItem<String>(
-                                      value: sex,
-                                      child: Text(
-                                        sex,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Color(0xFF0F172A),
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
+                                  items:
+                                      _sexOptions.map((sex) {
+                                        return DropdownMenuItem<String>(
+                                          value: sex,
+                                          child: Text(
+                                            sex,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Color(0xFF0F172A),
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
                                   onChanged: (val) {
                                     if (val != null) {
                                       setState(() {
@@ -710,7 +839,10 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                       _buildLabel("Registration Date"),
                       const SizedBox(height: 8),
                       TextFormField(
-                        initialValue: todayStr,
+                        initialValue:
+                            isEditing && widget.patientToEdit!.date.isNotEmpty
+                                ? widget.patientToEdit!.date
+                                : todayStr,
                         enabled: false,
                         style: const TextStyle(
                           fontSize: 14,
@@ -831,22 +963,23 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                         vertical: 14,
                       ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                    child:
+                        _isLoading
+                            ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : Text(
+                              isEditing ? "Save Changes" : "Create Profile",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
                             ),
-                          )
-                        : const Text(
-                            "Create Profile",
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
                   ),
                 ],
               ),
