@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
+
+  static const String baseUrl = 'https://b52kcl7t-3000.inc1.devtunnels.ms';
 
   late Dio _dio;
   String? _authToken;
@@ -14,7 +17,7 @@ class ApiService {
   ApiService._internal() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://b52kcl7t-3000.inc1.devtunnels.ms/api',
+        baseUrl: '$baseUrl/api',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {
@@ -163,41 +166,44 @@ class ApiService {
     return await _dio.delete('/admin/users/delete/$id');
   }
 
-  // --- Image Fetching Helper (with bypass headers & caching) ---
+  // --- Image URL Helper ---
+  String getFullImageUrl(String photoPath) {
+    if (photoPath.trim().isEmpty) return '';
+    return '$baseUrl/uploads/$photoPath';
+  }
+
+  // --- Image Fetching Helper ---
   Future<Uint8List?> fetchImageBytes(String url) async {
     if (url.trim().isEmpty) return null;
-    String fullUrl = url.trim();
-    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-      if (fullUrl.startsWith('/')) {
-        fullUrl = 'https://b52kcl7t-3000.inc1.devtunnels.ms$fullUrl';
-      } else {
-        fullUrl = 'https://b52kcl7t-3000.inc1.devtunnels.ms/$fullUrl';
-      }
-    }
+    final fullUrl = getFullImageUrl(url);
 
     if (_imageCache.containsKey(fullUrl)) {
       return _imageCache[fullUrl];
     }
 
     try {
-      final response = await _dio.get<List<int>>(
+      final response = await _dio.get(
         fullUrl,
-        options: Options(
-          responseType: ResponseType.bytes,
-          headers: {
-            'bypass-tunnel-reminder': 'true',
-            'X-Tunnel-Bypass': 'true',
-          },
-        ),
+        options: Options(responseType: ResponseType.bytes),
       );
-      if (response.data != null && response.data!.isNotEmpty) {
-        final bytes = Uint8List.fromList(response.data!);
-        _imageCache[fullUrl] = bytes;
-        return bytes;
+      if (response.data != null) {
+        Uint8List? bytes;
+        if (response.data is Uint8List) {
+          bytes = response.data as Uint8List;
+        } else if (response.data is List<int>) {
+          bytes = Uint8List.fromList(response.data as List<int>);
+        } else if (response.data is ByteBuffer) {
+          bytes = (response.data as ByteBuffer).asUint8List();
+        }
+        if (bytes != null && bytes.isNotEmpty) {
+          _imageCache[fullUrl] = bytes;
+          return bytes;
+        }
       }
     } catch (e) {
       debugPrint("Error fetching image bytes: $e");
     }
+
     return null;
   }
 }

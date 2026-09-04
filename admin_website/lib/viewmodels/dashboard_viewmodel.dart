@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
@@ -65,10 +66,19 @@ class DashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final loginsRes = await _apiService.getTotalLogins();
-      final avgVideosRes = await _apiService.getAvgVideosWatched();
-      final completionRes = await _apiService.getCompletionRate();
-      final logsRes = await _apiService.getActivityLogs();
+      final results = await Future.wait([
+        _apiService.getTotalLogins().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
+        _apiService.getAvgVideosWatched().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
+        _apiService.getCompletionRate().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
+        _apiService.getActivityLogs().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
+        _apiService.listUsers(limit: 100).catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
+      ]);
+
+      final loginsRes = results[0];
+      final avgVideosRes = results[1];
+      final completionRes = results[2];
+      final logsRes = results[3];
+      final usersRes = results[4];
 
       // 1. Total Logins
       final loginsData = loginsRes.data;
@@ -122,24 +132,19 @@ class DashboardViewModel extends ChangeNotifier {
           .toList();
 
       // 5. Total Users count from users list
-      try {
-        final usersRes = await _apiService.listUsers(limit: 100);
-        final resData = usersRes.data;
-        if (resData is Map<String, dynamic>) {
-          if (resData['data'] is Map && resData['data']['total'] != null) {
-            totalUsers = (resData['data']['total'] as num).toInt();
-          } else if (resData['total'] != null) {
-            totalUsers = (resData['total'] as num).toInt();
-          } else if (resData['data'] is List) {
-            totalUsers = (resData['data'] as List).length;
-          } else if (resData['users'] is List) {
-            totalUsers = (resData['users'] as List).length;
-          }
-        } else if (resData is List) {
-          totalUsers = resData.length;
+      final resData = usersRes.data;
+      if (resData is Map<String, dynamic>) {
+        if (resData['data'] is Map && resData['data']['total'] != null) {
+          totalUsers = (resData['data']['total'] as num).toInt();
+        } else if (resData['total'] != null) {
+          totalUsers = (resData['total'] as num).toInt();
+        } else if (resData['data'] is List) {
+          totalUsers = (resData['data'] as List).length;
+        } else if (resData['users'] is List) {
+          totalUsers = (resData['users'] as List).length;
         }
-      } catch (e) {
-        debugPrint("fetch total users error: $e");
+      } else if (resData is List) {
+        totalUsers = resData.length;
       }
     } catch (e) {
       errorMessage = "Failed to load dashboard data.";

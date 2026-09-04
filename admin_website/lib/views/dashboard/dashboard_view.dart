@@ -65,34 +65,57 @@ class _DashboardViewState extends State<DashboardView> {
               ],
             ),
             const SizedBox(height: 16),
-            // Metrics Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
+            // Metrics Section
+            if (MediaQuery.of(context).size.width < 700)
+              Column(
+                children: [
+                  _buildMetricCard(
                     "Total Users",
                     displayedUsersCount.toString(),
                     Icons.people_outline_rounded,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMetricCard(
+                  const SizedBox(height: 10),
+                  _buildMetricCard(
                     "Avg. Videos Watched",
                     _viewModel.avgVideosWatched.toString(),
                     Icons.play_circle_outline,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMetricCard(
+                  const SizedBox(height: 10),
+                  _buildMetricCard(
                     "Completion Rate",
                     "${_viewModel.completionRate}%",
                     Icons.check_circle_outline,
                   ),
-                ),
-              ],
-            ),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricCard(
+                      "Total Users",
+                      displayedUsersCount.toString(),
+                      Icons.people_outline_rounded,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMetricCard(
+                      "Avg. Videos Watched",
+                      _viewModel.avgVideosWatched.toString(),
+                      Icons.play_circle_outline,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMetricCard(
+                      "Completion Rate",
+                      "${_viewModel.completionRate}%",
+                      Icons.check_circle_outline,
+                    ),
+                  ),
+                ],
+              ),
             const SizedBox(height: 16),
             // User Activity Logs Table
             Expanded(
@@ -121,6 +144,88 @@ class _DashboardViewState extends State<DashboardView> {
                             Divider(color: Colors.grey.shade200, height: 8),
                         itemBuilder: (context, index) {
                           final log = _viewModel.activityLogs[index];
+                          final isNarrow = MediaQuery.of(context).size.width < 600;
+
+                          if (isNarrow) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6.0),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: AppTheme.primaryBlue,
+                                    radius: 14,
+                                    child: Text(
+                                      log.id,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          log.patientName,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          "${log.ward} • ${log.lastLogin}",
+                                          style: const TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: log.progressPercentage == 100
+                                                    ? AppTheme.successLight
+                                                    : Colors.blue.shade50,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                "${log.progressPercentage}%",
+                                                style: TextStyle(
+                                                  color: log.progressPercentage == 100
+                                                      ? Colors.green.shade700
+                                                      : AppTheme.primaryBlue,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              "${log.videosWatched}/${log.totalVideos} videos",
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4.0),
                             child: Row(
@@ -152,7 +257,7 @@ class _DashboardViewState extends State<DashboardView> {
                                       ),
                                       Text(
                                         log.ward,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: AppTheme.textSecondary,
                                           fontSize: 11,
                                         ),
@@ -163,7 +268,7 @@ class _DashboardViewState extends State<DashboardView> {
                                 Expanded(
                                   child: Text(
                                     log.lastLogin,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       color: AppTheme.textSecondary,
                                       fontSize: 12,
                                     ),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
@@ -84,7 +85,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                       _viewModel.fetchPatients(search: val, page: 1);
                     },
                     decoration: InputDecoration(
-                      hintText: "Search patients by name or username...",
+                      hintText: "Search patients by name or phonenumber...",
                       hintStyle: const TextStyle(
                         fontSize: 13.5,
                         color: Color(0xFF94A3B8),
@@ -130,34 +131,6 @@ class _PatientsListViewState extends State<PatientsListView> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 11,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.filter_list,
-                        size: 20,
-                        color: AppTheme.textSecondary,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        "Filter",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -574,8 +547,41 @@ class _PatientsListViewState extends State<PatientsListView> {
 
   Widget _buildPatientAvatar(UserModel patient) {
     final photoUrl = patient.imageUrl.trim();
-    if (photoUrl.isEmpty) {
+    final bool hasImage =
+        photoUrl.isNotEmpty &&
+        photoUrl.toLowerCase() != 'null' &&
+        photoUrl.toLowerCase() != 'n/a' &&
+        photoUrl.toLowerCase() != 'undefined' &&
+        photoUrl.toLowerCase() != 'none';
+
+    // If no image is provided, display initial letters directly
+    if (!hasImage) {
       return _buildInitialsAvatar(patient);
+    }
+
+    final fullUrl = ApiService().getFullImageUrl(photoUrl);
+
+    // If Base64 string, render immediately with initials fallback on error
+    if (fullUrl.startsWith('data:image')) {
+      try {
+        final commaIndex = fullUrl.indexOf(',');
+        if (commaIndex != -1) {
+          final bytes = base64Decode(fullUrl.substring(commaIndex + 1));
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              bytes,
+              width: 46,
+              height: 46,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildInitialsAvatar(patient),
+            ),
+          );
+        }
+      } catch (_) {
+        return _buildInitialsAvatar(patient);
+      }
     }
 
     return FutureBuilder<Uint8List?>(
@@ -597,22 +603,48 @@ class _PatientsListViewState extends State<PatientsListView> {
           );
         }
 
+        // Try direct Image.network with tunnel headers as secondary
+        if (fullUrl.startsWith('http://') || fullUrl.startsWith('https://')) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              fullUrl,
+              width: 46,
+              height: 46,
+              headers: const {
+                'bypass-tunnel-reminder': 'true',
+                'X-Tunnel-Bypass': 'true',
+              },
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildInitialsAvatar(patient),
+            ),
+          );
+        }
+
         return _buildInitialsAvatar(patient);
       },
     );
   }
 
   Widget _buildInitialsAvatar(UserModel patient) {
-    final name = patient.name.trim().isNotEmpty
+    final rawName = patient.name.trim().isNotEmpty
         ? patient.name.trim()
-        : (patient.username.trim().isNotEmpty ? patient.username.trim() : 'P');
-    final parts = name.split(' ');
-    final initials = parts
+        : (patient.username.trim().isNotEmpty
+              ? patient.username.trim()
+              : 'Patient');
+    final parts = rawName
+        .split(RegExp(r'\s+'))
         .where((e) => e.isNotEmpty)
-        .take(2)
-        .map((e) => e[0])
-        .join()
-        .toUpperCase();
+        .toList();
+    String initials = '';
+    if (parts.length >= 2) {
+      initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      initials = parts[0][0].toUpperCase();
+    } else {
+      initials = 'P';
+    }
 
     return Container(
       width: 46,
@@ -620,14 +652,16 @@ class _PatientsListViewState extends State<PatientsListView> {
       decoration: BoxDecoration(
         color: AppTheme.secondaryBlue,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.15)),
       ),
       child: Center(
         child: Text(
-          initials.isNotEmpty ? initials : 'P',
+          initials,
           style: const TextStyle(
             color: AppTheme.primaryBlue,
             fontWeight: FontWeight.bold,
             fontSize: 14,
+            letterSpacing: 0.5,
           ),
         ),
       ),

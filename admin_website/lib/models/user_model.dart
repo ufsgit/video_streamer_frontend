@@ -62,7 +62,14 @@ class UserModel {
           '0 days',
       imageUrl: json['photo']?.toString() ??
           json['imageUrl']?.toString() ??
+          json['image']?.toString() ??
+          json['photoUrl']?.toString() ??
+          json['photo_url']?.toString() ??
           json['avatar']?.toString() ??
+          json['profilePicture']?.toString() ??
+          json['profile_picture']?.toString() ??
+          json['profileImage']?.toString() ??
+          json['profile_image']?.toString() ??
           '',
       note: json['note']?.toString() ?? '',
     );

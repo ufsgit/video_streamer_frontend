@@ -32,6 +32,9 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
   String _selectedSex = 'Male';
   final List<String> _sexOptions = ['Male', 'Female', 'Other'];
 
+  String _selectedStatus = 'Active';
+  final List<String> _statusOptions = ['Active', 'Inactive'];
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
@@ -49,7 +52,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       final p = widget.patientToEdit!;
       _nameController.text = p.name;
       _usernameController.text = p.username;
-      _emailController.text = p.email;
+      _emailController.text = p.email == "N/A" ? "" : p.email;
       _phoneController.text = p.phone == "N/A" ? "" : p.phone;
       _dobController.text = p.dob;
       _ageController.text = p.age > 0 ? p.age.toString() : '';
@@ -60,6 +63,13 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
           orElse: () => 'Male',
         );
         _selectedSex = match;
+      }
+      if (p.status.isNotEmpty) {
+        final matchStatus = _statusOptions.firstWhere(
+          (s) => s.toLowerCase() == p.status.toLowerCase(),
+          orElse: () => 'Active',
+        );
+        _selectedStatus = matchStatus;
       }
     }
   }
@@ -145,7 +155,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       return;
     }
 
-    if (!isEditing || _passwordController.text.isNotEmpty) {
+    if (_passwordController.text.isNotEmpty) {
       if (_passwordController.text != _confirmPasswordController.text) {
         setState(() {
           _errorMessage = 'Passwords do not match.';
@@ -161,14 +171,30 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
 
     try {
       final Map<String, dynamic> payload = {
-        'username': _usernameController.text.trim(),
         'name': _nameController.text.trim(),
-        'dob': _dobController.text.trim(),
         'sex': _selectedSex,
-        'email': _emailController.text.trim(),
-        'phone_number': _phoneController.text.trim(),
-        'age': int.tryParse(_ageController.text.trim()) ?? 0,
+        'status': _selectedStatus,
       };
+
+      if (_usernameController.text.trim().isNotEmpty) {
+        payload['username'] = _usernameController.text.trim();
+      }
+
+      if (_dobController.text.trim().isNotEmpty) {
+        payload['dob'] = _dobController.text.trim();
+      }
+
+      if (_emailController.text.trim().isNotEmpty) {
+        payload['email'] = _emailController.text.trim();
+      }
+
+      if (_phoneController.text.trim().isNotEmpty) {
+        payload['phone_number'] = _phoneController.text.trim();
+      }
+
+      if (_ageController.text.trim().isNotEmpty) {
+        payload['age'] = int.tryParse(_ageController.text.trim()) ?? 0;
+      }
 
       if (_passwordController.text.trim().isNotEmpty) {
         payload['password'] = _passwordController.text.trim();
@@ -228,10 +254,9 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       }
     } catch (e) {
       if (mounted) {
-        String errorMsg =
-            isEditing
-                ? 'Failed to update patient. Please check input.'
-                : 'Failed to create patient. Please check input.';
+        String errorMsg = isEditing
+            ? 'Failed to update patient. Please check input.'
+            : 'Failed to create patient. Please check input.';
         if (e is DioException) {
           if (e.response?.data is Map && e.response?.data['message'] != null) {
             errorMsg = e.response!.data['message'].toString();
@@ -261,14 +286,20 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
     final todayStr =
         "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
 
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 20,
+        vertical: isMobile ? 16 : 24,
+      ),
       child: Container(
         width: 820,
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.9,
+          maxWidth: 820,
+          maxHeight: MediaQuery.of(context).size.height * 0.92,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -334,48 +365,12 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
             // Scrollable Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Error Banner
-                      if (_errorMessage != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFEF2F2),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFFECACA)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline_rounded,
-                                color: Color(0xFFDC2626),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    color: Color(0xFFDC2626),
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-
                       // Photo Upload Header Area
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -385,18 +380,16 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                               CircleAvatar(
                                 radius: 36,
                                 backgroundColor: const Color(0xFFF1F5F9),
-                                backgroundImage:
-                                    _selectedImageBytes != null
-                                        ? MemoryImage(_selectedImageBytes!)
-                                        : null,
-                                child:
-                                    _selectedImageBytes == null
-                                        ? (isEditing &&
-                                                widget
-                                                    .patientToEdit!
-                                                    .imageUrl
-                                                    .isNotEmpty
-                                            ? ClipOval(
+                                backgroundImage: _selectedImageBytes != null
+                                    ? MemoryImage(_selectedImageBytes!)
+                                    : null,
+                                child: _selectedImageBytes == null
+                                    ? (isEditing &&
+                                              widget
+                                                  .patientToEdit!
+                                                  .imageUrl
+                                                  .isNotEmpty
+                                          ? ClipOval(
                                               child: FutureBuilder<Uint8List?>(
                                                 future: ApiService()
                                                     .fetchImageBytes(
@@ -405,8 +398,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                                           .imageUrl,
                                                     ),
                                                 builder: (context, snapshot) {
-                                                  if (snapshot
-                                                              .connectionState ==
+                                                  if (snapshot.connectionState ==
                                                           ConnectionState
                                                               .done &&
                                                       snapshot.data != null &&
@@ -421,40 +413,41 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                                     );
                                                   }
                                                   return const Icon(
-                                                    Icons.person_outline_rounded,
+                                                    Icons
+                                                        .person_outline_rounded,
                                                     size: 38,
                                                     color: Color(0xFF94A3B8),
                                                   );
                                                 },
                                               ),
                                             )
-                                            : const Icon(
+                                          : const Icon(
                                               Icons.person_outline_rounded,
                                               size: 38,
                                               color: Color(0xFF94A3B8),
                                             ))
-                                        : null,
+                                    : null,
                               ),
-                              if (_selectedImageBytes != null)
+                              if (_selectedImageBytes != null ||
+                                  (isEditing &&
+                                      widget
+                                          .patientToEdit!
+                                          .imageUrl
+                                          .isNotEmpty))
                                 Positioned(
-                                  top: 0,
+                                  bottom: 0,
                                   right: 0,
                                   child: InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedImageBytes = null;
-                                        _selectedImageName = null;
-                                      });
-                                    },
+                                    onTap: _pickImage,
                                     child: Container(
-                                      padding: const EdgeInsets.all(3),
+                                      padding: const EdgeInsets.all(4),
                                       decoration: const BoxDecoration(
-                                        color: Color(0xFFEF4444),
+                                        color: AppTheme.primaryBlue,
                                         shape: BoxShape.circle,
                                       ),
                                       child: const Icon(
-                                        Icons.close,
-                                        size: 12,
+                                        Icons.camera_alt,
+                                        size: 14,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -462,54 +455,58 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 ),
                             ],
                           ),
-                          const SizedBox(width: 18),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: _pickImage,
-                                icon: const Icon(
-                                  Icons.file_upload_outlined,
-                                  size: 18,
-                                ),
-                                label: Text(
-                                  _selectedImageBytes != null ||
-                                          (isEditing &&
-                                              widget
-                                                  .patientToEdit!
-                                                  .imageUrl
-                                                  .isNotEmpty)
-                                      ? "Change Photo"
-                                      : "Upload Patient Photo",
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppTheme.primaryBlue,
-                                  side: const BorderSide(
-                                    color: Color(0xFFCBD5E1),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: _pickImage,
+                                  icon: const Icon(
+                                    Icons.cloud_upload_outlined,
+                                    size: 18,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                  label: Text(
+                                    _selectedImageBytes != null ||
+                                            (isEditing &&
+                                                widget
+                                                    .patientToEdit!
+                                                    .imageUrl
+                                                    .isNotEmpty)
+                                        ? "Change Photo"
+                                        : "Upload Patient Photo",
+                                    style: const TextStyle(fontSize: 13),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 10,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppTheme.primaryBlue,
+                                    side: const BorderSide(
+                                      color: Color(0xFFCBD5E1),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                "JPG, PNG or WEBP (Optional, max 5MB)",
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: Color(0xFF94A3B8),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  "Max file size: 5MB. Supported formats: JPG, PNG, WEBP.",
+                                  style: TextStyle(
+                                    color: Color(0xFF94A3B8),
+                                    fontSize: 12,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 28),
+                      const Divider(height: 1, color: Color(0xFFEEEEEE)),
+                      const SizedBox(height: 28),
 
                       // Section Title
                       const Text(
@@ -524,315 +521,675 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                       const SizedBox(height: 16),
 
                       // Full Legal Name & Username
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel("Full Legal Name *"),
-                                const SizedBox(height: 8),
-                                _buildTextFormField(
-                                  controller: _nameController,
-                                  hint: "e.g. Jane Doe",
-                                  validator:
-                                      (v) =>
-                                          (v == null || v.trim().isEmpty)
-                                              ? 'Name is required'
-                                              : null,
-                                ),
-                              ],
+                      if (isMobile) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Full Legal Name *"),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _nameController,
+                              hint: "e.g. Jane Doe",
+                              validator: (v) =>
+                                  (v == null || v.trim().isEmpty)
+                                  ? 'Full Legal Name is required'
+                                  : null,
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel("Username *"),
-                                const SizedBox(height: 8),
-                                _buildTextFormField(
-                                  controller: _usernameController,
-                                  hint: "e.g. janedoe",
-                                  validator:
-                                      (v) =>
-                                          (v == null || v.trim().isEmpty)
-                                              ? 'Username is required'
-                                              : null,
-                                ),
-                              ],
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Username *"),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _usernameController,
+                              hint: "e.g. janedoe",
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Full Legal Name *"),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _nameController,
+                                    hint: "e.g. Jane Doe",
+                                    validator: (v) =>
+                                        (v == null || v.trim().isEmpty)
+                                        ? 'Full Legal Name is required'
+                                        : null,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Username *"),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _usernameController,
+                                    hint: "e.g. janedoe",
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 16),
 
                       // Email Address & Phone Number
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel("Email Address *"),
-                                const SizedBox(height: 8),
-                                _buildTextFormField(
-                                  controller: _emailController,
-                                  hint: "patient@example.com",
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (v) {
-                                    if (v == null || v.trim().isEmpty) {
-                                      return 'Email is required';
-                                    }
-                                    if (!v.contains('@') || !v.contains('.')) {
-                                      return 'Enter a valid email';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ],
+                      if (isMobile) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Email Address (Optional)"),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _emailController,
+                              hint: "patient@example.com",
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) {
+                                if (v != null && v.trim().isNotEmpty) {
+                                  if (!v.contains('@') ||
+                                      !v.contains('.')) {
+                                    return 'Enter a valid email';
+                                  }
+                                }
+                                return null;
+                              },
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel("Phone Number *"),
-                                const SizedBox(height: 8),
-                                _buildTextFormField(
-                                  controller: _phoneController,
-                                  hint: "(555) 000-0000",
-                                  keyboardType: TextInputType.phone,
-                                  validator:
-                                      (v) =>
-                                          (v == null || v.trim().isEmpty)
-                                              ? 'Phone number is required'
-                                              : null,
-                                ),
-                              ],
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Phone Number (Optional)"),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _phoneController,
+                              hint: "(555) 000-0000",
+                              keyboardType: TextInputType.phone,
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Email Address (Optional)"),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _emailController,
+                                    hint: "patient@example.com",
+                                    keyboardType: TextInputType.emailAddress,
+                                    validator: (v) {
+                                      if (v != null && v.trim().isNotEmpty) {
+                                        if (!v.contains('@') ||
+                                            !v.contains('.')) {
+                                          return 'Enter a valid email';
+                                        }
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Phone Number (Optional)"),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _phoneController,
+                                    hint: "(555) 000-0000",
+                                    keyboardType: TextInputType.phone,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 16),
 
                       // Password & Confirm Password
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel(
-                                  isEditing
-                                      ? "New Password (Leave blank to keep current)"
-                                      : "Password *",
+                      if (isMobile) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel(
+                              isEditing
+                                  ? "New Password (Leave blank to keep current)"
+                                  : "Password *",
+                            ),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _passwordController,
+                              hint: isEditing
+                                  ? "Leave blank to keep unchanged"
+                                  : "••••••••",
+                              obscureText: _obscurePassword,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 18,
+                                  color: const Color(0xFF94A3B8),
                                 ),
-                                const SizedBox(height: 8),
-                                _buildTextFormField(
-                                  controller: _passwordController,
-                                  hint:
-                                      isEditing
-                                          ? "Leave blank to keep unchanged"
-                                          : "••••••••",
-                                  obscureText: _obscurePassword,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 18,
-                                      color: const Color(0xFF94A3B8),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword = !_obscurePassword;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel(
+                              isEditing
+                                  ? "Confirm New Password"
+                                  : "Confirm Password *",
+                            ),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _confirmPasswordController,
+                              hint: isEditing
+                                  ? "Confirm new password"
+                                  : "••••••••",
+                              obscureText: _obscureConfirmPassword,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 18,
+                                  color: const Color(0xFF94A3B8),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  });
+                                },
+                              ),
+                              validator: (v) {
+                                if (_passwordController.text.isNotEmpty &&
+                                    (v == null || v.isEmpty)) {
+                                  return 'Confirm password is required';
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel(
+                                    isEditing
+                                        ? "New Password (Leave blank to keep current)"
+                                        : "Password *",
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _passwordController,
+                                    hint: isEditing
+                                        ? "Leave blank to keep unchanged"
+                                        : "••••••••",
+                                    obscureText: _obscurePassword,
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        size: 18,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscurePassword = !_obscurePassword;
+                                        });
+                                      },
                                     ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel(
+                                    isEditing
+                                        ? "Confirm New Password"
+                                        : "Confirm Password *",
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _confirmPasswordController,
+                                    hint: isEditing
+                                        ? "Confirm new password"
+                                        : "••••••••",
+                                    obscureText: _obscureConfirmPassword,
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscureConfirmPassword
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        size: 18,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _obscureConfirmPassword =
+                                              !_obscureConfirmPassword;
+                                        });
+                                      },
+                                    ),
+                                    validator: (v) {
+                                      if (_passwordController.text.isNotEmpty &&
+                                          (v == null || v.isEmpty)) {
+                                        return 'Confirm password is required';
+                                      }
+                                      return null;
                                     },
                                   ),
-                                  validator: (v) {
-                                    if (!isEditing &&
-                                        (v == null || v.trim().isEmpty)) {
-                                      return 'Password is required';
-                                    }
-                                    if (isEditing &&
-                                        v != null &&
-                                        v.isNotEmpty &&
-                                        v.length < 6) {
-                                      return 'Password must be at least 6 characters';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel(
-                                  isEditing
-                                      ? "Confirm New Password"
-                                      : "Confirm Password *",
-                                ),
-                                const SizedBox(height: 8),
-                                _buildTextFormField(
-                                  controller: _confirmPasswordController,
-                                  hint:
-                                      isEditing
-                                          ? "Confirm new password"
-                                          : "••••••••",
-                                  obscureText: _obscureConfirmPassword,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureConfirmPassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      size: 18,
-                                      color: const Color(0xFF94A3B8),
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscureConfirmPassword =
-                                            !_obscureConfirmPassword;
-                                      });
-                                    },
-                                  ),
-                                  validator: (v) {
-                                    if (!isEditing &&
-                                        (v == null || v.trim().isEmpty)) {
-                                      return 'Confirm password is required';
-                                    }
-                                    if (_passwordController.text.isNotEmpty &&
-                                        (v == null || v.isEmpty)) {
-                                      return 'Confirm password is required';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
                       const SizedBox(height: 16),
 
-                      // Date of Birth & Age & Biological Sex
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 4,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel("Date of Birth (YYYY-MM-DD) *"),
-                                const SizedBox(height: 8),
-                                _buildTextFormField(
-                                  controller: _dobController,
-                                  hint: "YYYY-MM-DD",
-                                  readOnly: true,
-                                  onTap: _selectDateOfBirth,
-                                  trailingIcon: Icons.calendar_today_outlined,
-                                  validator:
-                                      (v) =>
-                                          (v == null || v.trim().isEmpty)
-                                              ? 'DOB is required'
-                                              : null,
-                                ),
-                              ],
+                      // Date of Birth & Age & Biological Sex & Account Status
+                      if (isMobile) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Date of Birth (YYYY-MM-DD)"),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _dobController,
+                              hint: "YYYY-MM-DD",
+                              readOnly: true,
+                              onTap: _selectDateOfBirth,
+                              trailingIcon: Icons.calendar_today_outlined,
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel("Age *"),
-                                const SizedBox(height: 8),
-                                _buildTextFormField(
-                                  controller: _ageController,
-                                  hint: "e.g. 30",
-                                  keyboardType: TextInputType.number,
-                                  validator: (v) {
-                                    if (v == null || v.trim().isEmpty) {
-                                      return 'Required';
-                                    }
-                                    if (int.tryParse(v.trim()) == null) {
-                                      return 'Invalid';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ],
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Age"),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _ageController,
+                              hint: "e.g. 30",
+                              keyboardType: TextInputType.number,
+                              validator: (v) {
+                                if (v != null && v.trim().isNotEmpty) {
+                                  if (int.tryParse(v.trim()) == null) {
+                                    return 'Invalid';
+                                  }
+                                }
+                                return null;
+                              },
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 4,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel("Biological Sex *"),
-                                const SizedBox(height: 8),
-                                DropdownButtonFormField<String>(
-                                  initialValue: _selectedSex,
-                                  items:
-                                      _sexOptions.map((sex) {
-                                        return DropdownMenuItem<String>(
-                                          value: sex,
-                                          child: Text(
-                                            sex,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Color(0xFF0F172A),
-                                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Biological Sex *"),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              initialValue: _selectedSex,
+                              items: _sexOptions.map((sex) {
+                                return DropdownMenuItem<String>(
+                                  value: sex,
+                                  child: Text(
+                                    sex,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF0F172A),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedSex = val;
+                                  });
+                                }
+                              },
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Sex is required'
+                                  : null,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: AppTheme.primaryBlue,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Account Status *"),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              initialValue: _selectedStatus,
+                              items: _statusOptions.map((status) {
+                                final isAct =
+                                    status.toLowerCase() == 'active';
+                                return DropdownMenuItem<String>(
+                                  value: status,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: isAct
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFF94A3B8),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        status,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  setState(() {
+                                    _selectedStatus = val;
+                                  });
+                                }
+                              },
+                              validator: (v) => (v == null || v.isEmpty)
+                                  ? 'Status is required'
+                                  : null,
+                              decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 12,
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: AppTheme.primaryBlue,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Date of Birth (YYYY-MM-DD)"),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _dobController,
+                                    hint: "YYYY-MM-DD",
+                                    readOnly: true,
+                                    onTap: _selectDateOfBirth,
+                                    trailingIcon: Icons.calendar_today_outlined,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Age"),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _ageController,
+                                    hint: "e.g. 30",
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) {
+                                      if (v != null && v.trim().isNotEmpty) {
+                                        if (int.tryParse(v.trim()) == null) {
+                                          return 'Invalid';
+                                        }
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Biological Sex *"),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String>(
+                                    initialValue: _selectedSex,
+                                    items: _sexOptions.map((sex) {
+                                      return DropdownMenuItem<String>(
+                                        value: sex,
+                                        child: Text(
+                                          sex,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Color(0xFF0F172A),
                                           ),
-                                        );
-                                      }).toList(),
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      setState(() {
-                                        _selectedSex = val;
-                                      });
-                                    }
-                                  },
-                                  decoration: InputDecoration(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFCBD5E1),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setState(() {
+                                          _selectedSex = val;
+                                        });
+                                      }
+                                    },
+                                    validator: (v) => (v == null || v.isEmpty)
+                                        ? 'Sex is required'
+                                        : null,
+                                    decoration: InputDecoration(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
                                       ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFCBD5E1),
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFFCBD5E1),
+                                        ),
                                       ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: AppTheme.primaryBlue,
-                                        width: 1.5,
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFFCBD5E1),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: AppTheme.primaryBlue,
+                                          width: 1.5,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Account Status *"),
+                                  const SizedBox(height: 8),
+                                  DropdownButtonFormField<String>(
+                                    initialValue: _selectedStatus,
+                                    items: _statusOptions.map((status) {
+                                      final isAct =
+                                          status.toLowerCase() == 'active';
+                                      return DropdownMenuItem<String>(
+                                        value: status,
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 8,
+                                              height: 8,
+                                              decoration: BoxDecoration(
+                                                color: isAct
+                                                    ? const Color(0xFF10B981)
+                                                    : const Color(0xFF94A3B8),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              status,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Color(0xFF0F172A),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setState(() {
+                                          _selectedStatus = val;
+                                        });
+                                      }
+                                    },
+                                    validator: (v) => (v == null || v.isEmpty)
+                                        ? 'Status is required'
+                                        : null,
+                                    decoration: InputDecoration(
+                                      contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.white,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFFCBD5E1),
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: Color(0xFFCBD5E1),
+                                        ),
+                                      ),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: const BorderSide(
+                                          color: AppTheme.primaryBlue,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       const SizedBox(height: 16),
 
                       // Registration Date
@@ -841,8 +1198,8 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                       TextFormField(
                         initialValue:
                             isEditing && widget.patientToEdit!.date.isNotEmpty
-                                ? widget.patientToEdit!.date
-                                : todayStr,
+                            ? widget.patientToEdit!.date
+                            : todayStr,
                         enabled: false,
                         style: const TextStyle(
                           fontSize: 14,
@@ -927,9 +1284,47 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
             // Footer Buttons
             Padding(
               padding: const EdgeInsets.all(24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (_errorMessage != null) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: const TextStyle(
+                                color: Color(0xFFDC2626),
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
                   OutlinedButton(
                     onPressed: _isLoading ? null : () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
@@ -963,31 +1358,32 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                         vertical: 14,
                       ),
                     ),
-                    child:
-                        _isLoading
-                            ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                            : Text(
-                              isEditing ? "Save Changes" : "Create Profile",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
                             ),
+                          )
+                        : Text(
+                            isEditing ? "Save Changes" : "Create Profile",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildLabel(String text) {

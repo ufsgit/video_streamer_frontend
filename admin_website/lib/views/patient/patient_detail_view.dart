@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
@@ -300,7 +301,18 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         ],
                       ),
                     ),
-                  if (_isAccountInfoCollapsed)
+                  if (MediaQuery.of(context).size.width < 800)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildAccountInfoCard(),
+                        const SizedBox(height: 16),
+                        _buildEngagementOverviewCard(),
+                        const SizedBox(height: 16),
+                        _buildVideoHistoryCard(),
+                      ],
+                    )
+                  else if (_isAccountInfoCollapsed)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -629,8 +641,40 @@ class _PatientDetailViewState extends State<PatientDetailView> {
 
   Widget _buildPatientAvatar(UserModel patient) {
     final photoUrl = patient.imageUrl.trim();
-    if (photoUrl.isEmpty) {
+    final bool hasImage = photoUrl.isNotEmpty &&
+        photoUrl.toLowerCase() != 'null' &&
+        photoUrl.toLowerCase() != 'n/a' &&
+        photoUrl.toLowerCase() != 'undefined' &&
+        photoUrl.toLowerCase() != 'none';
+
+    // If no image is provided, display initial letters directly
+    if (!hasImage) {
       return _buildInitialsAvatar(patient);
+    }
+
+    final fullUrl = ApiService().getFullImageUrl(photoUrl);
+
+    // If Base64 string, render directly with initials fallback on error
+    if (fullUrl.startsWith('data:image')) {
+      try {
+        final commaIndex = fullUrl.indexOf(',');
+        if (commaIndex != -1) {
+          final bytes = base64Decode(fullUrl.substring(commaIndex + 1));
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              bytes,
+              width: 48,
+              height: 48,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildInitialsAvatar(patient),
+            ),
+          );
+        }
+      } catch (_) {
+        return _buildInitialsAvatar(patient);
+      }
     }
 
     return FutureBuilder<Uint8List?>(
@@ -652,22 +696,43 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           );
         }
 
+        // Try direct Image.network with tunnel headers as secondary
+        if (fullUrl.startsWith('http://') || fullUrl.startsWith('https://')) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              fullUrl,
+              width: 48,
+              height: 48,
+              headers: const {
+                'bypass-tunnel-reminder': 'true',
+                'X-Tunnel-Bypass': 'true',
+              },
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildInitialsAvatar(patient),
+            ),
+          );
+        }
+
         return _buildInitialsAvatar(patient);
       },
     );
   }
 
   Widget _buildInitialsAvatar(UserModel patient) {
-    final name = patient.name.trim().isNotEmpty
+    final rawName = patient.name.trim().isNotEmpty
         ? patient.name.trim()
-        : (patient.username.trim().isNotEmpty ? patient.username.trim() : 'P');
-    final parts = name.split(' ');
-    final initials = parts
-        .where((e) => e.isNotEmpty)
-        .take(2)
-        .map((e) => e[0])
-        .join()
-        .toUpperCase();
+        : (patient.username.trim().isNotEmpty ? patient.username.trim() : 'Patient');
+    final parts = rawName.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+    String initials = '';
+    if (parts.length >= 2) {
+      initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      initials = parts[0][0].toUpperCase();
+    } else {
+      initials = 'P';
+    }
 
     return Container(
       width: 48,
@@ -675,14 +740,18 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       decoration: BoxDecoration(
         color: AppTheme.secondaryBlue,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withValues(alpha: 0.15),
+        ),
       ),
       child: Center(
         child: Text(
-          initials.isNotEmpty ? initials : 'P',
+          initials,
           style: const TextStyle(
             color: AppTheme.primaryBlue,
             fontWeight: FontWeight.bold,
             fontSize: 15,
+            letterSpacing: 0.5,
           ),
         ),
       ),
