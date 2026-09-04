@@ -209,43 +209,178 @@ class _PatientsListViewState extends State<PatientsListView> {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int crossAxisCount = 3;
-        if (constraints.maxWidth < 750) {
-          crossAxisCount = 1;
-        } else if (constraints.maxWidth < 1100) {
-          crossAxisCount = 2;
-        }
+    return Column(
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              int crossAxisCount = 3;
+              if (constraints.maxWidth < 750) {
+                crossAxisCount = 1;
+              } else if (constraints.maxWidth < 1100) {
+                crossAxisCount = 2;
+              }
 
-        return GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            mainAxisExtent: 172,
-          ),
-          itemCount: _viewModel.patients.length,
-          itemBuilder: (context, index) {
-            final patient = _viewModel.patients[index];
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PatientDetailView(patient: patient),
+              return GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  mainAxisExtent: 172,
+                ),
+                itemCount: _viewModel.patients.length,
+                itemBuilder: (context, index) {
+                  final patient = _viewModel.patients[index];
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PatientDetailView(patient: patient),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: _buildPatientCard(patient),
                     ),
                   );
                 },
-                borderRadius: BorderRadius.circular(12),
-                child: _buildPatientCard(patient),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildPaginationBar(),
+      ],
+    );
+  }
+
+  Widget _buildPaginationBar() {
+    if (_viewModel.patients.isEmpty) return const SizedBox.shrink();
+
+    final startIndex =
+        (_viewModel.currentPage - 1) * PatientsListViewModel.pageSize + 1;
+    final endIndex =
+        (_viewModel.currentPage - 1) * PatientsListViewModel.pageSize +
+        _viewModel.patients.length;
+    final total = _viewModel.totalPatients > 0
+        ? _viewModel.totalPatients
+        : endIndex;
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(8),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Showing $startIndex–$endIndex of $total patients",
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
               ),
-            );
-          },
-        );
-      },
+            ),
+            const SizedBox(width: 20),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _viewModel.hasPreviousPage && !_viewModel.isLoading
+                      ? () => _viewModel.previousPage()
+                      : null,
+                  icon: const Icon(Icons.chevron_left, size: 18),
+                  label: const Text(
+                    "Previous",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    foregroundColor: AppTheme.primaryBlue,
+                    disabledForegroundColor: Colors.grey.shade400,
+                    side: BorderSide(
+                      color: _viewModel.hasPreviousPage
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade200,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryBlue.withAlpha(20),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppTheme.primaryBlue.withAlpha(60),
+                    ),
+                  ),
+                  child: Text(
+                    "Page ${_viewModel.currentPage}${_viewModel.totalPages > 1 ? ' of ${_viewModel.totalPages}' : ''}",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: _viewModel.hasNextPage && !_viewModel.isLoading
+                      ? () => _viewModel.nextPage()
+                      : null,
+                  icon: const Icon(Icons.chevron_right, size: 18),
+                  iconAlignment: IconAlignment.end,
+                  label: const Text(
+                    "Next",
+                    style: TextStyle(color: Colors.black),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    foregroundColor: AppTheme.primaryBlue,
+                    disabledForegroundColor: Colors.grey.shade400,
+                    side: BorderSide(
+                      color: _viewModel.hasNextPage
+                          ? Colors.grey.shade300
+                          : Colors.grey.shade200,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -385,7 +520,7 @@ class _PatientsListViewState extends State<PatientsListView> {
             ],
           ),
 
-          const Divider(height: 10, color: Color(0xFFF1F5F9)),
+          const Divider(height: 15, color: Color(0xFFF1F5F9)),
 
           // Bottom Metadata Row
           Row(

@@ -88,17 +88,6 @@ class PatientProfileView extends StatelessWidget {
                 child: _buildPersonalDetailsCard(),
               ),
             ),
-            const SizedBox(height: 32),
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.logout),
-              label: const Text("Sign Out"),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.primaryBlue,
-                side: const BorderSide(color: AppTheme.primaryBlue),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              ),
-            )
           ],
         ),
       ),
