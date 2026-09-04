@@ -53,10 +53,13 @@ class UserModel {
       email: json['email']?.toString() ?? 'N/A',
       status: json['status']?.toString() ?? 'Active',
       date: json['date']?.toString() ??
+          json['memberSince']?.toString() ??
           json['createdAt']?.toString() ??
           json['registeredAt']?.toString() ??
           '',
-      streak: json['streak']?.toString() ?? '0 days',
+      streak: json['streak']?.toString() ??
+          (json['streakDays'] != null ? '${json['streakDays']} days' : null) ??
+          '0 days',
       imageUrl: json['photo']?.toString() ??
           json['imageUrl']?.toString() ??
           json['avatar']?.toString() ??

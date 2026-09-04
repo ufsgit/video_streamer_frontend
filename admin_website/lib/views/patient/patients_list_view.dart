@@ -234,14 +234,17 @@ class _PatientsListViewState extends State<PatientsListView> {
                   return Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: InkWell(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        final result = await Navigator.push<bool>(
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
                                 PatientDetailView(patient: patient),
                           ),
                         );
+                        if (result == true) {
+                          _viewModel.fetchPatients();
+                        }
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: _buildPatientCard(patient),
