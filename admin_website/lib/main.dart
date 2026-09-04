@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
 import 'views/auth/login_view.dart';
-import 'views/patient_layout.dart';
+import 'views/main_layout.dart';
 
 void main() {
   runApp(const MyApp());
@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
         return PageRouteBuilder(
           settings: settings,
           pageBuilder: (context, animation, secondaryAnimation) =>
-              PatientLayout(initialIndex: index),
+              MainLayout(initialIndex: index),
           transitionDuration: Duration.zero,
           reverseTransitionDuration: Duration.zero,
         );

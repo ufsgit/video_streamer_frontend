@@ -5,16 +5,16 @@ import 'library/video_library_view.dart';
 import 'profile/patient_profile_view.dart';
 import 'patient/patients_list_view.dart';
 
-class PatientLayout extends StatefulWidget {
+class MainLayout extends StatefulWidget {
   final int initialIndex;
 
-  const PatientLayout({super.key, this.initialIndex = 0});
+  const MainLayout({super.key, this.initialIndex = 0});
 
   @override
-  State<PatientLayout> createState() => _PatientLayoutState();
+  State<MainLayout> createState() => _MainLayoutState();
 }
 
-class _PatientLayoutState extends State<PatientLayout> {
+class _MainLayoutState extends State<MainLayout> {
   late int _selectedIndex;
 
   static const List<String> _routes = [

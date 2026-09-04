@@ -49,17 +49,18 @@ class _LoginViewState extends State<LoginView> {
         final data = response.data;
         String? token;
         if (data is Map<String, dynamic>) {
-          token = data['token']?.toString() ??
+          token =
+              data['token']?.toString() ??
               data['accessToken']?.toString() ??
               data['jwt']?.toString() ??
               data['authToken']?.toString() ??
               (data['data'] is Map
                   ? (data['data']['token'] ?? data['data']['accessToken'])
-                      ?.toString()
+                        ?.toString()
                   : null) ??
               (data['admin'] is Map
                   ? (data['admin']['token'] ?? data['admin']['accessToken'])
-                      ?.toString()
+                        ?.toString()
                   : null);
         }
         if (token != null && token.isNotEmpty) {
@@ -276,32 +277,6 @@ class _LoginViewState extends State<LoginView> {
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w500,
                                   color: Color(0xFF1E293B),
-                                ),
-                              ),
-                              InkWell(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "Password reset request sent to administrator.",
-                                      ),
-                                    ),
-                                  );
-                                },
-                                borderRadius: BorderRadius.circular(4),
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                    vertical: 2,
-                                  ),
-                                  child: Text(
-                                    "Forgot Password?",
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF0F3D81),
-                                    ),
-                                  ),
                                 ),
                               ),
                             ],

@@ -14,7 +14,7 @@ class ApiService {
   ApiService._internal() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: 'https://7qh4z02n-3000.inc1.devtunnels.ms/api',
+        baseUrl: 'https://b52kcl7t-3000.inc1.devtunnels.ms/api',
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
         headers: {
@@ -121,7 +121,8 @@ class ApiService {
     if (page != null) queryParams['page'] = page;
     if (limit != null) queryParams['limit'] = limit;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
-    if (dateFrom != null && dateFrom.isNotEmpty) queryParams['dateFrom'] = dateFrom;
+    if (dateFrom != null && dateFrom.isNotEmpty)
+      queryParams['dateFrom'] = dateFrom;
     if (dateTo != null && dateTo.isNotEmpty) queryParams['dateTo'] = dateTo;
 
     return await _dio.get(

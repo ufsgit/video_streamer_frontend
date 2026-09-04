@@ -20,12 +20,12 @@ class AssignVideosDialog extends StatefulWidget {
 class _AssignVideosDialogState extends State<AssignVideosDialog> {
   final TextEditingController _searchController = TextEditingController();
   final ApiService _apiService = ApiService();
-  
+
   List<dynamic> _searchResults = [];
   Map<String, dynamic>? _selectedUser;
   bool _isLoading = false;
   Timer? _debounce;
-  
+
   late List<Map<String, dynamic>> _currentVideos;
 
   @override
@@ -66,7 +66,8 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
         if (resData is Map<String, dynamic>) {
           if (resData['data'] is List) {
             rawList = resData['data'];
-          } else if (resData['data'] is Map && resData['data']['users'] is List) {
+          } else if (resData['data'] is Map &&
+              resData['data']['users'] is List) {
             rawList = resData['data']['users'];
           } else if (resData['users'] is List) {
             rawList = resData['users'];
@@ -74,7 +75,7 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
         } else if (resData is List) {
           rawList = resData;
         }
-        
+
         setState(() {
           _searchResults = rawList;
         });
@@ -94,20 +95,21 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
       // Create a list of video objects to assign
       // The API expects assigned_videos or assignedVideos depending on the implementation.
       // Assuming a generic assigned_videos field for the payload:
-      final List<Map<String, dynamic>> videosToAssign = _currentVideos.map((v) => {
-        'id': v['id'],
-        'title': v['title'],
-        'duration': v['duration'],
-        'category': v['category'],
-        'assignedAt': DateTime.now().toIso8601String(),
-      }).toList();
+      final List<Map<String, dynamic>> videosToAssign = _currentVideos
+          .map(
+            (v) => {
+              'id': v['id'],
+              'title': v['title'],
+              'duration': v['duration'],
+              'category': v['category'],
+              'assignedAt': DateTime.now().toIso8601String(),
+            },
+          )
+          .toList();
 
-      await _apiService.editUser(
-        _selectedUser!['id'].toString(),
-        {
-          'assigned_videos': videosToAssign,
-        }
-      );
+      await _apiService.editUser(_selectedUser!['id'].toString(), {
+        'assigned_videos': videosToAssign,
+      });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -169,7 +171,11 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                         color: AppTheme.primaryBlue,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.assignment_ind, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.assignment_ind,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Column(
@@ -177,12 +183,18 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                       children: [
                         Text(
                           "Assign Videos to User",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         SizedBox(height: 2),
                         Text(
                           "Search for a patient or user and confirm educational video assignments.",
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -198,8 +210,14 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Step 2: Select User", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Text("Active Clinical Roster", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                const Text(
+                  "Step 2: Select User",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                Text(
+                  "Active Clinical Roster",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -216,7 +234,13 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                       suffixIcon: _isLoading
                           ? const Padding(
                               padding: EdgeInsets.all(12.0),
-                              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                             )
                           : null,
                       filled: true,
@@ -231,7 +255,9 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppTheme.primaryBlue),
+                        borderSide: const BorderSide(
+                          color: AppTheme.primaryBlue,
+                        ),
                       ),
                     ),
                   ),
@@ -248,15 +274,21 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                         itemCount: _searchResults.length,
                         itemBuilder: (context, index) {
                           final user = _searchResults[index];
-                          final name = user['name'] ?? user['username'] ?? 'Unknown';
+                          final name =
+                              user['name'] ?? user['username'] ?? 'Unknown';
                           final idStr = user['id']?.toString() ?? 'N/A';
-                          final id = idStr.length > 5 ? idStr.substring(0, 5) : idStr;
+                          final id = idStr.length > 5
+                              ? idStr.substring(0, 5)
+                              : idStr;
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: AppTheme.secondaryBlue,
                               child: Text(
                                 name.substring(0, 1).toUpperCase(),
-                                style: const TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: AppTheme.primaryBlue,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                             title: Text(name),
@@ -286,8 +318,15 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                     CircleAvatar(
                       backgroundColor: AppTheme.primaryBlue,
                       child: Text(
-                        (_selectedUser!['name'] ?? _selectedUser!['username'] ?? 'U').substring(0, 1).toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        (_selectedUser!['name'] ??
+                                _selectedUser!['username'] ??
+                                'U')
+                            .substring(0, 1)
+                            .toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -298,19 +337,30 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                           Row(
                             children: [
                               Text(
-                                _selectedUser!['name'] ?? _selectedUser!['username'] ?? 'Unknown',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                _selectedUser!['name'] ??
+                                    _selectedUser!['username'] ??
+                                    'Unknown',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppTheme.primaryBlue,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
                                   "User ID: P${(_selectedUser!['id']?.toString() ?? 'N/A').length > 5 ? (_selectedUser!['id']?.toString() ?? 'N/A').substring(0, 5) : (_selectedUser!['id']?.toString() ?? 'N/A')}",
-                                  style: const TextStyle(color: Colors.white, fontSize: 10),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                  ),
                                 ),
                               ),
                             ],
@@ -318,11 +368,21 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                           const SizedBox(height: 4),
                           const Row(
                             children: [
-                              Icon(Icons.check_circle_outline, color: AppTheme.primaryBlue, size: 14),
+                              Icon(
+                                Icons.check_circle_outline,
+                                color: AppTheme.primaryBlue,
+                                size: 14,
+                              ),
                               SizedBox(width: 4),
-                              Text("Selected User", style: TextStyle(color: AppTheme.primaryBlue, fontSize: 12)),
+                              Text(
+                                "Selected User",
+                                style: TextStyle(
+                                  color: AppTheme.primaryBlue,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -333,7 +393,7 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                           _selectedUser = null;
                         });
                       },
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -341,8 +401,17 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Step 3: Selected Videos (${_currentVideos.length})", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Text("Review videos to be assigned or remove items", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                Text(
+                  "Step 3: Selected Videos (${_currentVideos.length})",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                Text(
+                  "Review videos to be assigned or remove items",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -354,11 +423,17 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                   border: Border.all(color: Colors.grey.shade200),
                 ),
                 child: _currentVideos.isEmpty
-                    ? const Center(child: Text("No videos selected", style: TextStyle(color: AppTheme.textSecondary)))
+                    ? const Center(
+                        child: Text(
+                          "No videos selected",
+                          style: TextStyle(color: AppTheme.textSecondary),
+                        ),
+                      )
                     : ListView.separated(
                         padding: const EdgeInsets.all(12),
                         itemCount: _currentVideos.length,
-                        separatorBuilder: (context, index) => const Divider(height: 16),
+                        separatorBuilder: (context, index) =>
+                            const Divider(height: 16),
                         itemBuilder: (context, index) {
                           final video = _currentVideos[index];
                           return Row(
@@ -370,12 +445,16 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                                   width: 60,
                                   height: 40,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    width: 60,
-                                    height: 40,
-                                    color: Colors.grey.shade300,
-                                    child: const Icon(Icons.image, size: 20),
-                                  ),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        width: 60,
+                                        height: 40,
+                                        color: Colors.grey.shade300,
+                                        child: const Icon(
+                                          Icons.image,
+                                          size: 20,
+                                        ),
+                                      ),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -385,23 +464,40 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                                   children: [
                                     Text(
                                       video['title'],
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        Text("${video['duration']} \u2022 ", style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                                        Text(
+                                          "${video['duration']} \u2022 ",
+                                          style: const TextStyle(
+                                            color: AppTheme.textSecondary,
+                                            fontSize: 11,
+                                          ),
+                                        ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: Colors.grey.shade200,
-                                            borderRadius: BorderRadius.circular(4),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: Text(
                                             video['category'],
-                                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10),
+                                            style: const TextStyle(
+                                              color: AppTheme.textSecondary,
+                                              fontSize: 10,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -411,15 +507,38 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                               ),
                               Row(
                                 children: [
-                                  const Icon(Icons.check, color: AppTheme.primaryBlue, size: 16),
+                                  const Icon(
+                                    Icons.check,
+                                    color: Colors.green,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 4),
-                                  const Text("Selected", style: TextStyle(color: AppTheme.primaryBlue, fontSize: 12)),
+                                  const Text(
+                                    "Selected",
+                                    style: TextStyle(
+                                      color: AppTheme.primaryBlue,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                   const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: const Icon(Icons.close, size: 16, color: AppTheme.textSecondary),
-                                    onPressed: () => _removeVideo(video),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(50),
+                                      border: Border.all(
+                                        width: 1,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.close,
+                                        size: 15,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () => _removeVideo(video),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -435,24 +554,44 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Cancel", style: TextStyle(color: AppTheme.textSecondary)),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
-                  onPressed: _selectedUser == null || _currentVideos.isEmpty || _isLoading ? null : _assignVideos,
+                  onPressed:
+                      _selectedUser == null ||
+                          _currentVideos.isEmpty ||
+                          _isLoading
+                      ? null
+                      : _assignVideos,
                   icon: _isLoading
-                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : const Icon(Icons.video_library, size: 16),
                   label: const Text("Add Videos"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
