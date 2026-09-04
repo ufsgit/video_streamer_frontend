@@ -143,9 +143,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: TextEditingController(
-            text: 'Post-Operative ACL Rehabilitation Routine - Phase 1',
-          ),
+          controller: TextEditingController(),
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -226,7 +224,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
               vertical: 12,
             ),
           ),
-          items: ['Post-Op', 'Pre-Op', 'Educational'].map((String category) {
+          items: ['Post-Op', 'Pre-Op'].map((String category) {
             return DropdownMenuItem(value: category, child: Text(category));
           }).toList(),
           onChanged: (newValue) {
@@ -262,10 +260,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: TextEditingController(
-            text:
-                'Step-by-step physical therapy guidelines for early mobility and quad activation after ACL reconstruction.',
-          ),
+          controller: TextEditingController(),
           maxLines: 3,
           decoration: InputDecoration(
             border: OutlineInputBorder(

@@ -25,6 +25,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
   int _totalVideos = 0;
   int _completedVideos = 0;
   int _progressRate = 0;
+  bool _isAccountInfoCollapsed = false;
 
   @override
   void initState() {
@@ -299,24 +300,48 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         ],
                       ),
                     ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _buildAccountInfoCard()),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildEngagementOverviewCard(),
-                            const SizedBox(height: 16),
-                            _buildVideoHistoryCard(),
-                          ],
+                  if (_isAccountInfoCollapsed)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(flex: 1, child: _buildAccountInfoCard()),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: _buildEngagementOverviewCard(),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(height: 16),
+                        _buildVideoHistoryCard(),
+                      ],
+                    )
+                  else
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(flex: 1, child: _buildAccountInfoCard()),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildEngagementOverviewCard(),
+                                const SizedBox(height: 16),
+                                _buildVideoHistoryCard(),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
@@ -372,97 +397,203 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Avatar and Profile Header
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                _buildPatientAvatar(_patient),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _patient.name.isNotEmpty
-                            ? _patient.name
-                            : (_patient.username.isNotEmpty
-                                  ? _patient.username
-                                  : 'Unnamed'),
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
+              const SizedBox(width: 8),
+              Tooltip(
+                message: _isAccountInfoCollapsed
+                    ? "Expand Account Info"
+                    : "Collapse vertically",
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isAccountInfoCollapsed = !_isAccountInfoCollapsed;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isAccountInfoCollapsed
+                              ? Icons.arrow_downward
+                              : Icons.arrow_upward,
+                          size: 14,
+                          color: AppTheme.primaryBlue,
                         ),
-                      ),
-                      if (_patient.username.isNotEmpty) ...[
-                        const SizedBox(height: 2),
+                        const SizedBox(width: 4),
                         Text(
-                          "@${_patient.username}",
+                          _isAccountInfoCollapsed ? "Expand" : "Collapse",
                           style: const TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryBlue,
                           ),
                         ),
                       ],
-                      const SizedBox(height: 2),
-                      Text(
-                        "ID: ${_patient.id.length > 8 ? _patient.id.substring(0, 8) : _patient.id}",
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+
+          if (_isAccountInfoCollapsed) ...[
+            // Collapsed Compact Profile Header
+            const SizedBox(height: 12),
+            Expanded(
+              child: Center(
+                child: Row(
+                  children: [
+                    _buildPatientAvatar(_patient),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _patient.name.isNotEmpty
+                                ? _patient.name
+                                : (_patient.username.isNotEmpty
+                                      ? _patient.username
+                                      : 'Unnamed'),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _patient.email.isNotEmpty
+                                ? _patient.email
+                                : (_patient.phone.isNotEmpty
+                                      ? _patient.phone
+                                      : "ID: ${_patient.id.length > 8 ? _patient.id.substring(0, 8) : _patient.id}"),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "${_patient.age > 0 ? '${_patient.age} yrs' : 'N/A'} • ${_patient.gender.isNotEmpty ? _patient.gender : 'N/A'}",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
+          ] else ...[
+            const SizedBox(height: 16),
 
-          const Divider(height: 24, color: Color(0xFFF1F5F9)),
+            // Avatar and Profile Header
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  _buildPatientAvatar(_patient),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _patient.name.isNotEmpty
+                              ? _patient.name
+                              : (_patient.username.isNotEmpty
+                                    ? _patient.username
+                                    : 'Unnamed'),
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        if (_patient.username.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            "@${_patient.username}",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 2),
+                        Text(
+                          "ID: ${_patient.id.length > 8 ? _patient.id.substring(0, 8) : _patient.id}",
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-          _buildInfoRow(
-            "AGE : ",
-            _patient.age > 0 ? '${_patient.age} yrs' : 'N/A',
-          ),
-          const SizedBox(height: 10),
-          _buildInfoRow("GENDER : ", _patient.gender),
-          if (_patient.dob.isNotEmpty) ...[
+            const Divider(height: 24, color: Color(0xFFF1F5F9)),
+
+            _buildInfoRow(
+              "AGE : ",
+              _patient.age > 0 ? '${_patient.age} yrs' : 'N/A',
+            ),
             const SizedBox(height: 10),
-            _buildInfoRow("DATE OF BIRTH : ", _patient.dob),
-          ],
-          const SizedBox(height: 10),
-          _buildInfoRow(
-            "PHONE NUMBER : ",
-            _patient.phone.isNotEmpty ? _patient.phone : "N/A",
-          ),
-          const SizedBox(height: 10),
-          _buildInfoRow(
-            "EMAIL ADDRESS : ",
-            _patient.email.isNotEmpty ? _patient.email : "N/A",
-          ),
-          const SizedBox(height: 10),
-          _buildInfoRow(
-            "REGISTRATION DATE : ",
-            _patient.date.isNotEmpty
-                ? (_patient.date.length >= 10
-                      ? _patient.date.substring(0, 10)
-                      : _patient.date)
-                : "N/A",
-          ),
-          const SizedBox(height: 10),
-          _buildInfoRow(
-            "ACTIVITY STREAK : ",
-            _patient.streak.isNotEmpty ? _patient.streak : "0 days",
-          ),
-          if (_patient.note.isNotEmpty) ...[
+            _buildInfoRow("GENDER : ", _patient.gender),
+            if (_patient.dob.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _buildInfoRow("DATE OF BIRTH : ", _patient.dob),
+            ],
             const SizedBox(height: 10),
-            _buildInfoRow("CLINICAL NOTE : ", _patient.note),
+            _buildInfoRow(
+              "PHONE NUMBER : ",
+              _patient.phone.isNotEmpty ? _patient.phone : "N/A",
+            ),
+            const SizedBox(height: 10),
+            _buildInfoRow(
+              "EMAIL ADDRESS : ",
+              _patient.email.isNotEmpty ? _patient.email : "N/A",
+            ),
+            const SizedBox(height: 10),
+            _buildInfoRow(
+              "REGISTRATION DATE : ",
+              _patient.date.isNotEmpty
+                  ? (_patient.date.length >= 10
+                        ? _patient.date.substring(0, 10)
+                        : _patient.date)
+                  : "N/A",
+            ),
+            const SizedBox(height: 10),
+            _buildInfoRow(
+              "ACTIVITY STREAK : ",
+              _patient.streak.isNotEmpty ? _patient.streak : "0 days",
+            ),
+            if (_patient.note.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _buildInfoRow("CLINICAL NOTE : ", _patient.note),
+            ],
           ],
         ],
       ),
