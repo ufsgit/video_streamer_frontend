@@ -223,10 +223,22 @@ class ApiService {
     );
   }
 
+  Future<Response> deleteVideo(String id) async {
+    return await _dio.delete('/admin/videos/delete/$id');
+  }
+
   // --- Image URL Helper ---
   String getFullImageUrl(String photoPath) {
-    if (photoPath.trim().isEmpty) return '';
-    return '$baseUrl/uploads/$photoPath';
+    final trimmed = photoPath.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    final cleanPath = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
+    if (cleanPath.startsWith('uploads/')) {
+      return '$baseUrl/$cleanPath';
+    }
+    return '$baseUrl/uploads/$cleanPath';
   }
 
   // --- Image Fetching Helper ---

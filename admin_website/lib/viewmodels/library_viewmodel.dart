@@ -11,12 +11,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
   bool isSelectionMode = false;
   final Set<Map<String, dynamic>> selectedVideos = {};
 
-  final List<String> categories = [
-    "All",
-    "Pre-op",
-    "Post-op",
-    "General",
-  ];
+  final List<String> categories = ["All", "Pre-op", "Post-op"];
 
   List<Map<String, dynamic>> allVideos = [];
   bool isLoading = false;
@@ -79,7 +74,8 @@ class VideoLibraryViewModel extends ChangeNotifier {
         if (resData is Map<String, dynamic>) {
           if (resData['data'] is List) {
             rawList = resData['data'];
-          } else if (resData['data'] is Map && resData['data']['videos'] is List) {
+          } else if (resData['data'] is Map &&
+              resData['data']['videos'] is List) {
             rawList = resData['data']['videos'];
             totalVideos = resData['data']['total'] ?? rawList.length;
           } else if (resData['videos'] is List) {
@@ -94,37 +90,45 @@ class VideoLibraryViewModel extends ChangeNotifier {
         final List<Map<String, dynamic>> parsedVideos = [];
         for (var item in rawList) {
           if (item is Map<String, dynamic>) {
-            final url = item['video_url']?.toString() ??
+            final url =
+                item['video_url']?.toString() ??
                 item['url']?.toString() ??
                 item['youtubeUrl']?.toString() ??
                 '';
             final ytId = extractYoutubeId(url);
 
             String thumbUrl = '';
-            if (item['thumbnail_url'] != null && item['thumbnail_url'].toString().isNotEmpty) {
-              thumbUrl = item['thumbnail_url'].toString();
-            } else if (item['thumbnail'] != null && item['thumbnail'].toString().isNotEmpty) {
-              final rawThumb = item['thumbnail'].toString();
-              if (rawThumb.startsWith('http')) {
-                thumbUrl = rawThumb;
-              } else {
-                thumbUrl = _apiService.getFullImageUrl(rawThumb);
-              }
-            } else if (ytId != null) {
+            final rawApiThumb = item['thumbnail_url'] ??
+                item['thumbnail'] ??
+                item['thumbnailUrl'] ??
+                item['image_url'] ??
+                item['imageUrl'] ??
+                item['image'] ??
+                item['thumbnail_path'];
+
+            if (rawApiThumb != null && rawApiThumb.toString().trim().isNotEmpty) {
+              thumbUrl = _apiService.getFullImageUrl(rawApiThumb.toString().trim());
+            } else if (ytId != null && ytId.isNotEmpty) {
               thumbUrl = 'https://img.youtube.com/vi/$ytId/hqdefault.jpg';
             } else {
-              thumbUrl = 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60';
+              thumbUrl =
+                  'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60';
             }
 
             parsedVideos.add({
-              'id': item['id']?.toString() ?? item['_id']?.toString() ?? 'vid_${parsedVideos.length}',
+              'id':
+                  item['id']?.toString() ??
+                  item['_id']?.toString() ??
+                  'vid_${parsedVideos.length}',
               'videoId': ytId,
               'title': item['title']?.toString() ?? 'Untitled Video',
               'description': item['description']?.toString() ?? '',
-              'category': item['category']?.toString() ?? 'General',
+              'category': item['category']?.toString() ?? 'Pre-op',
               'duration': item['duration']?.toString() ?? 'Stream',
               'youtubeUrl': url,
               'imageUrl': thumbUrl,
+              'thumbnail_url': thumbUrl,
+              'thumbnail': thumbUrl,
             });
           }
         }
@@ -154,6 +158,33 @@ class VideoLibraryViewModel extends ChangeNotifier {
     allVideos.remove(video);
     selectedVideos.remove(video);
     notifyListeners();
+  }
+
+  Future<bool> deleteVideo(Map<String, dynamic> video) async {
+    final videoId = video['id']?.toString() ?? video['_id']?.toString() ?? '';
+    if (videoId.isEmpty || videoId.startsWith('vid_')) {
+      removeVideo(video);
+      return true;
+    }
+
+    try {
+      final response = await _apiService.deleteVideo(videoId);
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
+        allVideos.removeWhere((v) =>
+            (v['id']?.toString() ?? v['_id']?.toString()) == videoId);
+        selectedVideos.removeWhere((v) =>
+            (v['id']?.toString() ?? v['_id']?.toString()) == videoId);
+        totalVideos = totalVideos > 0 ? totalVideos - 1 : allVideos.length;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Error calling deleteVideo API: $e");
+      rethrow;
+    }
   }
 
   void updateSearchQuery(String query) {

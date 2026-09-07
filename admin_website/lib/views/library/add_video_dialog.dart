@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../core/theme.dart';
 import '../../services/api_service.dart';
 
@@ -26,11 +27,16 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
   bool _isSubmitting = false;
   String? _errorMessage;
 
+  YoutubePlayerController? _previewYoutubeController;
+  bool _isPreviewing = false;
+  String? _previewErrorMessage;
+
   @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
     _urlController.dispose();
+    _previewYoutubeController?.close();
     super.dispose();
   }
 
@@ -362,7 +368,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${(_thumbnailBytes!.lengthInBytes / 1024).toStringAsFixed(1)} KB • Image ready',
+                        '${(_thumbnailBytes!.lengthInBytes / 1024).toStringAsFixed(1)} KB • Ready for upload',
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,
@@ -418,7 +424,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'Upload Custom Thumbnail Image',
+                    'Upload Custom Thumbnail Image (Optional)',
                     style: TextStyle(
                       color: AppTheme.primaryBlue,
                       fontSize: 13,
@@ -433,9 +439,53 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
     );
   }
 
+  void _toggleOrLoadPreview() {
+    if (_isPreviewing) {
+      _clearPreview();
+      return;
+    }
+
+    final url = _urlController.text.trim();
+    final ytId = _extractYtId(url);
+    if (ytId == null) {
+      setState(() {
+        _previewErrorMessage = "Invalid YouTube URL or Video ID";
+      });
+      return;
+    }
+
+    setState(() {
+      _previewErrorMessage = null;
+      _previewYoutubeController?.close();
+      _previewYoutubeController = YoutubePlayerController.fromVideoId(
+        videoId: ytId,
+        autoPlay: true,
+        params: const YoutubePlayerParams(
+          showControls: true,
+          showFullscreenButton: true,
+          mute: false,
+          showVideoAnnotations: false,
+          enableCaption: true,
+        ),
+      );
+      _isPreviewing = true;
+    });
+  }
+
+  void _clearPreview() {
+    setState(() {
+      _isPreviewing = false;
+      _previewErrorMessage = null;
+      _previewYoutubeController?.close();
+      _previewYoutubeController = null;
+    });
+  }
+
   Widget _buildAlternateExternalUrl() {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 450;
+
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -461,7 +511,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'Video URL (YouTube or external link)',
+                        'Video URL (YouTube link)',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppTheme.primaryBlue,
@@ -471,38 +521,182 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                     ],
                   ),
                   Text(
-                    'YouTube, CDN, MP4',
+                    'YouTube Shorts, Watch, Embed',
                     style: TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _urlController,
-                decoration: InputDecoration(
-                  hintText: 'e.g. https://www.youtube.com/watch?v=...',
-                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                  prefixIcon: const Icon(
-                    Icons.play_circle_outline,
-                    color: Colors.red,
-                    size: 20,
+              if (isNarrow)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _urlController,
+                      onChanged: (val) {
+                        if (_isPreviewing) {
+                          _clearPreview();
+                        } else {
+                          setState(() {});
+                        }
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'e.g. https://www.youtube.com/watch?v=...',
+                        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                        prefixIcon: const Icon(
+                          Icons.play_circle_outline,
+                          color: Colors.red,
+                          size: 20,
+                        ),
+                        suffixIcon: _urlController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 16, color: Colors.grey),
+                                onPressed: () {
+                                  _urlController.clear();
+                                  _clearPreview();
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: _urlController.text.trim().isNotEmpty
+                          ? _toggleOrLoadPreview
+                          : null,
+                      icon: Icon(
+                        _isPreviewing
+                            ? Icons.visibility_off_outlined
+                            : Icons.play_circle_fill,
+                        size: 16,
+                      ),
+                      label: Text(_isPreviewing ? 'Hide Preview' : 'Preview Video'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isPreviewing ? Colors.grey.shade700 : Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _urlController,
+                        onChanged: (val) {
+                          if (_isPreviewing) {
+                            _clearPreview();
+                          } else {
+                            setState(() {});
+                          }
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'e.g. https://www.youtube.com/watch?v=...',
+                          hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                          prefixIcon: const Icon(
+                            Icons.play_circle_outline,
+                            color: Colors.red,
+                            size: 20,
+                          ),
+                          suffixIcon: _urlController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 16, color: Colors.grey),
+                                  onPressed: () {
+                                    _urlController.clear();
+                                    _clearPreview();
+                                  },
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: _urlController.text.trim().isNotEmpty
+                          ? _toggleOrLoadPreview
+                          : null,
+                      icon: Icon(
+                        _isPreviewing
+                            ? Icons.visibility_off_outlined
+                            : Icons.play_circle_fill,
+                        size: 16,
+                      ),
+                      label: Text(_isPreviewing ? 'Hide' : 'Preview'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isPreviewing ? Colors.grey.shade700 : Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ],
+                ),
+              if (_previewErrorMessage != null) ...[
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      _previewErrorMessage!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
+              if (_isPreviewing && _previewYoutubeController != null) ...[
+                const SizedBox(height: 14),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                  clipBehavior: Clip.antiAlias,
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: YoutubePlayer(controller: _previewYoutubeController!),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         );
@@ -557,6 +751,24 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         }
 
         final ytId = _extractYtId(url);
+        final rawApiThumb = videoData['thumbnail_url'] ??
+            videoData['thumbnail'] ??
+            videoData['thumbnailUrl'] ??
+            videoData['image_url'] ??
+            videoData['imageUrl'] ??
+            videoData['image'] ??
+            videoData['thumbnail_path'];
+
+        String thumbUrl = '';
+        if (rawApiThumb != null && rawApiThumb.toString().trim().isNotEmpty) {
+          thumbUrl = _apiService.getFullImageUrl(rawApiThumb.toString().trim());
+        } else if (ytId != null && ytId.isNotEmpty) {
+          thumbUrl = 'https://img.youtube.com/vi/$ytId/hqdefault.jpg';
+        } else {
+          thumbUrl =
+              'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60';
+        }
+
         final newVideo = {
           'id':
               videoData['id']?.toString() ??
@@ -569,12 +781,9 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           'category': videoData['category'] ?? _selectedCategory,
           'duration': videoData['duration'] ?? 'Stream',
           'youtubeUrl': url,
-          'imageUrl':
-              videoData['thumbnail_url'] ??
-              videoData['thumbnail'] ??
-              (ytId != null
-                  ? 'https://img.youtube.com/vi/$ytId/hqdefault.jpg'
-                  : 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60'),
+          'imageUrl': thumbUrl,
+          'thumbnail_url': thumbUrl,
+          'thumbnail': thumbUrl,
         };
 
         widget.onVideoAdded?.call(newVideo);

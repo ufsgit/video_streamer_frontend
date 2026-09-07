@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../core/theme.dart';
-import '../../viewmodels/library_viewmodel.dart';
 import '../../services/api_service.dart';
+import '../../viewmodels/library_viewmodel.dart';
 import 'assign_videos_dialog.dart';
 import 'add_video_dialog.dart';
 
@@ -15,105 +15,122 @@ class VideoLibraryView extends StatefulWidget {
 
 class _VideoLibraryViewState extends State<VideoLibraryView> {
   final VideoLibraryViewModel _viewModel = VideoLibraryViewModel();
-  final TextEditingController _youtubeUrlController = TextEditingController();
-  
-  YoutubePlayerController? _youtubeController;
-  String? _currentVideoId;
-  String _currentVideoTitle = "";
-  String? _errorMessage;
-  bool _isPlayerInitialized = false;
-
-  // Preset sample videos for quick testing
-  final List<Map<String, String>> _sampleVideos = [
-    {
-      "label": "Flutter Tutorial",
-      "url": "https://www.youtube.com/watch?v=fq4N0hgOWzU",
-      "title": "Flutter in 100 Seconds",
-    },
-    {
-      "label": "Knee Rehab Routine",
-      "url": "https://www.youtube.com/watch?v=2L2lnxIcNmo",
-      "title": "Physical Therapy Knee Rehabilitation Routine",
-    },
-    {
-      "label": "Guided Breathing",
-      "url": "https://www.youtube.com/watch?v=5DqTuWve9t8",
-      "title": "5-Minute Guided Breathing Exercise",
-    },
-  ];
 
   @override
-  void initState() {
-    super.initState();
-    // Do not auto-initialize or auto-play any video on load to prevent unwanted playback
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
   }
 
-  void _initPlayer(String videoId) {
-    _currentVideoId = videoId;
-    _errorMessage = null;
+  void _playVideoInDialog(Map<String, dynamic> video) {
+    final ytUrl =
+        video["youtubeUrl"] ??
+        video["video_url"] ??
+        video["url"] ??
+        video["link"] ??
+        (video["videoId"] != null
+            ? "https://www.youtube.com/watch?v=${video["videoId"]}"
+            : null);
+    final rawYtId = video["videoId"]?.toString();
+    final videoId = (ytUrl != null ? VideoLibraryViewModel.extractYoutubeId(ytUrl.toString()) : null) ??
+        (rawYtId != null && rawYtId.isNotEmpty ? VideoLibraryViewModel.extractYoutubeId(rawYtId) ?? rawYtId : null);
 
-    if (_youtubeController == null) {
-      _youtubeController = YoutubePlayerController.fromVideoId(
-        videoId: videoId,
-        autoPlay: true,
-        params: const YoutubePlayerParams(
-          showControls: true,
-          showFullscreenButton: true,
-          mute: false,
-          showVideoAnnotations: false,
-          enableCaption: true,
+    if (videoId == null || videoId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No playable YouTube ID found for this video."),
+          backgroundColor: Colors.orange,
         ),
       );
-      _isPlayerInitialized = true;
-    } else {
-      _youtubeController!.loadVideoById(videoId: videoId);
-    }
-  }
-
-  String? _extractVideoId(String input) {
-    final trimmed = input.trim();
-    if (trimmed.isEmpty) return null;
-
-    // Check if input is already an 11-char YouTube ID
-    if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(trimmed)) {
-      return trimmed;
+      return;
     }
 
-    // Standard YouTube URL parser
-    final regExp = RegExp(
-      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
-      caseSensitive: false,
+    final controller = YoutubePlayerController.fromVideoId(
+      videoId: videoId,
+      autoPlay: true,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        mute: false,
+        showVideoAnnotations: false,
+        enableCaption: true,
+      ),
     );
 
-    final match = regExp.firstMatch(trimmed);
-    if (match != null && match.groupCount >= 1) {
-      return match.group(1);
-    }
-
-    // Try controller's built-in converter as fallback
-    try {
-      final converted = YoutubePlayerController.convertUrlToId(trimmed);
-      if (converted != null && converted.isNotEmpty) return converted;
-    } catch (_) {}
-
-    return null;
-  }
-
-  void _testAndPlayVideo([String? customUrl]) {
-    final url = customUrl ?? _youtubeUrlController.text;
-    final videoId = _extractVideoId(url);
-
-    setState(() {
-      if (videoId == null) {
-        _errorMessage = "Invalid YouTube URL or Video ID. Please check the link.";
-        return;
-      }
-
-      _errorMessage = null;
-      _currentVideoId = videoId;
-      _youtubeUrlController.text = url;
-      _initPlayer(videoId);
-    });
+    showDialog(
+      context: context,
+      builder: (ctx) => PopScope(
+        onPopInvokedWithResult: (didPop, result) {
+          controller.close();
+        },
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 820, maxHeight: 560),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  color: const Color(0xFF1E293B),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              video['title'] ?? 'Video Playback',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (video['category'] != null)
+                              Text(
+                                video['category'].toString().toUpperCase(),
+                                style: const TextStyle(
+                                  color: AppTheme.secondaryBlue,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                        tooltip: "Close",
+                        onPressed: () {
+                          controller.close();
+                          Navigator.of(ctx).pop();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: YoutubePlayer(controller: controller),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _openAddVideoDialog() {
@@ -134,94 +151,55 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
     );
   }
 
-  Future<void> _saveCurrentVideoToLibrary() async {
-    if (_currentVideoId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please test a valid YouTube video first.")),
-      );
-      return;
-    }
+  Future<void> _confirmDeleteVideo(Map<String, dynamic> video) async {
+    final title = video["title"] ?? "this video";
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Delete Video", style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text("Are you sure you want to delete '$title' from the library?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
 
-    final title = _currentVideoTitle.isNotEmpty
-        ? _currentVideoTitle
-        : "YouTube Video (${_currentVideoId!})";
-    final url = _youtubeUrlController.text.trim();
-
-    try {
-      final response = await ApiService().createVideo(
-        title: title,
-        category: "general",
-        videoUrl: url,
-        description: "YouTube educational streaming video: $url",
-      );
-
-      Map<String, dynamic> videoData = {};
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final resData = response.data;
-        if (resData is Map<String, dynamic>) {
-          if (resData['data'] is Map<String, dynamic>) {
-            videoData = Map<String, dynamic>.from(resData['data']);
-          } else if (resData['video'] is Map<String, dynamic>) {
-            videoData = Map<String, dynamic>.from(resData['video']);
-          } else {
-            videoData = Map<String, dynamic>.from(resData);
-          }
+    if (confirmed == true && mounted) {
+      try {
+        final success = await _viewModel.deleteVideo(video);
+        if (mounted && success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Video '$title' deleted successfully."),
+              backgroundColor: AppTheme.success,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Failed to delete video: $e"),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
       }
-
-      final newVideo = {
-        "id": videoData['id']?.toString() ?? videoData['_id']?.toString() ?? "yt_${DateTime.now().millisecondsSinceEpoch}",
-        "videoId": _currentVideoId,
-        "title": videoData['title'] ?? title,
-        "description": videoData['description'] ?? "YouTube educational streaming video: $url",
-        "category": videoData['category'] ?? "General",
-        "duration": "Stream",
-        "imageUrl": videoData['thumbnail_url'] ?? videoData['thumbnail'] ?? "https://img.youtube.com/vi/$_currentVideoId/hqdefault.jpg",
-        "youtubeUrl": url,
-      };
-
-      _viewModel.addVideo(newVideo);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Added '$title' to video library!"),
-            backgroundColor: AppTheme.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (_) {
-      final newVideo = {
-        "id": "yt_${DateTime.now().millisecondsSinceEpoch}",
-        "videoId": _currentVideoId,
-        "title": title,
-        "description": "YouTube educational streaming video: $url",
-        "category": "General",
-        "duration": "Stream",
-        "imageUrl": "https://img.youtube.com/vi/$_currentVideoId/hqdefault.jpg",
-        "youtubeUrl": url,
-      };
-
-      _viewModel.addVideo(newVideo);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Added '$title' to video library!"),
-            backgroundColor: AppTheme.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
     }
-  }
-
-  @override
-  void dispose() {
-    _youtubeUrlController.dispose();
-    _youtubeController?.close();
-    super.dispose();
   }
 
   @override
@@ -238,15 +216,6 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Page Header with prominent Add Video button
-                _buildPageHeader(),
-                const SizedBox(height: 20),
-
-                // --- 1. YOUTUBE PLAYER & LINK TESTER CARD ---
-                _buildYoutubeTesterCard(),
-                const SizedBox(height: 28),
-
-                // --- 2. LIBRARY REPOSITORIES SECTION ---
                 _buildLibrarySectionHeader(videos),
                 const SizedBox(height: 14),
 
@@ -271,437 +240,17 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
     );
   }
 
-  Widget _buildPageHeader() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 650;
-        if (isNarrow) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Video Library & YouTube Streamer",
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                "Stream YouTube videos directly, test playback links, and manage rehabilitation content.",
-                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: _openAddVideoDialog,
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text("Add New Video", style: TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryBlue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  "Video Library & YouTube Streamer",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  "Stream YouTube videos directly, test playback links, and manage rehabilitation content.",
-                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                ),
-              ],
-            ),
-            ElevatedButton.icon(
-              onPressed: _openAddVideoDialog,
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text("Add New Video", style: TextStyle(fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryBlue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildYoutubeTesterCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(8),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Card Title Row
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.play_circle_fill_rounded,
-                  color: Colors.red,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "YouTube Video Player & Stream Tester",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      _currentVideoId != null
-                          ? "Playing Video ID: $_currentVideoId"
-                          : "Paste any YouTube link below to stream and test",
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_currentVideoId != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.check_circle, size: 14, color: Colors.green),
-                      SizedBox(width: 4),
-                      Text(
-                        "Player Active",
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // YouTube Link Input Field
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 650;
-              if (isNarrow) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _youtubeUrlController,
-                      decoration: InputDecoration(
-                        hintText: "Enter YouTube URL (e.g. https://www.youtube.com/watch?v=...)",
-                        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                        prefixIcon: const Icon(Icons.link_rounded, color: Colors.red, size: 20),
-                        suffixIcon: _youtubeUrlController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
-                                onPressed: () {
-                                  _youtubeUrlController.clear();
-                                  setState(() {});
-                                },
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 1.5),
-                        ),
-                      ),
-                      onSubmitted: (val) => _testAndPlayVideo(),
-                      onChanged: (val) => setState(() {}),
-                    ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 14),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              _errorMessage!,
-                              style: const TextStyle(color: Colors.red, fontSize: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _testAndPlayVideo(),
-                            icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                            label: const Text("Test & Play"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              elevation: 0,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _currentVideoId != null ? _saveCurrentVideoToLibrary : null,
-                            icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-                            label: const Text("Save to Library"),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.primaryBlue,
-                              side: const BorderSide(color: AppTheme.primaryBlue),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _youtubeUrlController,
-                          decoration: InputDecoration(
-                            hintText: "Enter YouTube URL (e.g. https://www.youtube.com/watch?v=...)",
-                            hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
-                            prefixIcon: const Icon(Icons.link_rounded, color: Colors.red, size: 20),
-                            suffixIcon: _youtubeUrlController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
-                                    onPressed: () {
-                                      _youtubeUrlController.clear();
-                                      setState(() {});
-                                    },
-                                  )
-                                : null,
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(color: AppTheme.primaryBlue, width: 1.5),
-                            ),
-                          ),
-                          onSubmitted: (val) => _testAndPlayVideo(),
-                          onChanged: (val) => setState(() {}),
-                        ),
-                        if (_errorMessage != null) ...[
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.error_outline, color: Colors.red, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                _errorMessage!,
-                                style: const TextStyle(color: Colors.red, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    onPressed: () => _testAndPlayVideo(),
-                    icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                    label: const Text("Test & Play"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: _currentVideoId != null ? _saveCurrentVideoToLibrary : null,
-                    icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-                    label: const Text("Save to Library"),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primaryBlue,
-                      side: const BorderSide(color: AppTheme.primaryBlue),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-
-          // Quick Presets / Test Suggestions
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              const Text(
-                "Quick Test Links:",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
-              ),
-              ..._sampleVideos.map((sample) {
-                return ActionChip(
-                  avatar: const Icon(Icons.play_circle_outline, size: 14, color: Colors.red),
-                  label: Text(sample["label"]!),
-                  labelStyle: const TextStyle(fontSize: 11, color: AppTheme.textPrimary),
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  side: BorderSide.none,
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-                  onPressed: () {
-                    _currentVideoTitle = sample["title"]!;
-                    _testAndPlayVideo(sample["url"]!);
-                  },
-                );
-              }),
-            ],
-          ),
-          const SizedBox(height: 18),
-
-          // Embedded YouTube Player Box
-          Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxHeight: 480),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: _isPlayerInitialized && _youtubeController != null
-                  ? YoutubePlayer(
-                      controller: _youtubeController!,
-                      aspectRatio: 16 / 9,
-                    )
-                  : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(20),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.smart_display_rounded, size: 48, color: Colors.white70),
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            "YouTube Player Idle",
-                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            "Enter a YouTube link above and click 'Test & Play' to stream video",
-                            style: TextStyle(color: Colors.white60, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLibrarySectionHeader(List<Map<String, dynamic>> videos) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
-            const Icon(Icons.video_collection_outlined, size: 20, color: AppTheme.primaryBlue),
+            const Icon(
+              Icons.video_collection_outlined,
+              size: 20,
+              color: AppTheme.primaryBlue,
+            ),
             const SizedBox(width: 8),
             const Text(
               "Saved Library Videos",
@@ -732,7 +281,13 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
         TextButton.icon(
           onPressed: _openAddVideoDialog,
           icon: const Icon(Icons.add, size: 16, color: AppTheme.primaryBlue),
-          label: const Text("Add Video", style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold)),
+          label: const Text(
+            "Add Video",
+            style: TextStyle(
+              color: AppTheme.primaryBlue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
       ],
     );
@@ -779,13 +334,20 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                     selectedColor: AppTheme.categorySelectorColor,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AppTheme.textSecondary,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       fontSize: 12,
                     ),
                     backgroundColor: AppTheme.secondaryBlue,
                     side: BorderSide.none,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 );
               }),
@@ -794,12 +356,19 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 OutlinedButton.icon(
                   onPressed: _viewModel.toggleSelectionMode,
                   icon: const Icon(Icons.checklist, size: 16),
-                  label: Text(_viewModel.isSelectionMode ? "Cancel" : "Select Videos"),
+                  label: Text(
+                    _viewModel.isSelectionMode ? "Cancel" : "Select Videos",
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primaryBlue,
                     side: const BorderSide(color: AppTheme.primaryBlue),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
             ],
@@ -824,7 +393,11 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
             backgroundColor: AppTheme.primaryBlue,
             child: Text(
               "${_viewModel.selectedVideos.length}",
-              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -835,7 +408,10 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
           const SizedBox(width: 12),
           TextButton(
             onPressed: _viewModel.clearSelection,
-            child: const Text("Clear Selection", style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            child: const Text(
+              "Clear Selection",
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
           ),
           const Spacer(),
           ElevatedButton.icon(
@@ -853,11 +429,16 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                     );
                   },
             icon: const Icon(Icons.check, size: 16),
-            label: Text("Assign to Patient (${_viewModel.selectedVideos.length})", style: const TextStyle(fontSize: 12)),
+            label: Text(
+              "Assign to Patient (${_viewModel.selectedVideos.length})",
+              style: const TextStyle(fontSize: 12),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
             ),
           ),
         ],
@@ -901,14 +482,22 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 color: AppTheme.secondaryBlue,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.video_library_outlined, size: 40, color: AppTheme.primaryBlue),
+              child: const Icon(
+                Icons.video_library_outlined,
+                size: 40,
+                color: AppTheme.primaryBlue,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
               _viewModel.errorMessage != null
                   ? _viewModel.errorMessage!
                   : "No videos stored in the library yet",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -916,7 +505,10 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                   ? "Could not reach the video server. Click retry to load again."
                   : "Paste a YouTube video link above and click 'Save to Library', or click 'Add New Video' to build your collection.",
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.textSecondary,
+              ),
             ),
             const SizedBox(height: 16),
             Row(
@@ -937,8 +529,13 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ],
@@ -971,18 +568,36 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
 
   Widget _buildVideoCard(Map<String, dynamic> video) {
     final isSelected = _viewModel.selectedVideos.contains(video);
+    final rawUrl = video["youtubeUrl"]?.toString() ??
+        video["video_url"]?.toString() ??
+        video["url"]?.toString() ??
+        "";
+    final ytId = (video["videoId"] != null && video["videoId"].toString().isNotEmpty)
+        ? video["videoId"].toString()
+        : VideoLibraryViewModel.extractYoutubeId(rawUrl);
+
+    final rawApiThumb = video["thumbnail_url"] ??
+        video["thumbnail"] ??
+        video["thumbnailUrl"] ??
+        video["imageUrl"] ??
+        video["image_url"] ??
+        video["image"] ??
+        video["thumbnail_path"];
+
+    String thumbUrl = '';
+    if (rawApiThumb != null && rawApiThumb.toString().trim().isNotEmpty) {
+      thumbUrl = ApiService().getFullImageUrl(rawApiThumb.toString().trim());
+    } else if (ytId != null && ytId.isNotEmpty) {
+      thumbUrl = "https://img.youtube.com/vi/$ytId/hqdefault.jpg";
+    } else {
+      thumbUrl =
+          "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60";
+    }
 
     return InkWell(
       onTap: _viewModel.isSelectionMode
           ? () => _viewModel.toggleVideoSelection(video)
-          : () {
-              // Clicking a card loads it into the top YouTube player
-              final ytUrl = video["youtubeUrl"] ?? (video["videoId"] != null ? "https://www.youtube.com/watch?v=${video["videoId"]}" : null);
-              if (ytUrl != null) {
-                _currentVideoTitle = video["title"] ?? "";
-                _testAndPlayVideo(ytUrl);
-              }
-            },
+          : () => _playVideoInDialog(video),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         decoration: BoxDecoration(
@@ -1010,14 +625,19 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 fit: StackFit.expand,
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
                     child: Image.network(
-                      video["imageUrl"] ?? "https://img.youtube.com/vi/${video["videoId"] ?? ""}/hqdefault.jpg",
+                      thumbUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: Colors.grey.shade200,
                         child: const Center(
-                          child: Icon(Icons.video_library_rounded, color: Colors.grey),
+                          child: Icon(
+                            Icons.video_library_rounded,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     ),
@@ -1030,14 +650,21 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                         color: Colors.black.withAlpha(120),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                      child: const Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
                   Positioned(
                     bottom: 6,
                     left: 6,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withAlpha(160),
                         borderRadius: BorderRadius.circular(5),
@@ -1045,11 +672,18 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.live_tv_rounded, color: Colors.redAccent, size: 11),
+                          const Icon(
+                            Icons.live_tv_rounded,
+                            color: Colors.redAccent,
+                            size: 11,
+                          ),
                           const SizedBox(width: 3),
                           Text(
                             video["duration"] ?? "Stream",
-                            style: const TextStyle(color: Colors.white, fontSize: 10),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                            ),
                           ),
                         ],
                       ),
@@ -1063,23 +697,39 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: isSelected ? AppTheme.primaryBlue : Colors.white,
+                          color: isSelected
+                              ? AppTheme.primaryBlue
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade300,
+                            color: isSelected
+                                ? AppTheme.primaryBlue
+                                : Colors.grey.shade300,
                           ),
                         ),
-                        child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 16) : null,
+                        child: isSelected
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 16,
+                              )
+                            : null,
                       ),
                     ),
                   Positioned(
                     top: 6,
                     right: 6,
                     child: IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.white),
-                      style: IconButton.styleFrom(backgroundColor: Colors.black.withAlpha(100)),
-                      onPressed: () => _viewModel.removeVideo(video),
-                      tooltip: "Remove from library",
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.black.withAlpha(100),
+                      ),
+                      onPressed: () => _confirmDeleteVideo(video),
+                      tooltip: "Delete from library",
                     ),
                   ),
                 ],
@@ -1089,7 +739,10 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
             Expanded(
               flex: 44,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1099,14 +752,20 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                       children: [
                         Text(
                           video["title"] ?? "Untitled Video",
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12.5,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           video["description"] ?? "",
-                          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10.5),
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 10.5,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1116,7 +775,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          video["category"] ?? "General",
+                          video["category"] ?? "Pre-Op",
                           style: const TextStyle(
                             color: AppTheme.primaryBlue,
                             fontSize: 11,
@@ -1124,18 +783,23 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                           ),
                         ),
                         InkWell(
-                          onTap: () {
-                            final ytUrl = video["youtubeUrl"] ?? (video["videoId"] != null ? "https://www.youtube.com/watch?v=${video["videoId"]}" : null);
-                            if (ytUrl != null) {
-                              _currentVideoTitle = video["title"] ?? "";
-                              _testAndPlayVideo(ytUrl);
-                            }
-                          },
+                          onTap: () => _playVideoInDialog(video),
                           child: Row(
                             children: const [
-                              Icon(Icons.play_circle_fill, size: 14, color: Colors.red),
+                              Icon(
+                                Icons.play_circle_fill,
+                                size: 14,
+                                color: Colors.red,
+                              ),
                               SizedBox(width: 3),
-                              Text("Play", style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold)),
+                              Text(
+                                "Play",
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ),

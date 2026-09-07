@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/api_service.dart';
+import '../../viewmodels/patient_detail_viewmodel.dart';
 import 'create_patient_dialog.dart';
 
 class PatientDetailView extends StatefulWidget {
@@ -16,109 +17,21 @@ class PatientDetailView extends StatefulWidget {
 }
 
 class _PatientDetailViewState extends State<PatientDetailView> {
-  final ApiService _apiService = ApiService();
-  late UserModel _patient;
-
-  bool _isLoading = true;
-  String? _errorMessage;
-
-  List<Map<String, dynamic>> _videoHistory = [];
-  int _totalVideos = 0;
-  int _completedVideos = 0;
-  int _progressRate = 0;
-  bool _isAccountInfoCollapsed = false;
+  late final PatientDetailViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _patient = widget.patient;
-    _fetchPatientDetails();
+    _viewModel = PatientDetailViewModel(patient: widget.patient);
+    _viewModel.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
-  Future<void> _fetchPatientDetails() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final response = await _apiService.getUserById(_patient.id);
-      final resData = response.data;
-
-      Map<String, dynamic> userData = {};
-      if (resData is Map<String, dynamic>) {
-        if (resData['data'] is Map<String, dynamic>) {
-          userData = Map<String, dynamic>.from(resData['data']);
-        } else if (resData['user'] is Map<String, dynamic>) {
-          userData = Map<String, dynamic>.from(resData['user']);
-        } else {
-          userData = resData;
-        }
-      }
-
-      if (userData.isNotEmpty) {
-        _patient = UserModel.fromJson(userData);
-
-        // Parse assigned or watched videos
-        final List<dynamic> rawVideos =
-            userData['assigned_videos'] ??
-            userData['assignedVideos'] ??
-            userData['videos'] ??
-            userData['history'] ??
-            userData['watched_videos'] ??
-            [];
-
-        _videoHistory = rawVideos
-            .map((v) => Map<String, dynamic>.from(v as Map))
-            .toList();
-
-        // Calculate / extract statistics
-        _totalVideos =
-            int.tryParse(
-              userData['total_videos']?.toString() ??
-                  userData['totalVideos']?.toString() ??
-                  userData['total_watched']?.toString() ??
-                  '',
-            ) ??
-            _videoHistory.length;
-
-        _completedVideos =
-            int.tryParse(
-              userData['total_completed']?.toString() ??
-                  userData['completed_videos']?.toString() ??
-                  userData['completedCount']?.toString() ??
-                  '',
-            ) ??
-            _videoHistory
-                .where(
-                  (v) =>
-                      v['isCompleted'] == true ||
-                      v['completed'] == true ||
-                      v['status'] == 'completed' ||
-                      v['progress'] == 100,
-                )
-                .length;
-
-        if (_totalVideos > 0) {
-          _progressRate = ((_completedVideos / _totalVideos) * 100).round();
-        } else if (userData['progress'] != null) {
-          _progressRate =
-              int.tryParse(userData['progress'].toString()) ??
-              (double.tryParse(userData['progress'].toString())?.round() ?? 0);
-        } else {
-          _progressRate = 0;
-        }
-      }
-    } catch (e) {
-      debugPrint("Error fetching patient details: $e");
-      _errorMessage = "Failed to fetch latest details from server.";
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+  @override
+  void dispose() {
+    _viewModel.dispose();
+    super.dispose();
   }
 
   Future<void> _confirmDelete() async {
@@ -127,7 +40,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       builder: (context) => AlertDialog(
         title: const Text("Delete Patient"),
         content: Text(
-          "Are you sure you want to delete ${_patient.name.isNotEmpty ? _patient.name : 'this patient'}? This action cannot be undone.",
+          "Are you sure you want to delete ${_viewModel.patient.name.isNotEmpty ? _viewModel.patient.name : 'this patient'}? This action cannot be undone.",
         ),
         actions: [
           TextButton(
@@ -147,21 +60,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     );
 
     if (confirm == true && mounted) {
-      try {
-        final response = await _apiService.deleteUser(_patient.id);
-        if (response.statusCode == 200 || response.statusCode == 204) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Patient deleted successfully")),
-            );
-            Navigator.pop(context, true);
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Error deleting patient: $e")));
+      final success = await _viewModel.deletePatient();
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Patient deleted successfully")),
+          );
+          Navigator.pop(context, true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error deleting patient")),
+          );
         }
       }
     }
@@ -169,6 +78,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    final patient = _viewModel.patient;
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -190,7 +101,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         ),
         leadingWidth: 40,
         title: Text(
-          _patient.name.isNotEmpty ? _patient.name : 'Unnamed Patient',
+          patient.name.isNotEmpty ? patient.name : 'Unnamed Patient',
           style: const TextStyle(
             color: AppTheme.textPrimary,
             fontWeight: FontWeight.bold,
@@ -207,20 +118,24 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               size: 20,
             ),
             tooltip: "Refresh Details",
-            onPressed: _isLoading ? null : _fetchPatientDetails,
+            onPressed: _viewModel.isLoading ? null : _viewModel.fetchPatientDetails,
           ),
           if (MediaQuery.of(context).size.width < 600) ...[
             IconButton(
-              icon: const Icon(Icons.edit, color: AppTheme.primaryBlue, size: 20),
+              icon: const Icon(
+                Icons.edit,
+                color: AppTheme.primaryBlue,
+                size: 20,
+              ),
               tooltip: "Edit",
               onPressed: () async {
                 final updated = await showDialog<bool>(
                   context: context,
                   builder: (context) =>
-                      CreatePatientDialog(patientToEdit: _patient),
+                      CreatePatientDialog(patientToEdit: patient),
                 );
                 if (updated == true && mounted) {
-                  _fetchPatientDetails();
+                  _viewModel.fetchPatientDetails();
                 }
               },
             ),
@@ -236,10 +151,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                 final updated = await showDialog<bool>(
                   context: context,
                   builder: (context) =>
-                      CreatePatientDialog(patientToEdit: _patient),
+                      CreatePatientDialog(patientToEdit: patient),
                 );
                 if (updated == true && mounted) {
-                  _fetchPatientDetails();
+                  _viewModel.fetchPatientDetails();
                 }
               },
               icon: const Icon(Icons.edit, size: 16),
@@ -247,7 +162,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 minimumSize: const Size(0, 32),
               ),
             ),
@@ -259,7 +177,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 minimumSize: const Size(0, 32),
               ),
             ),
@@ -267,7 +188,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading && _videoHistory.isEmpty
+      body: _viewModel.isLoading && _viewModel.videoHistory.isEmpty
           ? const Center(
               child: CircularProgressIndicator(color: AppTheme.primaryBlue),
             )
@@ -276,7 +197,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_errorMessage != null)
+                  if (_viewModel.errorMessage != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.symmetric(
@@ -298,7 +219,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              _errorMessage!,
+                              _viewModel.errorMessage!,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.amber.shade900,
@@ -306,7 +227,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                             ),
                           ),
                           TextButton(
-                            onPressed: _fetchPatientDetails,
+                            onPressed: _viewModel.fetchPatientDetails,
                             child: const Text("Retry"),
                           ),
                         ],
@@ -323,7 +244,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         _buildVideoHistoryCard(),
                       ],
                     )
-                  else if (_isAccountInfoCollapsed)
+                  else if (_viewModel.isAccountInfoCollapsed)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -372,8 +293,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
   }
 
   Widget _buildAccountInfoCard() {
+    final patient = _viewModel.patient;
     final isActive =
-        _patient.status.toLowerCase() == "active" || _patient.status.isEmpty;
+        patient.status.toLowerCase() == "active" || patient.status.isEmpty;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -422,15 +344,11 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               ),
               const SizedBox(width: 8),
               Tooltip(
-                message: _isAccountInfoCollapsed
+                message: _viewModel.isAccountInfoCollapsed
                     ? "Expand Account Info"
                     : "Collapse vertically",
                 child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _isAccountInfoCollapsed = !_isAccountInfoCollapsed;
-                    });
-                  },
+                  onTap: _viewModel.toggleAccountInfoCollapsed,
                   borderRadius: BorderRadius.circular(6),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -445,7 +363,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          _isAccountInfoCollapsed
+                          _viewModel.isAccountInfoCollapsed
                               ? Icons.arrow_downward
                               : Icons.arrow_upward,
                           size: 14,
@@ -453,7 +371,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _isAccountInfoCollapsed ? "Expand" : "Collapse",
+                          _viewModel.isAccountInfoCollapsed ? "Expand" : "Collapse",
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -468,14 +386,14 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             ],
           ),
 
-          if (_isAccountInfoCollapsed) ...[
+          if (_viewModel.isAccountInfoCollapsed) ...[
             // Collapsed Compact Profile Header
             const SizedBox(height: 12),
             Expanded(
               child: Center(
                 child: Row(
                   children: [
-                    _buildPatientAvatar(_patient),
+                    _buildPatientAvatar(patient),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -483,10 +401,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            _patient.name.isNotEmpty
-                                ? _patient.name
-                                : (_patient.username.isNotEmpty
-                                      ? _patient.username
+                            patient.name.isNotEmpty
+                                ? patient.name
+                                : (patient.username.isNotEmpty
+                                      ? patient.username
                                       : 'Unnamed'),
                             style: const TextStyle(
                               fontSize: 16,
@@ -498,11 +416,11 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            _patient.email.isNotEmpty
-                                ? _patient.email
-                                : (_patient.phone.isNotEmpty
-                                      ? _patient.phone
-                                      : "ID: ${_patient.id.length > 8 ? _patient.id.substring(0, 8) : _patient.id}"),
+                            patient.email.isNotEmpty
+                                ? patient.email
+                                : (patient.phone.isNotEmpty
+                                      ? patient.phone
+                                      : "ID: ${patient.id.length > 8 ? patient.id.substring(0, 8) : patient.id}"),
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppTheme.textSecondary,
@@ -512,7 +430,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "${_patient.age > 0 ? '${_patient.age} yrs' : 'N/A'} • ${_patient.gender.isNotEmpty ? _patient.gender : 'N/A'}",
+                            "${patient.age > 0 ? '${patient.age} yrs' : 'N/A'} • ${patient.gender.isNotEmpty ? patient.gender : 'N/A'}",
                             style: TextStyle(
                               fontSize: 11.5,
                               color: Colors.grey.shade600,
@@ -534,17 +452,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               padding: const EdgeInsets.all(8.0),
               child: Row(
                 children: [
-                  _buildPatientAvatar(_patient),
+                  _buildPatientAvatar(patient),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _patient.name.isNotEmpty
-                              ? _patient.name
-                              : (_patient.username.isNotEmpty
-                                    ? _patient.username
+                          patient.name.isNotEmpty
+                              ? patient.name
+                              : (patient.username.isNotEmpty
+                                    ? patient.username
                                     : 'Unnamed'),
                           style: const TextStyle(
                             fontSize: 17,
@@ -552,10 +470,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                             color: AppTheme.textPrimary,
                           ),
                         ),
-                        if (_patient.username.isNotEmpty) ...[
+                        if (patient.username.isNotEmpty) ...[
                           const SizedBox(height: 2),
                           Text(
-                            "@${_patient.username}",
+                            "@${patient.username}",
                             style: const TextStyle(
                               fontSize: 13,
                               color: AppTheme.textSecondary,
@@ -564,7 +482,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         ],
                         const SizedBox(height: 2),
                         Text(
-                          "ID: ${_patient.id.length > 8 ? _patient.id.substring(0, 8) : _patient.id}",
+                          "ID: ${patient.id.length > 8 ? patient.id.substring(0, 8) : patient.id}",
                           style: TextStyle(
                             fontSize: 12.5,
                             color: Colors.grey.shade500,
@@ -581,41 +499,41 @@ class _PatientDetailViewState extends State<PatientDetailView> {
 
             _buildInfoRow(
               "AGE : ",
-              _patient.age > 0 ? '${_patient.age} yrs' : 'N/A',
+              patient.age > 0 ? '${patient.age} yrs' : 'N/A',
             ),
             const SizedBox(height: 10),
-            _buildInfoRow("GENDER : ", _patient.gender),
-            if (_patient.dob.isNotEmpty) ...[
+            _buildInfoRow("GENDER : ", patient.gender),
+            if (patient.dob.isNotEmpty) ...[
               const SizedBox(height: 10),
-              _buildInfoRow("DATE OF BIRTH : ", _patient.dob),
+              _buildInfoRow("DATE OF BIRTH : ", patient.dob),
             ],
             const SizedBox(height: 10),
             _buildInfoRow(
               "PHONE NUMBER : ",
-              _patient.phone.isNotEmpty ? _patient.phone : "N/A",
+              patient.phone.isNotEmpty ? patient.phone : "N/A",
             ),
             const SizedBox(height: 10),
             _buildInfoRow(
               "EMAIL ADDRESS : ",
-              _patient.email.isNotEmpty ? _patient.email : "N/A",
+              patient.email.isNotEmpty ? patient.email : "N/A",
             ),
             const SizedBox(height: 10),
             _buildInfoRow(
               "REGISTRATION DATE : ",
-              _patient.date.isNotEmpty
-                  ? (_patient.date.length >= 10
-                        ? _patient.date.substring(0, 10)
-                        : _patient.date)
+              patient.date.isNotEmpty
+                  ? (patient.date.length >= 10
+                        ? patient.date.substring(0, 10)
+                        : patient.date)
                   : "N/A",
             ),
             const SizedBox(height: 10),
             _buildInfoRow(
               "ACTIVITY STREAK : ",
-              _patient.streak.isNotEmpty ? _patient.streak : "0 days",
+              patient.streak.isNotEmpty ? patient.streak : "0 days",
             ),
-            if (_patient.note.isNotEmpty) ...[
+            if (patient.note.isNotEmpty) ...[
               const SizedBox(height: 10),
-              _buildInfoRow("CLINICAL NOTE : ", _patient.note),
+              _buildInfoRow("CLINICAL NOTE : ", patient.note),
             ],
           ],
         ],
@@ -645,7 +563,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
       ],
     );
   }
@@ -803,13 +721,13 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             children: [
               _buildStatBox(
                 "Total Assigned",
-                _totalVideos.toString(),
+                _viewModel.totalVideos.toString(),
                 Icons.play_circle_outline,
               ),
               const SizedBox(width: 12),
               _buildStatBox(
                 "Total Completed",
-                _completedVideos.toString(),
+                _viewModel.completedVideos.toString(),
                 Icons.check_circle_outline,
               ),
               const SizedBox(width: 12),
@@ -835,7 +753,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                       Row(
                         children: [
                           Text(
-                            "$_progressRate%",
+                            "${_viewModel.progressRate}%",
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -906,6 +824,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
   }
 
   Widget _buildVideoHistoryCard() {
+    final videoHistory = _viewModel.videoHistory;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -919,7 +839,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           Row(
             children: [
               const Icon(Icons.history, color: AppTheme.primaryBlue, size: 16),
-              const SizedBox(width: 6),
+              SizedBox(width: 6),
               const Text(
                 "Assigned & Watched Video History",
                 style: TextStyle(
@@ -930,7 +850,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               ),
               const Spacer(),
               Text(
-                "${_videoHistory.length} ${_videoHistory.length == 1 ? 'Video' : 'Videos'}",
+                "${videoHistory.length} ${videoHistory.length == 1 ? 'Video' : 'Videos'}",
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade600,
@@ -940,7 +860,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             ],
           ),
           const SizedBox(height: 16),
-          if (_videoHistory.isEmpty)
+          if (videoHistory.isEmpty)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 32),
               alignment: Alignment.center,
@@ -963,17 +883,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _videoHistory.length,
+              itemCount: videoHistory.length,
               separatorBuilder: (context, index) =>
                   const Divider(height: 20, color: Color(0xFFF1F5F9)),
               itemBuilder: (context, index) {
-                final video = _videoHistory[index];
+                final video = videoHistory[index];
                 final title =
                     video['title']?.toString() ??
                     video['name']?.toString() ??
                     'Video #${index + 1}';
                 final duration = video['duration']?.toString() ?? 'N/A';
-                final category = video['category']?.toString() ?? 'General';
+                final category = video['category']?.toString() ?? 'Pre-Op';
                 final dateStr =
                     video['assignedAt']?.toString() ??
                     video['viewedAt']?.toString() ??

@@ -1,7 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
-import '../../services/api_service.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -14,14 +13,21 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernamecontroller = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-  bool _isLoading = false;
-  String? _errorMessage;
+  final AuthViewModel _authViewModel = AuthViewModel();
+
+  @override
+  void initState() {
+    super.initState();
+    _authViewModel.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
     _usernamecontroller.dispose();
     _passwordController.dispose();
+    _authViewModel.dispose();
     super.dispose();
   }
 
@@ -30,76 +36,13 @@ class _LoginViewState extends State<LoginView> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final success = await _authViewModel.login(
+      username: _usernamecontroller.text.trim(),
+      password: _passwordController.text.trim(),
+    );
 
-    try {
-      final username = _usernamecontroller.text.trim();
-      final password = _passwordController.text.trim();
-
-      // Call login API
-      final response = await ApiService().login({
-        'username': username,
-        'password': password,
-      });
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data;
-        String? token;
-        if (data is Map<String, dynamic>) {
-          token =
-              data['token']?.toString() ??
-              data['accessToken']?.toString() ??
-              data['jwt']?.toString() ??
-              data['authToken']?.toString() ??
-              (data['data'] is Map
-                  ? (data['data']['token'] ?? data['data']['accessToken'])
-                        ?.toString()
-                  : null) ??
-              (data['admin'] is Map
-                  ? (data['admin']['token'] ?? data['admin']['accessToken'])
-                        ?.toString()
-                  : null);
-        }
-        if (token != null && token.isNotEmpty) {
-          await ApiService().setAuthToken(token);
-        }
-
-        if (!mounted) return;
-        Navigator.of(context).pushReplacementNamed('/dashboard');
-      } else {
-        setState(() {
-          _errorMessage =
-              response.data?['message']?.toString() ??
-              'Login failed. Please check your credentials.';
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        String errorMsg =
-            'Invalid credentials or server error. Please try again.';
-        if (e is DioException) {
-          if (e.response?.data is Map && e.response?.data['message'] != null) {
-            errorMsg = e.response!.data['message'].toString();
-          } else if (e.type == DioExceptionType.connectionTimeout ||
-              e.type == DioExceptionType.receiveTimeout) {
-            errorMsg = 'Connection timed out. Please try again.';
-          } else if (e.type == DioExceptionType.connectionError) {
-            errorMsg = 'Cannot reach server. Please check backend connection.';
-          }
-        }
-        setState(() {
-          _errorMessage = errorMsg;
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    if (success && mounted) {
+      Navigator.of(context).pushReplacementNamed('/dashboard');
     }
   }
 
@@ -161,7 +104,7 @@ class _LoginViewState extends State<LoginView> {
                           const SizedBox(height: 32),
 
                           // Error Banner
-                          if (_errorMessage != null) ...[
+                          if (_authViewModel.errorMessage != null) ...[
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -184,7 +127,7 @@ class _LoginViewState extends State<LoginView> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      _errorMessage!,
+                                      _authViewModel.errorMessage!,
                                       style: const TextStyle(
                                         color: Color(0xFFDC2626),
                                         fontSize: 13,
@@ -270,8 +213,8 @@ class _LoginViewState extends State<LoginView> {
                           // Password Field & Forgot Password
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
+                            children: const [
+                              Text(
                                 "Password",
                                 style: TextStyle(
                                   fontSize: 13.5,
@@ -284,7 +227,7 @@ class _LoginViewState extends State<LoginView> {
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _passwordController,
-                            obscureText: _obscurePassword,
+                            obscureText: _authViewModel.obscurePassword,
                             style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF0F172A),
@@ -303,17 +246,13 @@ class _LoginViewState extends State<LoginView> {
                               ),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword
+                                  _authViewModel.obscurePassword
                                       ? Icons.visibility_off_outlined
                                       : Icons.visibility_outlined,
                                   color: const Color(0xFF94A3B8),
                                   size: 19,
                                 ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
+                                onPressed: _authViewModel.toggleObscurePassword,
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -364,7 +303,9 @@ class _LoginViewState extends State<LoginView> {
                             width: double.infinity,
                             height: 46,
                             child: ElevatedButton(
-                              onPressed: _isLoading ? null : _handleLogin,
+                              onPressed: _authViewModel.isLoading
+                                  ? null
+                                  : _handleLogin,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF0F3D81),
                                 disabledBackgroundColor: const Color(
@@ -375,7 +316,7 @@ class _LoginViewState extends State<LoginView> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              child: _isLoading
+                              child: _authViewModel.isLoading
                                   ? const SizedBox(
                                       width: 20,
                                       height: 20,
