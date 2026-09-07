@@ -32,8 +32,13 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
             ? "https://www.youtube.com/watch?v=${video["videoId"]}"
             : null);
     final rawYtId = video["videoId"]?.toString();
-    final videoId = (ytUrl != null ? VideoLibraryViewModel.extractYoutubeId(ytUrl.toString()) : null) ??
-        (rawYtId != null && rawYtId.isNotEmpty ? VideoLibraryViewModel.extractYoutubeId(rawYtId) ?? rawYtId : null);
+    final videoId =
+        (ytUrl != null
+            ? VideoLibraryViewModel.extractYoutubeId(ytUrl.toString())
+            : null) ??
+        (rawYtId != null && rawYtId.isNotEmpty
+            ? VideoLibraryViewModel.extractYoutubeId(rawYtId) ?? rawYtId
+            : null);
 
     if (videoId == null || videoId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -78,7 +83,10 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
               children: [
                 Container(
                   color: const Color(0xFF1E293B),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -109,7 +117,11 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         tooltip: "Close",
                         onPressed: () {
                           controller.close();
@@ -157,8 +169,13 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text("Delete Video", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text("Are you sure you want to delete '$title' from the library?"),
+        title: const Text(
+          "Delete Video",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Are you sure you want to delete '$title' from the library?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -199,6 +216,22 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
           );
         }
       }
+    }
+  }
+
+  Future<void> _openEditVideoDialog(Map<String, dynamic> video) async {
+    final updatedVideo = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AddVideoDialog(
+        videoToEdit: video,
+        onVideoAdded: (updated) {
+          _viewModel.fetchVideos(page: _viewModel.currentPage, refresh: true);
+        },
+      ),
+    );
+
+    if (updatedVideo != null && mounted) {
+      _viewModel.fetchVideos(page: _viewModel.currentPage, refresh: true);
     }
   }
 
@@ -352,25 +385,29 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 );
               }),
               const SizedBox(width: 8),
-              if (videos.isNotEmpty)
-                OutlinedButton.icon(
-                  onPressed: _viewModel.toggleSelectionMode,
-                  icon: const Icon(Icons.checklist, size: 16),
-                  label: Text(
-                    _viewModel.isSelectionMode ? "Cancel" : "Select Videos",
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primaryBlue,
-                    side: const BorderSide(color: AppTheme.primaryBlue),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 0,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
+
+              //******************************************
+              //DOCTOR CAN SELECT THE VIDEOS TO BE ASSIGNED TO THE PATIENTS
+
+              // if (videos.isNotEmpty)
+              //   OutlinedButton.icon(
+              //     onPressed: _viewModel.toggleSelectionMode,
+              //     icon: const Icon(Icons.checklist, size: 16),
+              //     label: Text(
+              //       _viewModel.isSelectionMode ? "Cancel" : "Select Videos",
+              //     ),
+              //     style: OutlinedButton.styleFrom(
+              //       foregroundColor: AppTheme.primaryBlue,
+              //       side: const BorderSide(color: AppTheme.primaryBlue),
+              //       padding: const EdgeInsets.symmetric(
+              //         horizontal: 14,
+              //         vertical: 0,
+              //       ),
+              //       shape: RoundedRectangleBorder(
+              //         borderRadius: BorderRadius.circular(16),
+              //       ),
+              //     ),
+              //   ),
             ],
           ),
         ),
@@ -568,15 +605,18 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
 
   Widget _buildVideoCard(Map<String, dynamic> video) {
     final isSelected = _viewModel.selectedVideos.contains(video);
-    final rawUrl = video["youtubeUrl"]?.toString() ??
+    final rawUrl =
+        video["youtubeUrl"]?.toString() ??
         video["video_url"]?.toString() ??
         video["url"]?.toString() ??
         "";
-    final ytId = (video["videoId"] != null && video["videoId"].toString().isNotEmpty)
+    final ytId =
+        (video["videoId"] != null && video["videoId"].toString().isNotEmpty)
         ? video["videoId"].toString()
         : VideoLibraryViewModel.extractYoutubeId(rawUrl);
 
-    final rawApiThumb = video["thumbnail_url"] ??
+    final rawApiThumb =
+        video["thumbnail_url"] ??
         video["thumbnail"] ??
         video["thumbnailUrl"] ??
         video["imageUrl"] ??
@@ -594,33 +634,33 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
           "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60";
     }
 
-    return InkWell(
-      onTap: _viewModel.isSelectionMode
-          ? () => _viewModel.toggleVideoSelection(video)
-          : () => _playVideoInDialog(video),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade200,
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(5),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade200,
+          width: isSelected ? 2 : 1,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Thumbnail Area
-            Expanded(
-              flex: 56,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Thumbnail Area
+          Expanded(
+            flex: 56,
+            child: InkWell(
+              onTap: _viewModel.isSelectionMode
+                  ? () => _viewModel.toggleVideoSelection(video)
+                  : () => _playVideoInDialog(video),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -735,9 +775,15 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 ],
               ),
             ),
-            // Info Area
-            Expanded(
-              flex: 44,
+          ),
+          // Info Area (Clicking white space opens Edit Video Popup)
+          Expanded(
+            flex: 44,
+            child: InkWell(
+              onTap: _viewModel.isSelectionMode
+                  ? () => _viewModel.toggleVideoSelection(video)
+                  : () => _openEditVideoDialog(video),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -750,14 +796,29 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          video["title"] ?? "Untitled Video",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                video["title"] ?? "Untitled Video",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Tooltip(
+                              message: "Click to edit video details",
+                              child: Icon(
+                                Icons.edit_outlined,
+                                size: 13,
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -774,33 +835,46 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          video["category"] ?? "Pre-Op",
-                          style: const TextStyle(
-                            color: AppTheme.primaryBlue,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryBlue.withAlpha(15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            video["category"] ?? "Pre-Op",
+                            style: const TextStyle(
+                              color: AppTheme.primaryBlue,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                         InkWell(
                           onTap: () => _playVideoInDialog(video),
-                          child: Row(
-                            children: const [
-                              Icon(
-                                Icons.play_circle_fill,
-                                size: 14,
-                                color: Colors.red,
-                              ),
-                              SizedBox(width: 3),
-                              Text(
-                                "Play",
-                                style: TextStyle(
+                          child: Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child: Row(
+                              children: const [
+                                Icon(
+                                  Icons.play_circle_fill,
+                                  size: 14,
                                   color: Colors.red,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: 3),
+                                Text(
+                                  "Play",
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -809,8 +883,8 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

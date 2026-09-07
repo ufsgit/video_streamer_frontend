@@ -8,8 +8,9 @@ import '../../services/api_service.dart';
 
 class AddVideoDialog extends StatefulWidget {
   final ValueChanged<Map<String, dynamic>>? onVideoAdded;
+  final Map<String, dynamic>? videoToEdit;
 
-  const AddVideoDialog({super.key, this.onVideoAdded});
+  const AddVideoDialog({super.key, this.onVideoAdded, this.videoToEdit});
 
   @override
   State<AddVideoDialog> createState() => _AddVideoDialogState();
@@ -30,6 +31,44 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
   YoutubePlayerController? _previewYoutubeController;
   bool _isPreviewing = false;
   String? _previewErrorMessage;
+
+  bool get isEditing => widget.videoToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.videoToEdit != null) {
+      final v = widget.videoToEdit!;
+      _titleController.text = v['title']?.toString() ?? '';
+      _descriptionController.text = v['description']?.toString() ?? '';
+      _urlController.text = v['youtubeUrl']?.toString() ??
+          v['video_url']?.toString() ??
+          v['url']?.toString() ??
+          '';
+
+      final cat = (v['category']?.toString() ?? '').toLowerCase();
+      if (cat.contains('pre')) {
+        _selectedCategory = 'Pre-Op';
+      } else {
+        _selectedCategory = 'Post-Op';
+      }
+
+      final url = _urlController.text.trim();
+      final ytId = _extractYtId(url);
+      if (ytId != null && ytId.isNotEmpty) {
+        _previewYoutubeController = YoutubePlayerController.fromVideoId(
+          videoId: ytId,
+          autoPlay: false,
+          params: const YoutubePlayerParams(
+            showControls: true,
+            showFullscreenButton: false,
+            mute: false,
+          ),
+        );
+        _isPreviewing = true;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -146,16 +185,16 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                   color: AppTheme.primaryBlue,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
-                  Icons.video_call,
+                child: Icon(
+                  isEditing ? Icons.edit_note_rounded : Icons.video_call,
                   color: Colors.white,
                   size: 20,
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Add New Video',
-                style: TextStyle(
+              Text(
+                isEditing ? 'Edit Video Details' : 'Add New Video',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
@@ -728,16 +767,30 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
     });
 
     try {
-      final response = await _apiService.createVideo(
-        title: title,
-        category: _selectedCategory,
-        videoUrl: url,
-        description: _descriptionController.text.trim(),
-        thumbnailBytes: _thumbnailBytes,
-        thumbnailFilename: _thumbnailName,
-      );
+      final response = isEditing
+          ? await _apiService.editVideo(
+              widget.videoToEdit!['id']?.toString() ??
+                  widget.videoToEdit!['_id']?.toString() ??
+                  '',
+              title: title,
+              category: _selectedCategory,
+              videoUrl: url,
+              description: _descriptionController.text.trim(),
+              thumbnailBytes: _thumbnailBytes,
+              thumbnailFilename: _thumbnailName,
+            )
+          : await _apiService.createVideo(
+              title: title,
+              category: _selectedCategory,
+              videoUrl: url,
+              description: _descriptionController.text.trim(),
+              thumbnailBytes: _thumbnailBytes,
+              thumbnailFilename: _thumbnailName,
+            );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
         final resData = response.data;
         Map<String, dynamic> videoData = {};
         if (resData is Map<String, dynamic>) {
@@ -757,7 +810,8 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
             videoData['image_url'] ??
             videoData['imageUrl'] ??
             videoData['image'] ??
-            videoData['thumbnail_path'];
+            videoData['thumbnail_path'] ??
+            (isEditing ? widget.videoToEdit!['imageUrl'] : null);
 
         String thumbUrl = '';
         if (rawApiThumb != null && rawApiThumb.toString().trim().isNotEmpty) {
@@ -769,29 +823,34 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
               'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60';
         }
 
-        final newVideo = {
-          'id':
-              videoData['id']?.toString() ??
+        final savedVideo = {
+          'id': videoData['id']?.toString() ??
               videoData['_id']?.toString() ??
+              widget.videoToEdit?['id']?.toString() ??
+              widget.videoToEdit?['_id']?.toString() ??
               'vid_${DateTime.now().millisecondsSinceEpoch}',
           'videoId': ytId,
           'title': videoData['title'] ?? title,
           'description':
               videoData['description'] ?? _descriptionController.text.trim(),
           'category': videoData['category'] ?? _selectedCategory,
-          'duration': videoData['duration'] ?? 'Stream',
+          'duration': videoData['duration'] ?? widget.videoToEdit?['duration'] ?? 'Stream',
           'youtubeUrl': url,
           'imageUrl': thumbUrl,
           'thumbnail_url': thumbUrl,
           'thumbnail': thumbUrl,
         };
 
-        widget.onVideoAdded?.call(newVideo);
+        widget.onVideoAdded?.call(savedVideo);
         if (mounted) {
-          Navigator.of(context).pop(newVideo);
+          Navigator.of(context).pop(savedVideo);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Video '$title' added successfully!"),
+              content: Text(
+                isEditing
+                    ? "Video '$title' updated successfully!"
+                    : "Video '$title' added successfully!",
+              ),
               backgroundColor: AppTheme.success,
               behavior: SnackBarBehavior.floating,
             ),
@@ -803,8 +862,8 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         });
       }
     } catch (e) {
-      debugPrint("Error creating video: $e");
-      String err = "Failed to create video.";
+      debugPrint("Error saving video: $e");
+      String err = isEditing ? "Failed to update video." : "Failed to create video.";
       if (e is DioException) {
         final data = e.response?.data;
         if (data is Map && data['message'] != null) {
@@ -894,8 +953,12 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.upload, size: 18),
-                label: Text(_isSubmitting ? 'Creating...' : 'Add Video'),
+                    : Icon(isEditing ? Icons.save_outlined : Icons.upload, size: 18),
+                label: Text(
+                  _isSubmitting
+                      ? (isEditing ? 'Saving...' : 'Creating...')
+                      : (isEditing ? 'Save Changes' : 'Add Video'),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryBlue,
                   foregroundColor: Colors.white,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
@@ -158,6 +159,38 @@ class VideoLibraryViewModel extends ChangeNotifier {
     allVideos.remove(video);
     selectedVideos.remove(video);
     notifyListeners();
+  }
+
+  Future<bool> updateVideo(
+    String id, {
+    required String title,
+    required String category,
+    required String videoUrl,
+    String? description,
+    Uint8List? thumbnailBytes,
+    String? thumbnailFilename,
+  }) async {
+    try {
+      final response = await _apiService.editVideo(
+        id,
+        title: title,
+        category: category,
+        videoUrl: videoUrl,
+        description: description,
+        thumbnailBytes: thumbnailBytes,
+        thumbnailFilename: thumbnailFilename,
+      );
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 204) {
+        await fetchVideos(page: currentPage, refresh: true);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Error updating video in ViewModel: $e");
+      rethrow;
+    }
   }
 
   Future<bool> deleteVideo(Map<String, dynamic> video) async {

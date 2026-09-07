@@ -223,6 +223,59 @@ class ApiService {
     );
   }
 
+  Future<Response> editVideo(
+    String id, {
+    required String title,
+    required String category,
+    required String videoUrl,
+    String? description,
+    Uint8List? thumbnailBytes,
+    String? thumbnailFilename,
+  }) async {
+    final Map<String, dynamic> formMap = {
+      'title': title,
+      'category': category.toLowerCase(),
+      'video_url': videoUrl,
+    };
+
+    if (description != null) {
+      formMap['description'] = description.trim();
+    }
+
+    if (thumbnailBytes != null && thumbnailBytes.isNotEmpty) {
+      final filename = thumbnailFilename ?? 'thumbnail.jpg';
+      formMap['thumbnail'] = MultipartFile.fromBytes(
+        thumbnailBytes,
+        filename: filename,
+      );
+    }
+
+    final formData = FormData.fromMap(formMap);
+
+    try {
+      return await _dio.put(
+        '/admin/videos/edit/$id',
+        data: formData,
+      );
+    } catch (e) {
+      if (e is DioException &&
+          (e.response?.statusCode == 404 || e.response?.statusCode == 405)) {
+        try {
+          return await _dio.post(
+            '/admin/videos/edit/$id',
+            data: formData,
+          );
+        } catch (_) {
+          return await _dio.patch(
+            '/admin/videos/edit/$id',
+            data: formData,
+          );
+        }
+      }
+      rethrow;
+    }
+  }
+
   Future<Response> deleteVideo(String id) async {
     return await _dio.delete('/admin/videos/delete/$id');
   }
