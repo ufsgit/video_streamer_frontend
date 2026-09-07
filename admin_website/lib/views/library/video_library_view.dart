@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../core/theme.dart';
 import '../../viewmodels/library_viewmodel.dart';
+import '../../services/api_service.dart';
 import 'assign_videos_dialog.dart';
 import 'add_video_dialog.dart';
 
@@ -30,7 +31,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
       "title": "Flutter in 100 Seconds",
     },
     {
-      "label": "Knee Rehab Exercise",
+      "label": "Knee Rehab Routine",
       "url": "https://www.youtube.com/watch?v=2L2lnxIcNmo",
       "title": "Physical Therapy Knee Rehabilitation Routine",
     },
@@ -44,10 +45,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
   @override
   void initState() {
     super.initState();
-    // Default initial video ID (sample medical / tech clip)
-    _initPlayer('fq4N0hgOWzU');
-    _youtubeUrlController.text = 'https://www.youtube.com/watch?v=fq4N0hgOWzU';
-    _currentVideoTitle = 'Flutter in 100 Seconds';
+    // Do not auto-initialize or auto-play any video on load to prevent unwanted playback
   }
 
   void _initPlayer(String videoId) {
@@ -57,7 +55,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
     if (_youtubeController == null) {
       _youtubeController = YoutubePlayerController.fromVideoId(
         videoId: videoId,
-        autoPlay: false,
+        autoPlay: true,
         params: const YoutubePlayerParams(
           showControls: true,
           showFullscreenButton: true,
@@ -118,7 +116,25 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
     });
   }
 
-  void _saveCurrentVideoToLibrary() {
+  void _openAddVideoDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AddVideoDialog(
+        onVideoAdded: (newVideo) {
+          _viewModel.addVideo(newVideo);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Added '${newVideo['title']}' to video library!"),
+              backgroundColor: AppTheme.success,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _saveCurrentVideoToLibrary() async {
     if (_currentVideoId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please test a valid YouTube video first.")),
@@ -129,27 +145,76 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
     final title = _currentVideoTitle.isNotEmpty
         ? _currentVideoTitle
         : "YouTube Video (${_currentVideoId!})";
+    final url = _youtubeUrlController.text.trim();
 
-    final newVideo = {
-      "id": "yt_${DateTime.now().millisecondsSinceEpoch}",
-      "videoId": _currentVideoId,
-      "title": title,
-      "description": "YouTube educational streaming video: ${_youtubeUrlController.text}",
-      "category": "General",
-      "duration": "Stream",
-      "imageUrl": "https://img.youtube.com/vi/$_currentVideoId/hqdefault.jpg",
-      "youtubeUrl": _youtubeUrlController.text,
-    };
+    try {
+      final response = await ApiService().createVideo(
+        title: title,
+        category: "general",
+        videoUrl: url,
+        description: "YouTube educational streaming video: $url",
+      );
 
-    _viewModel.addVideo(newVideo);
+      Map<String, dynamic> videoData = {};
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final resData = response.data;
+        if (resData is Map<String, dynamic>) {
+          if (resData['data'] is Map<String, dynamic>) {
+            videoData = Map<String, dynamic>.from(resData['data']);
+          } else if (resData['video'] is Map<String, dynamic>) {
+            videoData = Map<String, dynamic>.from(resData['video']);
+          } else {
+            videoData = Map<String, dynamic>.from(resData);
+          }
+        }
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Added '$title' to video library!"),
-        backgroundColor: AppTheme.success,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      final newVideo = {
+        "id": videoData['id']?.toString() ?? videoData['_id']?.toString() ?? "yt_${DateTime.now().millisecondsSinceEpoch}",
+        "videoId": _currentVideoId,
+        "title": videoData['title'] ?? title,
+        "description": videoData['description'] ?? "YouTube educational streaming video: $url",
+        "category": videoData['category'] ?? "General",
+        "duration": "Stream",
+        "imageUrl": videoData['thumbnail_url'] ?? videoData['thumbnail'] ?? "https://img.youtube.com/vi/$_currentVideoId/hqdefault.jpg",
+        "youtubeUrl": url,
+      };
+
+      _viewModel.addVideo(newVideo);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Added '$title' to video library!"),
+            backgroundColor: AppTheme.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      final newVideo = {
+        "id": "yt_${DateTime.now().millisecondsSinceEpoch}",
+        "videoId": _currentVideoId,
+        "title": title,
+        "description": "YouTube educational streaming video: $url",
+        "category": "General",
+        "duration": "Stream",
+        "imageUrl": "https://img.youtube.com/vi/$_currentVideoId/hqdefault.jpg",
+        "youtubeUrl": url,
+      };
+
+      _viewModel.addVideo(newVideo);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Added '$title' to video library!"),
+            backgroundColor: AppTheme.success,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -163,17 +228,6 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) => const AddVideoDialog(),
-          );
-        },
-        backgroundColor: AppTheme.primaryBlue,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Add New Video", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: ListenableBuilder(
@@ -184,30 +238,8 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Page Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "Video Library & YouTube Streamer",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          "Stream YouTube videos directly, test playback links, and manage rehabilitation content.",
-                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                // Page Header with prominent Add Video button
+                _buildPageHeader(),
                 const SizedBox(height: 20),
 
                 // --- 1. YOUTUBE PLAYER & LINK TESTER CARD ---
@@ -236,6 +268,83 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildPageHeader() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 650;
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Video Library & YouTube Streamer",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                "Stream YouTube videos directly, test playback links, and manage rehabilitation content.",
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _openAddVideoDialog,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text("Add New Video", style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  "Video Library & YouTube Streamer",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Stream YouTube videos directly, test playback links, and manage rehabilitation content.",
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                ),
+              ],
+            ),
+            ElevatedButton.icon(
+              onPressed: _openAddVideoDialog,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text("Add New Video", style: TextStyle(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -287,7 +396,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                     ),
                     Text(
                       _currentVideoId != null
-                          ? "Loaded Video ID: $_currentVideoId"
+                          ? "Playing Video ID: $_currentVideoId"
                           : "Paste any YouTube link below to stream and test",
                       style: const TextStyle(
                         fontSize: 12,
@@ -557,12 +666,24 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                   : Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.video_library_outlined, size: 48, color: Colors.white54),
-                          SizedBox(height: 10),
-                          Text(
-                            "Enter a YouTube link above to load the stream player",
-                            style: TextStyle(color: Colors.white70, fontSize: 13),
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(20),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.smart_display_rounded, size: 48, color: Colors.white70),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            "YouTube Player Idle",
+                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            "Enter a YouTube link above and click 'Test & Play' to stream video",
+                            style: TextStyle(color: Colors.white60, fontSize: 12),
                           ),
                         ],
                       ),
@@ -607,6 +728,11 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
               ),
             ),
           ],
+        ),
+        TextButton.icon(
+          onPressed: _openAddVideoDialog,
+          icon: const Icon(Icons.add, size: 16, color: AppTheme.primaryBlue),
+          label: const Text("Add Video", style: TextStyle(color: AppTheme.primaryBlue, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -740,6 +866,23 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
   }
 
   Widget _buildVideoGrid(List<Map<String, dynamic>> videos) {
+    if (_viewModel.isLoading) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(60),
+        child: Column(
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(
+              "Loading videos from server...",
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (videos.isEmpty) {
       return Container(
         width: double.infinity,
@@ -754,38 +897,51 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.secondaryBlue,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.video_library_outlined, size: 40, color: AppTheme.primaryBlue),
             ),
             const SizedBox(height: 16),
-            const Text(
-              "No videos stored in the library yet",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            Text(
+              _viewModel.errorMessage != null
+                  ? _viewModel.errorMessage!
+                  : "No videos stored in the library yet",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 6),
-            const Text(
-              "Paste a YouTube video link above and click 'Save to Library', or click 'Add New Video' to build your collection.",
+            Text(
+              _viewModel.errorMessage != null
+                  ? "Could not reach the video server. Click retry to load again."
+                  : "Paste a YouTube video link above and click 'Save to Library', or click 'Add New Video' to build your collection.",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () {
-                _youtubeUrlController.text = "https://www.youtube.com/watch?v=fq4N0hgOWzU";
-                _currentVideoTitle = "Flutter in 100 Seconds";
-                _testAndPlayVideo();
-                _saveCurrentVideoToLibrary();
-              },
-              icon: const Icon(Icons.add_to_photos_outlined, size: 16),
-              label: const Text("Add Sample YouTube Video"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryBlue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_viewModel.errorMessage != null) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => _viewModel.fetchVideos(refresh: true),
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text("Retry"),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                ElevatedButton.icon(
+                  onPressed: _openAddVideoDialog,
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text("Add New Video"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

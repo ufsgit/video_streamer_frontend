@@ -166,6 +166,63 @@ class ApiService {
     return await _dio.delete('/admin/users/delete/$id');
   }
 
+  // --- 5. Video Management ---
+  Future<Response> createVideo({
+    required String title,
+    required String category,
+    required String videoUrl,
+    String? description,
+    Uint8List? thumbnailBytes,
+    String? thumbnailFilename,
+  }) async {
+    final Map<String, dynamic> formMap = {
+      'title': title,
+      'category': category.toLowerCase(),
+      'video_url': videoUrl,
+    };
+
+    if (description != null && description.trim().isNotEmpty) {
+      formMap['description'] = description.trim();
+    }
+
+    if (thumbnailBytes != null && thumbnailBytes.isNotEmpty) {
+      final filename = thumbnailFilename ?? 'thumbnail.jpg';
+      formMap['thumbnail'] = MultipartFile.fromBytes(
+        thumbnailBytes,
+        filename: filename,
+      );
+    }
+
+    final formData = FormData.fromMap(formMap);
+
+    return await _dio.post(
+      '/admin/videos/create',
+      data: formData,
+    );
+  }
+
+  Future<Response> listVideos({
+    int? page,
+    int? limit,
+    String? search,
+    String? category,
+    String? source,
+  }) async {
+    final Map<String, dynamic> queryParams = {};
+    if (page != null) queryParams['page'] = page;
+    if (limit != null) queryParams['limit'] = limit;
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    if (category != null && category.isNotEmpty && category.toLowerCase() != 'all') {
+      queryParams['category'] = category.toLowerCase();
+    }
+    if (source != null && source.isNotEmpty) queryParams['source'] = source;
+
+    return await _dio.get(
+      '/admin/videos/list',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+  }
+
   // --- Image URL Helper ---
   String getFullImageUrl(String photoPath) {
     if (photoPath.trim().isEmpty) return '';

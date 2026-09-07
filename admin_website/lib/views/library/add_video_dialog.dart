@@ -1,17 +1,79 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
 import '../../core/theme.dart';
+import '../../services/api_service.dart';
 
 class AddVideoDialog extends StatefulWidget {
-  const AddVideoDialog({super.key});
+  final ValueChanged<Map<String, dynamic>>? onVideoAdded;
+
+  const AddVideoDialog({super.key, this.onVideoAdded});
 
   @override
   State<AddVideoDialog> createState() => _AddVideoDialogState();
 }
 
 class _AddVideoDialogState extends State<AddVideoDialog> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _urlController = TextEditingController();
+  final ApiService _apiService = ApiService();
+
   String _selectedCategory = 'Post-Op';
-  final bool _isVideoUploaded = true; // Mocking true for UI purposes as per image
-  final bool _isThumbnailUploaded = true;
+  Uint8List? _thumbnailBytes;
+  String? _thumbnailName;
+  bool _isSubmitting = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickThumbnail() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        if (bytes.lengthInBytes > 2 * 1024 * 1024) {
+          setState(() {
+            _errorMessage = "Thumbnail image must be under 2 MB.";
+          });
+          return;
+        }
+        setState(() {
+          _thumbnailBytes = bytes;
+          _thumbnailName = picked.name;
+          _errorMessage = null;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error picking thumbnail image: $e");
+    }
+  }
+
+  String? _extractYtId(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+    if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(trimmed)) return trimmed;
+    final regExp = RegExp(
+      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(trimmed);
+    if (match != null && match.groupCount >= 1) return match.group(1);
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +107,6 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                     _buildCategoryField(),
                     const SizedBox(height: 16),
                     _buildDescriptionField(),
-                    const SizedBox(height: 24),
-                    _buildVideoFileSource(),
                     const SizedBox(height: 24),
                     _buildVideoThumbnailSource(),
                     const SizedBox(height: 24),
@@ -119,11 +179,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
             RichText(
               text: const TextSpan(
                 text: 'Video Title ',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                 children: [
                   TextSpan(
                     text: '*',
@@ -132,26 +188,13 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                 ],
               ),
             ),
-            Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_outline,
-                  color: AppTheme.success,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                const Text(
-                  'Valid title',
-                  style: TextStyle(color: AppTheme.success, fontSize: 12),
-                ),
-              ],
-            ),
           ],
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: TextEditingController(),
+          controller: _titleController,
           decoration: InputDecoration(
+            hintText: "Enter video title...",
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: AppTheme.primaryBlue),
@@ -163,11 +206,6 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 12,
-            ),
-            suffixIcon: const Icon(
-              Icons.check,
-              color: AppTheme.success,
-              size: 20,
             ),
           ),
         ),
@@ -185,11 +223,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
             RichText(
               text: const TextSpan(
                 text: 'Category ',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
                 children: [
                   TextSpan(
                     text: '*',
@@ -197,20 +231,6 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                   ),
                 ],
               ),
-            ),
-            Row(
-              children: [
-                const Icon(
-                  Icons.check_circle_outline,
-                  color: AppTheme.success,
-                  size: 14,
-                ),
-                const SizedBox(width: 4),
-                const Text(
-                  'Selected',
-                  style: TextStyle(color: AppTheme.success, fontSize: 12),
-                ),
-              ],
             ),
           ],
         ),
@@ -253,11 +273,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           children: const [
             Text(
               'Description (Optional)',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey),
             ),
             Text(
               'Patient guidance summary',
@@ -267,9 +283,10 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: TextEditingController(),
+          controller: _descriptionController,
           maxLines: 3,
           decoration: InputDecoration(
+            hintText: "Enter video guidance and notes...",
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey.shade300),
@@ -288,176 +305,6 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
     );
   }
 
-  Widget _buildVideoFileSource() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const [
-            Text(
-              '1. Video File Source',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              'Accepts MP4 files only (max 500 MB)',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.5),
-              style: BorderStyle.none,
-            ),
-          ),
-          child: CustomPaint(
-            painter: DashedRectPainter(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.5),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.file_copy,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Click to browse or drag & drop video files here',
-                    style: TextStyle(
-                      color: AppTheme.primaryBlue,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Hospital approved media formats: MP4 only • Max 500 MB',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        if (_isVideoUploaded) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.play_circle_fill,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'acl_rehab_phase1_routine.mp4',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.success,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'MP4 Ready',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Text(
-                            '42.6 MB • 1080p Full HD • ',
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                          Text(
-                            'Validated',
-                            style: TextStyle(
-                              color: Colors.green.shade700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Replace',
-                    style: TextStyle(color: AppTheme.primaryBlue, fontSize: 13),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.grey,
-                    size: 20,
-                  ),
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _buildVideoThumbnailSource() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,7 +313,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: const [
             Text(
-              '2. Video Thumbnail',
+              '2. Video Thumbnail (Optional)',
               style: TextStyle(
                 fontSize: 13,
                 color: AppTheme.textPrimary,
@@ -480,12 +327,13 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           ],
         ),
         const SizedBox(height: 8),
-        if (_isThumbnailUploaded)
+        if (_thumbnailBytes != null)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(8),
+              color: Colors.white,
             ),
             child: Row(
               children: [
@@ -495,10 +343,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                     width: 60,
                     height: 40,
                     color: Colors.grey.shade200,
-                    child: const Icon(
-                      Icons.image,
-                      color: Colors.grey,
-                    ), // Mock image
+                    child: Image.memory(_thumbnailBytes!, fit: BoxFit.cover),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -506,46 +351,28 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'acl_thumb_preview.jpg',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.secondaryBlue,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'Preview Set',
-                              style: TextStyle(
-                                color: AppTheme.primaryBlue,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        _thumbnailName ?? 'custom_thumbnail.jpg',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        '420 KB • 1280 × 720',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      Text(
+                        '${(_thumbnailBytes!.lengthInBytes / 1024).toStringAsFixed(1)} KB • Image ready',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: _pickThumbnail,
                   child: const Text(
                     'Replace',
                     style: TextStyle(color: AppTheme.primaryBlue, fontSize: 13),
@@ -557,9 +384,49 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                     color: Colors.grey,
                     size: 20,
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    setState(() {
+                      _thumbnailBytes = null;
+                      _thumbnailName = null;
+                    });
+                  },
                 ),
               ],
+            ),
+          )
+        else
+          InkWell(
+            onTap: _pickThumbnail,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.grey.shade300,
+                  style: BorderStyle.solid,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFFF8FAFC),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    color: AppTheme.primaryBlue,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Upload Custom Thumbnail Image',
+                    style: TextStyle(
+                      color: AppTheme.primaryBlue,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
       ],
@@ -569,8 +436,6 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
   Widget _buildAlternateExternalUrl() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 480;
-
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -590,13 +455,13 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.alternate_email,
+                        Icons.link_rounded,
                         color: AppTheme.primaryBlue,
                         size: 16,
                       ),
                       SizedBox(width: 8),
                       Text(
-                        'Alternate: Embed Video URL',
+                        'Video URL (YouTube or external link)',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppTheme.primaryBlue,
@@ -606,118 +471,38 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                     ],
                   ),
                   Text(
-                    'YouTube, CDN',
+                    'YouTube, CDN, MP4',
                     style: TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              if (isNarrow)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Paste video URL...',
-                        hintStyle: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.link,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.sync, size: 16),
-                      label: const Text('Validate'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.secondaryBlue,
-                        foregroundColor: AppTheme.primaryBlue,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText:
-                              'Paste YouTube or external video URL (e.g., https://youtube.com/watch?v=)',
-                          hintStyle: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.link,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.sync, size: 16),
-                      label: const Text('Validate'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.secondaryBlue,
-                        foregroundColor: AppTheme.primaryBlue,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
+              TextField(
+                controller: _urlController,
+                decoration: InputDecoration(
+                  hintText: 'e.g. https://www.youtube.com/watch?v=...',
+                  hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                  prefixIcon: const Icon(
+                    Icons.play_circle_outline,
+                    color: Colors.red,
+                    size: 20,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
+              ),
             ],
           ),
         );
@@ -725,42 +510,196 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
     );
   }
 
+  Future<void> _submitVideo() async {
+    final title = _titleController.text.trim();
+    final url = _urlController.text.trim();
+
+    if (title.isEmpty) {
+      setState(() {
+        _errorMessage = "Video title is required.";
+      });
+      return;
+    }
+
+    if (url.isEmpty) {
+      setState(() {
+        _errorMessage = "Video URL is required (e.g. YouTube link).";
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await _apiService.createVideo(
+        title: title,
+        category: _selectedCategory,
+        videoUrl: url,
+        description: _descriptionController.text.trim(),
+        thumbnailBytes: _thumbnailBytes,
+        thumbnailFilename: _thumbnailName,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final resData = response.data;
+        Map<String, dynamic> videoData = {};
+        if (resData is Map<String, dynamic>) {
+          if (resData['data'] is Map<String, dynamic>) {
+            videoData = Map<String, dynamic>.from(resData['data']);
+          } else if (resData['video'] is Map<String, dynamic>) {
+            videoData = Map<String, dynamic>.from(resData['video']);
+          } else {
+            videoData = Map<String, dynamic>.from(resData);
+          }
+        }
+
+        final ytId = _extractYtId(url);
+        final newVideo = {
+          'id':
+              videoData['id']?.toString() ??
+              videoData['_id']?.toString() ??
+              'vid_${DateTime.now().millisecondsSinceEpoch}',
+          'videoId': ytId,
+          'title': videoData['title'] ?? title,
+          'description':
+              videoData['description'] ?? _descriptionController.text.trim(),
+          'category': videoData['category'] ?? _selectedCategory,
+          'duration': videoData['duration'] ?? 'Stream',
+          'youtubeUrl': url,
+          'imageUrl':
+              videoData['thumbnail_url'] ??
+              videoData['thumbnail'] ??
+              (ytId != null
+                  ? 'https://img.youtube.com/vi/$ytId/hqdefault.jpg'
+                  : 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60'),
+        };
+
+        widget.onVideoAdded?.call(newVideo);
+        if (mounted) {
+          Navigator.of(context).pop(newVideo);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Video '$title' added successfully!"),
+              backgroundColor: AppTheme.success,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        setState(() {
+          _errorMessage = "Server returned status code ${response.statusCode}";
+        });
+      }
+    } catch (e) {
+      debugPrint("Error creating video: $e");
+      String err = "Failed to create video.";
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map && data['message'] != null) {
+          err = data['message'].toString();
+        } else if (data is Map && data['error'] != null) {
+          err = data['error'].toString();
+        } else if (e.message != null) {
+          err = e.message!;
+        }
+      }
+      setState(() {
+        _errorMessage = err;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
+  }
+
   Widget _buildFooter(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: Colors.white,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
         border: Border(top: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.grey.shade300),
-              foregroundColor: AppTheme.textPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          if (_errorMessage != null) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: const Text('Cancel'),
-          ),
-          const SizedBox(width: 12),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.upload, size: 18),
-            label: const Text('Add Video'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OutlinedButton(
+                onPressed: _isSubmitting
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.grey.shade300),
+                  foregroundColor: AppTheme.textPrimary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Cancel'),
               ),
-            ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _isSubmitting ? null : _submitVideo,
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.upload, size: 18),
+                label: Text(_isSubmitting ? 'Creating...' : 'Add Video'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

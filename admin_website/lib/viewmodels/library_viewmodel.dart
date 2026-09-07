@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class VideoLibraryViewModel extends ChangeNotifier {
+  final ApiService _apiService = ApiService();
+
   String searchQuery = "";
   int selectedCategoryIndex = 0;
 
@@ -14,25 +18,131 @@ class VideoLibraryViewModel extends ChangeNotifier {
     "General",
   ];
 
-  // Dynamic videos list - hardcoded videos removed
-  final List<Map<String, dynamic>> allVideos = [];
+  List<Map<String, dynamic>> allVideos = [];
+  bool isLoading = false;
+  String? errorMessage;
+  int currentPage = 1;
+  int totalPages = 1;
+  int totalVideos = 0;
+
+  Timer? _searchDebounce;
+
+  VideoLibraryViewModel() {
+    fetchVideos();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  static String? extractYoutubeId(String? input) {
+    if (input == null) return null;
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+    if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(trimmed)) return trimmed;
+    final regExp = RegExp(
+      r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(trimmed);
+    if (match != null && match.groupCount >= 1) return match.group(1);
+    return null;
+  }
+
+  Future<void> fetchVideos({int page = 1, bool refresh = false}) async {
+    isLoading = true;
+    errorMessage = null;
+    if (refresh) {
+      currentPage = 1;
+    }
+    notifyListeners();
+
+    try {
+      final selectedCategory = categories[selectedCategoryIndex];
+      final categoryParam = selectedCategory.toLowerCase() == "all"
+          ? null
+          : selectedCategory.toLowerCase();
+
+      final response = await _apiService.listVideos(
+        page: page,
+        limit: 50,
+        search: searchQuery.trim().isNotEmpty ? searchQuery.trim() : null,
+        category: categoryParam,
+      );
+
+      if (response.statusCode == 200) {
+        final resData = response.data;
+        List<dynamic> rawList = [];
+
+        if (resData is Map<String, dynamic>) {
+          if (resData['data'] is List) {
+            rawList = resData['data'];
+          } else if (resData['data'] is Map && resData['data']['videos'] is List) {
+            rawList = resData['data']['videos'];
+            totalVideos = resData['data']['total'] ?? rawList.length;
+          } else if (resData['videos'] is List) {
+            rawList = resData['videos'];
+            totalVideos = resData['total'] ?? rawList.length;
+          }
+        } else if (resData is List) {
+          rawList = resData;
+          totalVideos = rawList.length;
+        }
+
+        final List<Map<String, dynamic>> parsedVideos = [];
+        for (var item in rawList) {
+          if (item is Map<String, dynamic>) {
+            final url = item['video_url']?.toString() ??
+                item['url']?.toString() ??
+                item['youtubeUrl']?.toString() ??
+                '';
+            final ytId = extractYoutubeId(url);
+
+            String thumbUrl = '';
+            if (item['thumbnail_url'] != null && item['thumbnail_url'].toString().isNotEmpty) {
+              thumbUrl = item['thumbnail_url'].toString();
+            } else if (item['thumbnail'] != null && item['thumbnail'].toString().isNotEmpty) {
+              final rawThumb = item['thumbnail'].toString();
+              if (rawThumb.startsWith('http')) {
+                thumbUrl = rawThumb;
+              } else {
+                thumbUrl = _apiService.getFullImageUrl(rawThumb);
+              }
+            } else if (ytId != null) {
+              thumbUrl = 'https://img.youtube.com/vi/$ytId/hqdefault.jpg';
+            } else {
+              thumbUrl = 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60';
+            }
+
+            parsedVideos.add({
+              'id': item['id']?.toString() ?? item['_id']?.toString() ?? 'vid_${parsedVideos.length}',
+              'videoId': ytId,
+              'title': item['title']?.toString() ?? 'Untitled Video',
+              'description': item['description']?.toString() ?? '',
+              'category': item['category']?.toString() ?? 'General',
+              'duration': item['duration']?.toString() ?? 'Stream',
+              'youtubeUrl': url,
+              'imageUrl': thumbUrl,
+            });
+          }
+        }
+
+        allVideos = parsedVideos;
+        currentPage = page;
+      }
+    } catch (e) {
+      debugPrint("Error fetching videos from API: $e");
+      errorMessage = "Failed to load videos from server.";
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
 
   List<Map<String, dynamic>> get videos {
-    return allVideos.where((video) {
-      final category = (video['category'] ?? '').toString().toLowerCase();
-      final matchesCategory = selectedCategoryIndex == 0 ||
-          (selectedCategoryIndex == 1 && (category.contains('pre'))) ||
-          (selectedCategoryIndex == 2 && (category.contains('post'))) ||
-          (selectedCategoryIndex == 3 && (category.contains('gen')));
-
-      final query = searchQuery.trim().toLowerCase();
-      final matchesSearch = query.isEmpty ||
-          (video['title'] ?? '').toString().toLowerCase().contains(query) ||
-          (video['description'] ?? '').toString().toLowerCase().contains(query) ||
-          (video['category'] ?? '').toString().toLowerCase().contains(query);
-
-      return matchesCategory && matchesSearch;
-    }).toList();
+    return allVideos;
   }
 
   void addVideo(Map<String, dynamic> video) {
@@ -48,12 +158,15 @@ class VideoLibraryViewModel extends ChangeNotifier {
 
   void updateSearchQuery(String query) {
     searchQuery = query;
-    notifyListeners();
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      fetchVideos(page: 1, refresh: true);
+    });
   }
 
   void selectCategory(int index) {
     selectedCategoryIndex = index;
-    notifyListeners();
+    fetchVideos(page: 1, refresh: true);
   }
 
   void toggleSelectionMode() {
@@ -84,4 +197,3 @@ class VideoLibraryViewModel extends ChangeNotifier {
     notifyListeners();
   }
 }
-
