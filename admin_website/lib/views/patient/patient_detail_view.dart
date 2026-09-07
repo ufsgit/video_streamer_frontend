@@ -189,26 +189,15 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           ),
         ),
         leadingWidth: 40,
-        title: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _patient.name.isNotEmpty ? _patient.name : 'Unnamed Patient',
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              _patient.email.isNotEmpty ? _patient.email : '',
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 18,
-              ),
-            ),
-          ],
+        title: Text(
+          _patient.name.isNotEmpty ? _patient.name : 'Unnamed Patient',
+          style: const TextStyle(
+            color: AppTheme.textPrimary,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         actions: [
           IconButton(
@@ -220,40 +209,62 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             tooltip: "Refresh Details",
             onPressed: _isLoading ? null : _fetchPatientDetails,
           ),
-          const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: () async {
-              final updated = await showDialog<bool>(
-                context: context,
-                builder: (context) =>
-                    CreatePatientDialog(patientToEdit: _patient),
-              );
-              if (updated == true && mounted) {
-                _fetchPatientDetails();
-              }
-            },
-            icon: const Icon(Icons.edit, size: 16),
-            label: const Text("Edit", style: TextStyle(fontSize: 16)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryBlue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              minimumSize: const Size(0, 32),
+          if (MediaQuery.of(context).size.width < 600) ...[
+            IconButton(
+              icon: const Icon(Icons.edit, color: AppTheme.primaryBlue, size: 20),
+              tooltip: "Edit",
+              onPressed: () async {
+                final updated = await showDialog<bool>(
+                  context: context,
+                  builder: (context) =>
+                      CreatePatientDialog(patientToEdit: _patient),
+                );
+                if (updated == true && mounted) {
+                  _fetchPatientDetails();
+                }
+              },
             ),
-          ),
-          const SizedBox(width: 8),
-          OutlinedButton.icon(
-            onPressed: _confirmDelete,
-            icon: const Icon(Icons.delete, size: 16),
-            label: const Text("Delete", style: TextStyle(fontSize: 16)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              minimumSize: const Size(0, 32),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+              tooltip: "Delete",
+              onPressed: _confirmDelete,
             ),
-          ),
-          const SizedBox(width: 16),
+          ] else ...[
+            const SizedBox(width: 4),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final updated = await showDialog<bool>(
+                  context: context,
+                  builder: (context) =>
+                      CreatePatientDialog(patientToEdit: _patient),
+                );
+                if (updated == true && mounted) {
+                  _fetchPatientDetails();
+                }
+              },
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text("Edit", style: TextStyle(fontSize: 14)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryBlue,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: const Size(0, 32),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: _confirmDelete,
+              icon: const Icon(Icons.delete, size: 16),
+              label: const Text("Delete", style: TextStyle(fontSize: 14)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: const Size(0, 32),
+              ),
+            ),
+          ],
+          const SizedBox(width: 8),
         ],
       ),
       body: _isLoading && _videoHistory.isEmpty
@@ -641,7 +652,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
 
   Widget _buildPatientAvatar(UserModel patient) {
     final photoUrl = patient.imageUrl.trim();
-    final bool hasImage = photoUrl.isNotEmpty &&
+    final bool hasImage =
+        photoUrl.isNotEmpty &&
         photoUrl.toLowerCase() != 'null' &&
         photoUrl.toLowerCase() != 'n/a' &&
         photoUrl.toLowerCase() != 'undefined' &&
@@ -723,8 +735,13 @@ class _PatientDetailViewState extends State<PatientDetailView> {
   Widget _buildInitialsAvatar(UserModel patient) {
     final rawName = patient.name.trim().isNotEmpty
         ? patient.name.trim()
-        : (patient.username.trim().isNotEmpty ? patient.username.trim() : 'Patient');
-    final parts = rawName.split(RegExp(r'\s+')).where((e) => e.isNotEmpty).toList();
+        : (patient.username.trim().isNotEmpty
+              ? patient.username.trim()
+              : 'Patient');
+    final parts = rawName
+        .split(RegExp(r'\s+'))
+        .where((e) => e.isNotEmpty)
+        .toList();
     String initials = '';
     if (parts.length >= 2) {
       initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
@@ -740,9 +757,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       decoration: BoxDecoration(
         color: AppTheme.secondaryBlue,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppTheme.primaryBlue.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.15)),
       ),
       child: Center(
         child: Text(

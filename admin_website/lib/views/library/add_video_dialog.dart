@@ -10,8 +10,8 @@ class AddVideoDialog extends StatefulWidget {
 
 class _AddVideoDialogState extends State<AddVideoDialog> {
   String _selectedCategory = 'Post-Op';
-  bool _isVideoUploaded = true; // Mocking true for UI purposes as per image
-  bool _isThumbnailUploaded = true;
+  final bool _isVideoUploaded = true; // Mocking true for UI purposes as per image
+  final bool _isThumbnailUploaded = true;
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +216,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedCategory,
+          initialValue: _selectedCategory,
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -317,13 +317,13 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: AppTheme.primaryBlue.withOpacity(0.5),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.5),
               style: BorderStyle.none,
             ),
           ),
           child: CustomPaint(
             painter: DashedRectPainter(
-              color: AppTheme.primaryBlue.withOpacity(0.5),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.5),
             ),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -364,7 +364,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.3)),
+              border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.3)),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -567,98 +567,161 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
   }
 
   Widget _buildAlternateExternalUrl() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Row(
-                children: [
-                  Icon(
-                    Icons.alternate_email,
-                    color: AppTheme.primaryBlue,
-                    size: 16,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 480;
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.background,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 4,
+                children: const [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.alternate_email,
+                        color: AppTheme.primaryBlue,
+                        size: 16,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Alternate: Embed Video URL',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.primaryBlue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 8),
                   Text(
-                    'Alternate: Embed External Video URL',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.primaryBlue,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    'YouTube, CDN',
+                    style: TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ],
               ),
-              Text(
-                'Vimeo, YouTube, Hospital CDN',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
+              const SizedBox(height: 12),
+              if (isNarrow)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Paste video URL...',
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.link,
+                          color: Colors.grey,
+                          size: 20,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.sync, size: 16),
+                      label: const Text('Validate'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.secondaryBlue,
+                        foregroundColor: AppTheme.primaryBlue,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText:
+                              'Paste YouTube or external video URL (e.g., https://youtube.com/watch?v=)',
+                          hintStyle: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.link,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.sync, size: 16),
+                      label: const Text('Validate'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.secondaryBlue,
+                        foregroundColor: AppTheme.primaryBlue,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText:
-                        'Paste YouTube or external video URL (e.g., https://youtube.com/watch?v=)',
-                    hintStyle: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.link,
-                      color: Colors.grey,
-                      size: 20,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.sync, size: 16),
-                label: const Text('Validate'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.secondaryBlue,
-                  foregroundColor: AppTheme.primaryBlue,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

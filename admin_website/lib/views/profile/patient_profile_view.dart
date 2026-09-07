@@ -49,13 +49,17 @@ class PatientProfileView extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text("Patient ID: #CP-84920", style: TextStyle(color: AppTheme.textSecondary)),
                   const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(color: AppTheme.successLight, borderRadius: BorderRadius.circular(16)),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.check_circle, size: 16, color: AppTheme.success),
                             const SizedBox(width: 4),
@@ -63,11 +67,11 @@ class PatientProfileView extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(color: AppTheme.secondaryBlue, borderRadius: BorderRadius.circular(16)),
                         child: const Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.shield_outlined, size: 16, color: AppTheme.textSecondary),
                             SizedBox(width: 4),
@@ -80,7 +84,6 @@ class PatientProfileView extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
             const SizedBox(height: 24),
             Center(
               child: ConstrainedBox(

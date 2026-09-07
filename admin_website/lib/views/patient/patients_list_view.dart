@@ -246,117 +246,245 @@ class _PatientsListViewState extends State<PatientsListView> {
         ? _viewModel.totalPatients
         : endIndex;
 
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              "Showing $startIndex–$endIndex of $total patients",
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w500,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 500;
+
+        if (isMobile) {
+          return Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(8),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Showing $startIndex–$endIndex of $total patients",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _viewModel.hasPreviousPage && !_viewModel.isLoading
+                            ? () => _viewModel.previousPage()
+                            : null,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          minimumSize: const Size(0, 32),
+                          foregroundColor: AppTheme.primaryBlue,
+                          disabledForegroundColor: Colors.grey.shade400,
+                          side: BorderSide(
+                            color: _viewModel.hasPreviousPage
+                                ? Colors.grey.shade300
+                                : Colors.grey.shade200,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.chevron_left, size: 16),
+                            SizedBox(width: 2),
+                            Text("Prev", style: TextStyle(fontSize: 12, color: Colors.black)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryBlue.withAlpha(20),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.primaryBlue.withAlpha(60),
+                          ),
+                        ),
+                        child: Text(
+                          "P. ${_viewModel.currentPage}${_viewModel.totalPages > 1 ? '/${_viewModel.totalPages}' : ''}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryBlue,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      OutlinedButton(
+                        onPressed: _viewModel.hasNextPage && !_viewModel.isLoading
+                            ? () => _viewModel.nextPage()
+                            : null,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          minimumSize: const Size(0, 32),
+                          foregroundColor: AppTheme.primaryBlue,
+                          disabledForegroundColor: Colors.grey.shade400,
+                          side: BorderSide(
+                            color: _viewModel.hasNextPage
+                                ? Colors.grey.shade300
+                                : Colors.grey.shade200,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text("Next", style: TextStyle(fontSize: 12, color: Colors.black)),
+                            SizedBox(width: 2),
+                            Icon(Icons.chevron_right, size: 16),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 20),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _viewModel.hasPreviousPage && !_viewModel.isLoading
-                      ? () => _viewModel.previousPage()
-                      : null,
-                  icon: const Icon(Icons.chevron_left, size: 18),
-                  label: const Text(
-                    "Previous",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    foregroundColor: AppTheme.primaryBlue,
-                    disabledForegroundColor: Colors.grey.shade400,
-                    side: BorderSide(
-                      color: _viewModel.hasPreviousPage
-                          ? Colors.grey.shade300
-                          : Colors.grey.shade200,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withAlpha(20),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: AppTheme.primaryBlue.withAlpha(60),
-                    ),
-                  ),
-                  child: Text(
-                    "Page ${_viewModel.currentPage}${_viewModel.totalPages > 1 ? ' of ${_viewModel.totalPages}' : ''}",
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryBlue,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: _viewModel.hasNextPage && !_viewModel.isLoading
-                      ? () => _viewModel.nextPage()
-                      : null,
-                  icon: const Icon(Icons.chevron_right, size: 18),
-                  iconAlignment: IconAlignment.end,
-                  label: const Text(
-                    "Next",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    foregroundColor: AppTheme.primaryBlue,
-                    disabledForegroundColor: Colors.grey.shade400,
-                    side: BorderSide(
-                      color: _viewModel.hasNextPage
-                          ? Colors.grey.shade300
-                          : Colors.grey.shade200,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+          );
+        }
+
+        return Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(8),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Showing $startIndex–$endIndex of $total patients",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _viewModel.hasPreviousPage && !_viewModel.isLoading
+                          ? () => _viewModel.previousPage()
+                          : null,
+                      icon: const Icon(Icons.chevron_left, size: 18),
+                      label: const Text(
+                        "Previous",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: AppTheme.primaryBlue,
+                        disabledForegroundColor: Colors.grey.shade400,
+                        side: BorderSide(
+                          color: _viewModel.hasPreviousPage
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade200,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryBlue.withAlpha(20),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppTheme.primaryBlue.withAlpha(60),
+                        ),
+                      ),
+                      child: Text(
+                        "Page ${_viewModel.currentPage}${_viewModel.totalPages > 1 ? ' of ${_viewModel.totalPages}' : ''}",
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryBlue,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _viewModel.hasNextPage && !_viewModel.isLoading
+                          ? () => _viewModel.nextPage()
+                          : null,
+                      icon: const Icon(Icons.chevron_right, size: 18),
+                      iconAlignment: IconAlignment.end,
+                      label: const Text(
+                        "Next",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: AppTheme.primaryBlue,
+                        disabledForegroundColor: Colors.grey.shade400,
+                        side: BorderSide(
+                          color: _viewModel.hasNextPage
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade200,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
