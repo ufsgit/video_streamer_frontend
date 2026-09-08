@@ -125,6 +125,9 @@ class VideoLibraryViewModel extends ChangeNotifier {
               'title': item['title']?.toString() ?? 'Untitled Video',
               'description': item['description']?.toString() ?? '',
               'category': item['category']?.toString() ?? 'Pre-op',
+              'language': item['language']?.toString() ??
+                  item['language_name']?.toString() ??
+                  '',
               'duration': item['duration']?.toString() ?? 'Stream',
               'youtubeUrl': url,
               'imageUrl': thumbUrl,

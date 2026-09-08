@@ -192,10 +192,134 @@ class ApiService {
     return await _dio.delete('/admin/users/delete/$id');
   }
 
+  // --- 5. Video Management ---
+  Future<Response> createVideo({
+    required String title,
+    required String category,
+    required String videoUrl,
+    required String language,
+    String? description,
+    Uint8List? thumbnailBytes,
+    String? thumbnailFilename,
+  }) async {
+    final Map<String, dynamic> formMap = {
+      'title': title,
+      'category': category.toLowerCase(),
+      'video_url': videoUrl,
+      'language': language.trim(),
+    };
+
+    if (description != null && description.trim().isNotEmpty) {
+      formMap['description'] = description.trim();
+    }
+
+    if (thumbnailBytes != null && thumbnailBytes.isNotEmpty) {
+      final filename = thumbnailFilename ?? 'thumbnail.jpg';
+      formMap['thumbnail'] = MultipartFile.fromBytes(
+        thumbnailBytes,
+        filename: filename,
+      );
+    }
+
+    final formData = FormData.fromMap(formMap);
+
+    return await _dio.post('/admin/videos/create', data: formData);
+  }
+
+  Future<Response> listVideos({
+    int? page,
+    int? limit,
+    String? search,
+    String? category,
+    String? source,
+  }) async {
+    final Map<String, dynamic> queryParams = {};
+    if (page != null) queryParams['page'] = page;
+    if (limit != null) queryParams['limit'] = limit;
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    if (category != null &&
+        category.isNotEmpty &&
+        category.toLowerCase() != 'all') {
+      queryParams['category'] = category.toLowerCase();
+    }
+    if (source != null && source.isNotEmpty) queryParams['source'] = source;
+
+    return await _dio.get(
+      '/admin/videos/list',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+  }
+
+  Future<Response> editVideo(
+    String id, {
+    required String title,
+    required String category,
+    required String videoUrl,
+    String? language,
+    String? description,
+    Uint8List? thumbnailBytes,
+    String? thumbnailFilename,
+  }) async {
+    final Map<String, dynamic> formMap = {
+      'title': title,
+      'category': category.toLowerCase(),
+      'video_url': videoUrl,
+    };
+
+    if (language != null && language.trim().isNotEmpty) {
+      formMap['language'] = language.trim();
+    }
+
+    if (description != null) {
+      formMap['description'] = description.trim();
+    }
+
+    if (thumbnailBytes != null && thumbnailBytes.isNotEmpty) {
+      final filename = thumbnailFilename ?? 'thumbnail.jpg';
+      formMap['thumbnail'] = MultipartFile.fromBytes(
+        thumbnailBytes,
+        filename: filename,
+      );
+    }
+
+    final formData = FormData.fromMap(formMap);
+
+    try {
+      return await _dio.put('/admin/videos/edit/$id', data: formData);
+    } catch (e) {
+      if (e is DioException &&
+          (e.response?.statusCode == 404 || e.response?.statusCode == 405)) {
+        try {
+          return await _dio.post('/admin/videos/edit/$id', data: formData);
+        } catch (_) {
+          return await _dio.patch('/admin/videos/edit/$id', data: formData);
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<Response> deleteVideo(String id) async {
+    return await _dio.delete('/admin/videos/delete/$id');
+  }
+
+  // --- 6. Languages Management ---
+  Future<Response> listLanguages() async {
+    return await _dio.get('/admin/languages/list');
+  }
+
   // --- Image URL Helper ---
   String getFullImageUrl(String photoPath) {
-    if (photoPath.trim().isEmpty) return '';
-    return '$baseUrl/uploads/$photoPath';
+    final trimmed = photoPath.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    final cleanPath = trimmed.startsWith('/') ? trimmed.substring(1) : trimmed;
+    if (cleanPath.startsWith('uploads/')) {
+      return '$baseUrl/$cleanPath';
+    }
+    return '$baseUrl/uploads/$cleanPath';
   }
 
   // --- Image Fetching Helper ---

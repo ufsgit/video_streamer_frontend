@@ -20,9 +20,13 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
+  final TextEditingController _languageController = TextEditingController();
   final ApiService _apiService = ApiService();
 
   String _selectedCategory = 'Post-Op';
+  String? _selectedLanguage;
+  List<String> _languageOptions = [];
+  bool _isLoadingLanguages = true;
   Uint8List? _thumbnailBytes;
   String? _thumbnailName;
   bool _isSubmitting = false;
@@ -37,11 +41,13 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
   @override
   void initState() {
     super.initState();
+    _fetchLanguages();
     if (widget.videoToEdit != null) {
       final v = widget.videoToEdit!;
       _titleController.text = v['title']?.toString() ?? '';
       _descriptionController.text = v['description']?.toString() ?? '';
-      _urlController.text = v['youtubeUrl']?.toString() ??
+      _urlController.text =
+          v['youtubeUrl']?.toString() ??
           v['video_url']?.toString() ??
           v['url']?.toString() ??
           '';
@@ -51,6 +57,12 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         _selectedCategory = 'Pre-Op';
       } else {
         _selectedCategory = 'Post-Op';
+      }
+
+      final lang = (v['language']?.toString() ?? '').trim();
+      if (lang.isNotEmpty) {
+        _selectedLanguage = lang;
+        _languageController.text = lang;
       }
 
       final url = _urlController.text.trim();
@@ -75,8 +87,97 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
     _titleController.dispose();
     _descriptionController.dispose();
     _urlController.dispose();
+    _languageController.dispose();
     _previewYoutubeController?.close();
     super.dispose();
+  }
+
+  Future<void> _fetchLanguages() async {
+    try {
+      final response = await _apiService.listLanguages();
+      if (response.statusCode == 200) {
+        final resData = response.data;
+        List<dynamic> rawList = [];
+        if (resData is Map<String, dynamic>) {
+          if (resData['data'] is List) {
+            rawList = resData['data'];
+          } else if (resData['languages'] is List) {
+            rawList = resData['languages'];
+          }
+        } else if (resData is List) {
+          rawList = resData;
+        }
+
+        final List<String> parsed = [];
+        for (var item in rawList) {
+          if (item is String && item.trim().isNotEmpty) {
+            final val = item.trim();
+            if (!parsed.any((p) => p.toLowerCase() == val.toLowerCase())) {
+              parsed.add(val);
+            }
+          } else if (item is Map) {
+            final name = (item['language_name'] ??
+                    item['languageName'] ??
+                    item['name'] ??
+                    item['language'] ??
+                    item['title'] ??
+                    item['code'] ??
+                    '')
+                .toString()
+                .trim();
+            if (name.isNotEmpty &&
+                !parsed.any((p) => p.toLowerCase() == name.toLowerCase())) {
+              parsed.add(name);
+            }
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _languageOptions = parsed;
+            _isLoadingLanguages = false;
+
+            final existingLang =
+                (widget.videoToEdit?['language']?.toString() ??
+                        _languageController.text)
+                    .trim();
+            if (existingLang.isNotEmpty) {
+              final match = _languageOptions.firstWhere(
+                (l) => l.toLowerCase() == existingLang.toLowerCase(),
+                orElse: () => '',
+              );
+              if (match.isNotEmpty) {
+                _selectedLanguage = match;
+              } else {
+                _languageOptions.add(existingLang);
+                _selectedLanguage = existingLang;
+              }
+            } else if (_languageOptions.isNotEmpty &&
+                (_selectedLanguage == null ||
+                    !_languageOptions.contains(_selectedLanguage))) {
+              _selectedLanguage = _languageOptions.first;
+            }
+
+            if (_selectedLanguage != null) {
+              _languageController.text = _selectedLanguage!;
+            }
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoadingLanguages = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error fetching languages from API: $e");
+      if (mounted) {
+        setState(() {
+          _isLoadingLanguages = false;
+        });
+      }
+    }
   }
 
   Future<void> _pickThumbnail() async {
@@ -149,7 +250,13 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                   children: [
                     _buildVideoTitleField(),
                     const SizedBox(height: 16),
-                    _buildCategoryField(),
+                    Row(
+                      children: [
+                        Expanded(child: _selectlanguage()),
+                        const SizedBox(width: 16),
+                        Expanded(child: _buildCategoryField()),
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     _buildDescriptionField(),
                     const SizedBox(height: 24),
@@ -281,7 +388,10 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: _selectedCategory,
+          value: _selectedCategory,
+          isExpanded: true,
+          borderRadius: BorderRadius.circular(8),
+          dropdownColor: Colors.white,
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
@@ -291,20 +401,136 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppTheme.primaryBlue),
+            ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 12,
             ),
           ),
           items: ['Post-Op', 'Pre-Op'].map((String category) {
-            return DropdownMenuItem(value: category, child: Text(category));
+            return DropdownMenuItem(
+              value: category,
+              child: Text(
+                category,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            );
           }).toList(),
           onChanged: (newValue) {
-            setState(() {
-              _selectedCategory = newValue!;
-            });
+            if (newValue != null) {
+              setState(() {
+                _selectedCategory = newValue;
+              });
+            }
           },
         ),
+      ],
+    );
+  }
+
+  Widget _selectlanguage() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            RichText(
+              text: const TextSpan(
+                text: 'Select Video Language ',
+                style: TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+                children: [
+                  TextSpan(
+                    text: '*',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_isLoadingLanguages)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: const [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  'Loading languages...',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
+            ),
+          )
+        else
+          DropdownButtonFormField<String>(
+            value:
+                _selectedLanguage != null &&
+                    _languageOptions.contains(_selectedLanguage)
+                ? _selectedLanguage
+                : (_languageOptions.isNotEmpty ? _languageOptions.first : null),
+            isExpanded: true,
+            hint: const Text(
+              'Select a language',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            borderRadius: BorderRadius.circular(8),
+            dropdownColor: Colors.white,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppTheme.primaryBlue),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+            items: _languageOptions.map((String language) {
+              return DropdownMenuItem(
+                value: language,
+                child: Text(
+                  language,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              );
+            }).toList(),
+            onChanged: (newValue) {
+              if (newValue != null) {
+                setState(() {
+                  _selectedLanguage = newValue;
+                  _languageController.text = newValue;
+                });
+              }
+            },
+          ),
       ],
     );
   }
@@ -581,7 +807,10 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                       },
                       decoration: InputDecoration(
                         hintText: 'e.g. https://www.youtube.com/watch?v=...',
-                        hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
                         prefixIcon: const Icon(
                           Icons.play_circle_outline,
                           color: Colors.red,
@@ -589,7 +818,11 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                         ),
                         suffixIcon: _urlController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, size: 16, color: Colors.grey),
+                                icon: const Icon(
+                                  Icons.clear,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
                                 onPressed: () {
                                   _urlController.clear();
                                   _clearPreview();
@@ -623,11 +856,18 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                             : Icons.play_circle_fill,
                         size: 16,
                       ),
-                      label: Text(_isPreviewing ? 'Hide Preview' : 'Preview Video'),
+                      label: Text(
+                        _isPreviewing ? 'Hide Preview' : 'Preview Video',
+                      ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _isPreviewing ? Colors.grey.shade700 : Colors.red,
+                        backgroundColor: _isPreviewing
+                            ? Colors.grey.shade700
+                            : Colors.red,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -652,7 +892,10 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                         },
                         decoration: InputDecoration(
                           hintText: 'e.g. https://www.youtube.com/watch?v=...',
-                          hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+                          hintStyle: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
                           prefixIcon: const Icon(
                             Icons.play_circle_outline,
                             color: Colors.red,
@@ -660,7 +903,11 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                           ),
                           suffixIcon: _urlController.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 16, color: Colors.grey),
+                                  icon: const Icon(
+                                    Icons.clear,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
                                   onPressed: () {
                                     _urlController.clear();
                                     _clearPreview();
@@ -697,9 +944,14 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                       ),
                       label: Text(_isPreviewing ? 'Hide' : 'Preview'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _isPreviewing ? Colors.grey.shade700 : Colors.red,
+                        backgroundColor: _isPreviewing
+                            ? Colors.grey.shade700
+                            : Colors.red,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 13,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -712,7 +964,11 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 14),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 14,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       _previewErrorMessage!,
@@ -732,7 +988,9 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                   clipBehavior: Clip.antiAlias,
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: YoutubePlayer(controller: _previewYoutubeController!),
+                    child: YoutubePlayer(
+                      controller: _previewYoutubeController!,
+                    ),
                   ),
                 ),
               ],
@@ -745,11 +1003,21 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
 
   Future<void> _submitVideo() async {
     final title = _titleController.text.trim();
+    final language = _languageController.text.trim().isNotEmpty
+        ? _languageController.text.trim()
+        : (_selectedLanguage ?? '');
     final url = _urlController.text.trim();
 
     if (title.isEmpty) {
       setState(() {
         _errorMessage = "Video title is required.";
+      });
+      return;
+    }
+
+    if (language.isEmpty) {
+      setState(() {
+        _errorMessage = "Language is required.";
       });
       return;
     }
@@ -774,6 +1042,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                   '',
               title: title,
               category: _selectedCategory,
+              language: language,
               videoUrl: url,
               description: _descriptionController.text.trim(),
               thumbnailBytes: _thumbnailBytes,
@@ -782,6 +1051,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           : await _apiService.createVideo(
               title: title,
               category: _selectedCategory,
+              language: language,
               videoUrl: url,
               description: _descriptionController.text.trim(),
               thumbnailBytes: _thumbnailBytes,
@@ -804,7 +1074,8 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         }
 
         final ytId = _extractYtId(url);
-        final rawApiThumb = videoData['thumbnail_url'] ??
+        final rawApiThumb =
+            videoData['thumbnail_url'] ??
             videoData['thumbnail'] ??
             videoData['thumbnailUrl'] ??
             videoData['image_url'] ??
@@ -824,17 +1095,22 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         }
 
         final savedVideo = {
-          'id': videoData['id']?.toString() ??
+          'id':
+              videoData['id']?.toString() ??
               videoData['_id']?.toString() ??
               widget.videoToEdit?['id']?.toString() ??
               widget.videoToEdit?['_id']?.toString() ??
               'vid_${DateTime.now().millisecondsSinceEpoch}',
           'videoId': ytId,
           'title': videoData['title'] ?? title,
+          'language': videoData['language'] ?? language,
           'description':
               videoData['description'] ?? _descriptionController.text.trim(),
           'category': videoData['category'] ?? _selectedCategory,
-          'duration': videoData['duration'] ?? widget.videoToEdit?['duration'] ?? 'Stream',
+          'duration':
+              videoData['duration'] ??
+              widget.videoToEdit?['duration'] ??
+              'Stream',
           'youtubeUrl': url,
           'imageUrl': thumbUrl,
           'thumbnail_url': thumbUrl,
@@ -863,7 +1139,9 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
       }
     } catch (e) {
       debugPrint("Error saving video: $e");
-      String err = isEditing ? "Failed to update video." : "Failed to create video.";
+      String err = isEditing
+          ? "Failed to update video."
+          : "Failed to create video.";
       if (e is DioException) {
         final data = e.response?.data;
         if (data is Map && data['message'] != null) {
@@ -953,7 +1231,10 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                           color: Colors.white,
                         ),
                       )
-                    : Icon(isEditing ? Icons.save_outlined : Icons.upload, size: 18),
+                    : Icon(
+                        isEditing ? Icons.save_outlined : Icons.upload,
+                        size: 18,
+                      ),
                 label: Text(
                   _isSubmitting
                       ? (isEditing ? 'Saving...' : 'Creating...')
