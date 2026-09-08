@@ -10,6 +10,7 @@ class UserModel {
   final String platformTime;
   final int videosDone;
   final int streakDays;
+  final List<String>? languages;
 
   UserModel({
     required this.id,
@@ -20,6 +21,7 @@ class UserModel {
     required this.platformTime,
     required this.videosDone,
     required this.streakDays,
+    this.languages,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class UserModel {
       platformTime: json['platformTime'] ?? '',
       videosDone: json['videosDone'] ?? 0,
       streakDays: json['streakDays'] ?? 0,
+      languages: json['languages'] != null ? List<String>.from(json['languages']) : null,
     );
   }
 
@@ -45,6 +48,7 @@ class UserModel {
       'platformTime': platformTime,
       'videosDone': videosDone,
       'streakDays': streakDays,
+      'languages': languages,
     };
   }
 }

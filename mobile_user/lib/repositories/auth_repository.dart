@@ -60,12 +60,23 @@ class AuthRepositoryImpl implements AuthRepository {
           token = data['accessToken'];
         }
 
+        if (token == null && data.containsKey('data') && data['data'] is Map<String, dynamic>) {
+          final innerData = data['data'];
+          if (innerData.containsKey('token')) {
+            token = innerData['token'];
+          } else if (innerData.containsKey('accessToken')) {
+            token = innerData['accessToken'];
+          }
+        }
+
         if (token != null) {
           _client.setAuthToken(token);
         }
 
         if (data.containsKey('user') && data['user'] is Map<String, dynamic>) {
           _user = UserModel.fromJson(data['user']);
+        } else if (data.containsKey('data') && data['data'] is Map<String, dynamic> && data['data'].containsKey('user')) {
+          _user = UserModel.fromJson(data['data']['user']);
         }
 
         // Persist session across app restarts

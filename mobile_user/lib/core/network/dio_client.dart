@@ -32,6 +32,18 @@ class DioClient {
         },
       ),
     );
+
+    dio.interceptors.add(
+      LogInterceptor(
+        request: true,
+        requestHeader: true,
+        requestBody: true,
+        responseHeader: true,
+        responseBody: true,
+        error: true,
+        logPrint: (object) => print('API_LOG: $object'),
+      ),
+    );
   }
 
   void setAuthToken(String? token) {

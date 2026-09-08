@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/app_logo.dart';
 import '../navigation/main_navigation_view.dart';
+import 'language_selection_dialog.dart';
 
 class LoginView extends StatefulWidget {
   final AuthViewModel? viewModel;
@@ -39,10 +41,24 @@ class _LoginViewState extends State<LoginView> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainNavigationView()),
-      );
+      final box = Hive.box('settings');
+      final selectedLanguage = box.get('selected_language');
+      final selectedLanguageId = box.get('selected_language_id');
+      
+      if (selectedLanguage != null && selectedLanguage.toString().isNotEmpty && selectedLanguageId != null) {
+        print('DEBUG: Found existing Hive stored language -> $selectedLanguage');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNavigationView()),
+        );
+      } else {
+        // Show the language selection dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const LanguageSelectionDialog(),
+        );
+      }
     } else if (_viewModel.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

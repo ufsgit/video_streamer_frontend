@@ -52,4 +52,67 @@ class LibraryViewModel extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  int _currentPage = 1;
+  bool _hasMore = true;
+  bool _isLoadingMore = false;
+  static const int _limit = 10;
+
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
+
+  Future<void> fetchDynamicCategoryVideos(String category, {int? languageId}) async {
+    _isLoading = true;
+    _currentPage = 1;
+    _hasMore = true;
+    notifyListeners();
+
+    final videos = await _videoRepository.getVideosByCategory(
+      category: category,
+      languageId: languageId,
+      page: _currentPage,
+      limit: _limit,
+    );
+
+    if (videos.length < _limit) {
+      _hasMore = false;
+    }
+
+    if (category.toLowerCase().contains('pre')) {
+      _preOpVideos = videos;
+    } else {
+      _postOpVideos = videos;
+    }
+    
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> loadMoreCategoryVideos(String category, {int? languageId}) async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    _isLoadingMore = true;
+    _currentPage++;
+    notifyListeners();
+
+    final videos = await _videoRepository.getVideosByCategory(
+      category: category,
+      languageId: languageId,
+      page: _currentPage,
+      limit: _limit,
+    );
+
+    if (videos.length < _limit) {
+      _hasMore = false;
+    }
+
+    if (category.toLowerCase().contains('pre')) {
+      _preOpVideos.addAll(videos);
+    } else {
+      _postOpVideos.addAll(videos);
+    }
+
+    _isLoadingMore = false;
+    notifyListeners();
+  }
 }

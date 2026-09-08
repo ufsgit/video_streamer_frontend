@@ -13,6 +13,8 @@ class VideoModel {
   final String durationLeft;
   final String imageUrl; // Used only in library pre-op & post-op
   final VideoStatus status;
+  final String? link;
+  final String? folder;
 
   VideoModel({
     required this.id,
@@ -24,12 +26,14 @@ class VideoModel {
     required this.durationLeft,
     required this.imageUrl,
     required this.status,
+    this.link,
+    this.folder,
   });
 
   // API MENTION: Implement factory fromJson when Video List API endpoint is ready.
   factory VideoModel.fromJson(Map<String, dynamic> json) {
     return VideoModel(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
       programName: json['programName'] ?? '',
       stepNumber: json['stepNumber'] ?? 1,
@@ -37,6 +41,8 @@ class VideoModel {
       progressPercent: json['progressPercent'] ?? 0,
       durationLeft: json['durationLeft'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
+      link: json['link'] ?? json['video_url'] ?? json['youtube_link'],
+      folder: json['folder'] ?? json['folder_name'] ?? json['category'],
       status: VideoStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => VideoStatus.notStarted,
@@ -56,6 +62,8 @@ class VideoModel {
       'durationLeft': durationLeft,
       'imageUrl': imageUrl,
       'status': status.name,
+      'link': link,
+      'folder': folder,
     };
   }
 }

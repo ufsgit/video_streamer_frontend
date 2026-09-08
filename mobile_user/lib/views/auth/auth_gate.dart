@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/app_logo.dart';
 import '../navigation/main_navigation_view.dart';
+import 'language_selection_dialog.dart';
 import 'login_view.dart';
 
 class AuthGate extends StatefulWidget {
@@ -48,7 +50,25 @@ class _AuthGateState extends State<AuthGate> {
         }
 
         if (_viewModel.isAuthenticated) {
-          return const MainNavigationView();
+          final box = Hive.box('settings');
+          final selectedLanguage = box.get('selected_language');
+          
+          if (selectedLanguage != null && selectedLanguage.toString().isNotEmpty) {
+            return const MainNavigationView();
+          } else {
+            // Need to select language
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => LanguageSelectionDialog(
+                  languages: _viewModel.currentUser?.languages,
+                ),
+              );
+            });
+            // Return empty scaffold while dialog is shown
+            return const Scaffold(backgroundColor: Color(0xFFF7F9FC));
+          }
         }
 
         return LoginView(viewModel: _viewModel);

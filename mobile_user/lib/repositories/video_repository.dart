@@ -1,3 +1,4 @@
+import 'package:hive/hive.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
 import '../models/video_model.dart';
@@ -8,6 +9,12 @@ abstract class VideoRepository {
   Future<List<VideoModel>> getPreOpLibraryVideos();
   Future<List<VideoModel>> getPostOpLibraryVideos();
   Future<List<VideoModel>> searchVideos(String query);
+  Future<List<VideoModel>> getVideosByCategory({
+    required String category,
+    int? languageId,
+    int page = 1,
+    int limit = 10,
+  });
 }
 
 class VideoRepositoryImpl implements VideoRepository {
@@ -85,6 +92,52 @@ class VideoRepositoryImpl implements VideoRepository {
         }
       }
     } catch (_) {}
+    return [];
+  }
+
+  @override
+  Future<List<VideoModel>> getVideosByCategory({
+    required String category,
+    int? languageId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      int? effectiveLanguageId = languageId;
+      if (effectiveLanguageId == null) {
+        final box = Hive.box('settings');
+        effectiveLanguageId = box.get('selected_language_id');
+      }
+
+      final Map<String, dynamic> queryParams = {
+        'category': category,
+        'page': page,
+        'limit': limit,
+      };
+      
+      if (effectiveLanguageId != null) {
+        queryParams['language_id'] = effectiveLanguageId;
+      }
+
+      print('DEBUG: Calling ${ApiConstants.videosListPath} with params: $queryParams');
+
+      final response = await _client.dio.get(
+        ApiConstants.videosListPath,
+        queryParameters: queryParams,
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        // The API might return { "success": true, "data": [...] }
+        if (data is Map<String, dynamic> && data['data'] is List) {
+          return (data['data'] as List).map((json) => VideoModel.fromJson(json)).toList();
+        } else if (data is List) {
+          return data.map((json) => VideoModel.fromJson(json)).toList();
+        }
+      }
+    } catch (e) {
+      print('Error fetching videos by category: $e');
+    }
     return [];
   }
 }
