@@ -361,6 +361,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: ChoiceChip(
+                    showCheckmark: false,
                     label: Text(_viewModel.categories[index]),
                     selected: isSelected,
                     onSelected: (selected) => _viewModel.selectCategory(index),
@@ -370,7 +371,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
-                      fontSize: 12,
+                      fontSize: 16,
                     ),
                     backgroundColor: AppTheme.secondaryBlue,
                     side: BorderSide.none,
@@ -384,7 +385,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                   ),
                 );
               }),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
 
               //******************************************
               //DOCTOR CAN SELECT THE VIDEOS TO BE ASSIGNED TO THE PATIENTS
@@ -591,7 +592,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
             maxCrossAxisExtent: 280,
             crossAxisSpacing: 14,
             mainAxisSpacing: 14,
-            childAspectRatio: 0.85,
+            childAspectRatio: 1.15,
           ),
           itemCount: videos.length,
           itemBuilder: (context, index) {
@@ -655,12 +656,14 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
         children: [
           // Thumbnail Area
           Expanded(
-            flex: 56,
+            flex: 60,
             child: InkWell(
               onTap: _viewModel.isSelectionMode
                   ? () => _viewModel.toggleVideoSelection(video)
                   : () => _playVideoInDialog(video),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -778,12 +781,14 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
           ),
           // Info Area (Clicking white space opens Edit Video Popup)
           Expanded(
-            flex: 44,
+            flex: 40,
             child: InkWell(
               onTap: _viewModel.isSelectionMode
                   ? () => _viewModel.toggleVideoSelection(video)
                   : () => _openEditVideoDialog(video),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
