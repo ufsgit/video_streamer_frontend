@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:hive/hive.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
@@ -119,7 +121,7 @@ class VideoRepositoryImpl implements VideoRepository {
         queryParams['language_id'] = effectiveLanguageId;
       }
 
-      print('DEBUG: Calling ${ApiConstants.videosListPath} with params: $queryParams');
+      log('DEBUG: Calling ${ApiConstants.videosListPath} with params: $queryParams');
 
       final response = await _client.dio.get(
         ApiConstants.videosListPath,

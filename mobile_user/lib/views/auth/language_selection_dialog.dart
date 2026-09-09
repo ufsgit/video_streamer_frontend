@@ -33,7 +33,9 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog> {
         if (mounted) {
           setState(() {
             _languagesData = List<Map<String, dynamic>>.from(dataList);
-            _languages = _languagesData.map((item) => item['language_name'].toString()).toList();
+            final uniqueNames = <String>{};
+            _languagesData.retainWhere((item) => uniqueNames.add(item['language_name'].toString()));
+            _languages = uniqueNames.toList();
             _isLoading = false;
           });
         }
