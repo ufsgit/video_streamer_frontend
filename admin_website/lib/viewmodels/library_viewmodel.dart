@@ -18,8 +18,9 @@ class VideoLibraryViewModel extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
   int currentPage = 1;
-  int totalPages = 1;
+  static const int pageSize = 12;
   int totalVideos = 0;
+  int totalPages = 1;
 
   Timer? _searchDebounce;
 
@@ -47,11 +48,41 @@ class VideoLibraryViewModel extends ChangeNotifier {
     return null;
   }
 
+  void goToPage(int page) {
+    if (page < 1 ||
+        (totalPages > 0 && page > totalPages) ||
+        page == currentPage ||
+        isLoading) {
+      return;
+    }
+    fetchVideos(page: page);
+  }
+
+  void nextPage() {
+    if (hasNextPage && !isLoading) {
+      goToPage(currentPage + 1);
+    }
+  }
+
+  void previousPage() {
+    if (hasPreviousPage && !isLoading) {
+      goToPage(currentPage - 1);
+    }
+  }
+
+  bool get hasPreviousPage => currentPage > 1;
+  bool get hasNextPage =>
+      currentPage < totalPages ||
+      (totalVideos > 0 && currentPage * pageSize < totalVideos) ||
+      (totalVideos == 0 && allVideos.length == pageSize);
+
   Future<void> fetchVideos({int page = 1, bool refresh = false}) async {
     isLoading = true;
     errorMessage = null;
     if (refresh) {
       currentPage = 1;
+    } else {
+      currentPage = page;
     }
     notifyListeners();
 
@@ -62,8 +93,8 @@ class VideoLibraryViewModel extends ChangeNotifier {
           : selectedCategory.toLowerCase();
 
       final response = await _apiService.listVideos(
-        page: page,
-        limit: 50,
+        page: currentPage,
+        limit: pageSize,
         search: searchQuery.trim().isNotEmpty ? searchQuery.trim() : null,
         category: categoryParam,
       );
@@ -73,15 +104,30 @@ class VideoLibraryViewModel extends ChangeNotifier {
         List<dynamic> rawList = [];
 
         if (resData is Map<String, dynamic>) {
+          totalVideos =
+              resData['total'] ??
+              resData['totalCount'] ??
+              resData['count'] ??
+              (resData['pagination'] is Map
+                  ? resData['pagination']['total']
+                  : null) ??
+              (resData['meta'] is Map ? resData['meta']['total'] : null) ??
+              (resData['data'] is Map
+                  ? (resData['data']['total'] ??
+                        resData['data']['totalCount'] ??
+                        resData['data']['count'])
+                  : null) ??
+              0;
+
           if (resData['data'] is List) {
             rawList = resData['data'];
           } else if (resData['data'] is Map &&
               resData['data']['videos'] is List) {
             rawList = resData['data']['videos'];
-            totalVideos = resData['data']['total'] ?? rawList.length;
           } else if (resData['videos'] is List) {
             rawList = resData['videos'];
-            totalVideos = resData['total'] ?? rawList.length;
+          } else if (resData['results'] is List) {
+            rawList = resData['results'];
           }
         } else if (resData is List) {
           rawList = resData;
@@ -99,7 +145,8 @@ class VideoLibraryViewModel extends ChangeNotifier {
             final ytId = extractYoutubeId(url);
 
             String thumbUrl = '';
-            final rawApiThumb = item['thumbnail_url'] ??
+            final rawApiThumb =
+                item['thumbnail_url'] ??
                 item['thumbnail'] ??
                 item['thumbnailUrl'] ??
                 item['image_url'] ??
@@ -107,8 +154,11 @@ class VideoLibraryViewModel extends ChangeNotifier {
                 item['image'] ??
                 item['thumbnail_path'];
 
-            if (rawApiThumb != null && rawApiThumb.toString().trim().isNotEmpty) {
-              thumbUrl = _apiService.getFullImageUrl(rawApiThumb.toString().trim());
+            if (rawApiThumb != null &&
+                rawApiThumb.toString().trim().isNotEmpty) {
+              thumbUrl = _apiService.getFullImageUrl(
+                rawApiThumb.toString().trim(),
+              );
             } else if (ytId != null && ytId.isNotEmpty) {
               thumbUrl = 'https://img.youtube.com/vi/$ytId/hqdefault.jpg';
             } else {
@@ -125,7 +175,8 @@ class VideoLibraryViewModel extends ChangeNotifier {
               'title': item['title']?.toString() ?? 'Untitled Video',
               'description': item['description']?.toString() ?? '',
               'category': item['category']?.toString() ?? 'Pre-op',
-              'language': item['language']?.toString() ??
+              'language':
+                  item['language']?.toString() ??
                   item['language_name']?.toString() ??
                   '',
               'duration': item['duration']?.toString() ?? 'Stream',
@@ -138,7 +189,15 @@ class VideoLibraryViewModel extends ChangeNotifier {
         }
 
         allVideos = parsedVideos;
-        currentPage = page;
+
+        if (totalVideos <= 0) {
+          totalVideos = (currentPage - 1) * pageSize + allVideos.length;
+          totalPages =
+              (allVideos.length == pageSize) ? currentPage + 1 : currentPage;
+        } else {
+          totalPages = (totalVideos / pageSize).ceil();
+          if (totalPages < 1) totalPages = 1;
+        }
       }
     } catch (e) {
       debugPrint("Error fetching videos from API: $e");
@@ -155,12 +214,18 @@ class VideoLibraryViewModel extends ChangeNotifier {
 
   void addVideo(Map<String, dynamic> video) {
     allVideos.insert(0, video);
+    totalVideos++;
+    totalPages = (totalVideos / pageSize).ceil();
+    if (totalPages < 1) totalPages = 1;
     notifyListeners();
   }
 
   void removeVideo(Map<String, dynamic> video) {
     allVideos.remove(video);
     selectedVideos.remove(video);
+    if (totalVideos > 0) totalVideos--;
+    totalPages = (totalVideos / pageSize).ceil();
+    if (totalPages < 1) totalPages = 1;
     notifyListeners();
   }
 
@@ -208,12 +273,21 @@ class VideoLibraryViewModel extends ChangeNotifier {
       if (response.statusCode == 200 ||
           response.statusCode == 201 ||
           response.statusCode == 204) {
-        allVideos.removeWhere((v) =>
-            (v['id']?.toString() ?? v['_id']?.toString()) == videoId);
-        selectedVideos.removeWhere((v) =>
-            (v['id']?.toString() ?? v['_id']?.toString()) == videoId);
-        totalVideos = totalVideos > 0 ? totalVideos - 1 : allVideos.length;
-        notifyListeners();
+        allVideos.removeWhere(
+          (v) => (v['id']?.toString() ?? v['_id']?.toString()) == videoId,
+        );
+        selectedVideos.removeWhere(
+          (v) => (v['id']?.toString() ?? v['_id']?.toString()) == videoId,
+        );
+        if (totalVideos > 0) totalVideos--;
+        totalPages = (totalVideos / pageSize).ceil();
+        if (totalPages < 1) totalPages = 1;
+
+        if (allVideos.isEmpty && currentPage > 1) {
+          goToPage(currentPage - 1);
+        } else {
+          notifyListeners();
+        }
         return true;
       }
       return false;

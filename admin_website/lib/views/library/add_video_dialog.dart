@@ -116,15 +116,16 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
               parsed.add(val);
             }
           } else if (item is Map) {
-            final name = (item['language_name'] ??
-                    item['languageName'] ??
-                    item['name'] ??
-                    item['language'] ??
-                    item['title'] ??
-                    item['code'] ??
-                    '')
-                .toString()
-                .trim();
+            final name =
+                (item['language_name'] ??
+                        item['languageName'] ??
+                        item['name'] ??
+                        item['language'] ??
+                        item['title'] ??
+                        item['code'] ??
+                        '')
+                    .toString()
+                    .trim();
             if (name.isNotEmpty &&
                 !parsed.any((p) => p.toLowerCase() == name.toLowerCase())) {
               parsed.add(name);
@@ -1258,60 +1259,4 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
       ),
     );
   }
-}
-
-class DashedRectPainter extends CustomPainter {
-  final Color color;
-
-  DashedRectPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    var paint = Paint()
-      ..color = color
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke;
-
-    var dashWidth = 5.0;
-    var dashSpace = 5.0;
-
-    // Draw top edge
-    double startX = 0;
-    while (startX < size.width) {
-      canvas.drawLine(Offset(startX, 0), Offset(startX + dashWidth, 0), paint);
-      startX += dashWidth + dashSpace;
-    }
-
-    // Draw right edge
-    double startY = 0;
-    while (startY < size.height) {
-      canvas.drawLine(
-        Offset(size.width, startY),
-        Offset(size.width, startY + dashWidth),
-        paint,
-      );
-      startY += dashWidth + dashSpace;
-    }
-
-    // Draw bottom edge
-    startX = size.width;
-    while (startX > 0) {
-      canvas.drawLine(
-        Offset(startX, size.height),
-        Offset(startX - dashWidth, size.height),
-        paint,
-      );
-      startX -= dashWidth + dashSpace;
-    }
-
-    // Draw left edge
-    startY = size.height;
-    while (startY > 0) {
-      canvas.drawLine(Offset(0, startY), Offset(0, startY - dashWidth), paint);
-      startY -= dashWidth + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
