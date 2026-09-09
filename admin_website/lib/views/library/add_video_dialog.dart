@@ -25,12 +25,16 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
 
   String _selectedCategory = 'Post-Op';
   String? _selectedLanguage;
-  List<String> _languageOptions = [];
+  dynamic _selectedLanguageId;
+  List<Map<String, dynamic>> _languages = [];
   bool _isLoadingLanguages = true;
   Uint8List? _thumbnailBytes;
   String? _thumbnailName;
   bool _isSubmitting = false;
   String? _errorMessage;
+
+  final ScrollController _scrollController = ScrollController();
+  bool _showScrollToTop = false;
 
   YoutubePlayerController? _previewYoutubeController;
   bool _isPreviewing = false;
@@ -41,6 +45,15 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      final show =
+          _scrollController.hasClients && _scrollController.offset > 120;
+      if (show != _showScrollToTop) {
+        setState(() {
+          _showScrollToTop = show;
+        });
+      }
+    });
     _fetchLanguages();
     if (widget.videoToEdit != null) {
       final v = widget.videoToEdit!;
@@ -59,7 +72,14 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         _selectedCategory = 'Post-Op';
       }
 
-      final lang = (v['language']?.toString() ?? '').trim();
+      final langId = v['language_id'] ?? v['languageId'];
+      if (langId != null) {
+        _selectedLanguageId = langId;
+      }
+
+      final lang = (v['language'] ?? v['language_name'] ?? '')
+          .toString()
+          .trim();
       if (lang.isNotEmpty) {
         _selectedLanguage = lang;
         _languageController.text = lang;
@@ -84,12 +104,35 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
     _urlController.dispose();
     _languageController.dispose();
     _previewYoutubeController?.close();
     super.dispose();
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
+      );
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
   }
 
   Future<void> _fetchLanguages() async {
@@ -108,55 +151,80 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           rawList = resData;
         }
 
-        final List<String> parsed = [];
+        final List<Map<String, dynamic>> parsed = [];
         for (var item in rawList) {
-          if (item is String && item.trim().isNotEmpty) {
-            final val = item.trim();
-            if (!parsed.any((p) => p.toLowerCase() == val.toLowerCase())) {
-              parsed.add(val);
-            }
-          } else if (item is Map) {
+          if (item is Map) {
+            final id = item['id'] ?? item['_id'] ?? item['language_id'];
             final name =
                 (item['language_name'] ??
                         item['languageName'] ??
                         item['name'] ??
                         item['language'] ??
                         item['title'] ??
-                        item['code'] ??
                         '')
                     .toString()
                     .trim();
             if (name.isNotEmpty &&
-                !parsed.any((p) => p.toLowerCase() == name.toLowerCase())) {
-              parsed.add(name);
+                !parsed.any(
+                  (p) =>
+                      p['name']?.toString().toLowerCase() == name.toLowerCase(),
+                )) {
+              parsed.add({'id': id, 'name': name});
+            }
+          } else if (item is String && item.trim().isNotEmpty) {
+            final str = item.trim();
+            if (!parsed.any(
+              (p) => p['name']?.toString().toLowerCase() == str.toLowerCase(),
+            )) {
+              parsed.add({'id': null, 'name': str});
             }
           }
         }
 
         if (mounted) {
           setState(() {
-            _languageOptions = parsed;
+            _languages = parsed;
             _isLoadingLanguages = false;
 
             final existingLang =
                 (widget.videoToEdit?['language']?.toString() ??
+                        widget.videoToEdit?['language_name']?.toString() ??
                         _languageController.text)
                     .trim();
-            if (existingLang.isNotEmpty) {
-              final match = _languageOptions.firstWhere(
-                (l) => l.toLowerCase() == existingLang.toLowerCase(),
-                orElse: () => '',
+            final existingLangId =
+                widget.videoToEdit?['language_id'] ??
+                widget.videoToEdit?['languageId'] ??
+                _selectedLanguageId;
+
+            if (existingLangId != null) {
+              final match = _languages.firstWhere(
+                (l) => l['id']?.toString() == existingLangId.toString(),
+                orElse: () => {},
               );
               if (match.isNotEmpty) {
-                _selectedLanguage = match;
-              } else {
-                _languageOptions.add(existingLang);
-                _selectedLanguage = existingLang;
+                _selectedLanguageId = match['id'];
+                _selectedLanguage = match['name'];
               }
-            } else if (_languageOptions.isNotEmpty &&
-                (_selectedLanguage == null ||
-                    !_languageOptions.contains(_selectedLanguage))) {
-              _selectedLanguage = _languageOptions.first;
+            }
+
+            if (_selectedLanguage == null && existingLang.isNotEmpty) {
+              final match = _languages.firstWhere(
+                (l) =>
+                    l['name']?.toString().toLowerCase() ==
+                    existingLang.toLowerCase(),
+                orElse: () => {},
+              );
+              if (match.isNotEmpty) {
+                _selectedLanguageId = match['id'];
+                _selectedLanguage = match['name'];
+              } else {
+                _languages.add({'id': existingLangId, 'name': existingLang});
+                _selectedLanguage = existingLang;
+                _selectedLanguageId = existingLangId;
+              }
+            } else if (_selectedLanguage == null && _languages.isNotEmpty) {
+              _selectedLanguageId = _languages.first['id'];
+              _selectedLanguage = _languages.first['name'];
             }
 
             if (_selectedLanguage != null) {
@@ -244,28 +312,46 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           children: [
             _buildHeader(context),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildVideoTitleField(),
-                    const SizedBox(height: 16),
-                    Row(
+              child: Stack(
+                children: [
+                  SingleChildScrollView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: _selectlanguage()),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildCategoryField()),
+                        _buildVideoTitleField(),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(child: _selectlanguage()),
+                            const SizedBox(width: 16),
+                            Expanded(child: _buildCategoryField()),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildDescriptionField(),
+                        const SizedBox(height: 24),
+                        _buildVideoThumbnailSource(),
+                        const SizedBox(height: 24),
+                        _buildAlternateExternalUrl(),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildDescriptionField(),
-                    const SizedBox(height: 24),
-                    _buildVideoThumbnailSource(),
-                    const SizedBox(height: 24),
-                    _buildAlternateExternalUrl(),
-                  ],
-                ),
+                  ),
+                  if (_showScrollToTop)
+                    Positioned(
+                      bottom: 16,
+                      right: 16,
+                      child: FloatingActionButton.small(
+                        onPressed: _scrollToTop,
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        tooltip: 'Scroll to Top',
+                        elevation: 4,
+                        child: const Icon(Icons.arrow_upward_rounded, size: 20),
+                      ),
+                    ),
+                ],
               ),
             ),
             _buildFooter(context),
@@ -389,7 +475,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedCategory,
+          initialValue: _selectedCategory,
           isExpanded: true,
           borderRadius: BorderRadius.circular(8),
           dropdownColor: Colors.white,
@@ -464,8 +550,8 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 SizedBox(
                   width: 16,
                   height: 16,
@@ -481,11 +567,18 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           )
         else
           DropdownButtonFormField<String>(
-            value:
+            key: ValueKey('lang_${_selectedLanguage}_$_selectedLanguageId'),
+            initialValue:
                 _selectedLanguage != null &&
-                    _languageOptions.contains(_selectedLanguage)
+                    _languages.any(
+                      (l) =>
+                          l['name']?.toString().toLowerCase() ==
+                          _selectedLanguage!.toLowerCase(),
+                    )
                 ? _selectedLanguage
-                : (_languageOptions.isNotEmpty ? _languageOptions.first : null),
+                : (_languages.isNotEmpty
+                      ? _languages.first['name']?.toString()
+                      : null),
             isExpanded: true,
             hint: const Text(
               'Select a language',
@@ -511,11 +604,12 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                 vertical: 12,
               ),
             ),
-            items: _languageOptions.map((String language) {
-              return DropdownMenuItem(
-                value: language,
+            items: _languages.map((langMap) {
+              final langName = langMap['name']?.toString() ?? '';
+              return DropdownMenuItem<String>(
+                value: langName,
                 child: Text(
-                  language,
+                  langName,
                   style: const TextStyle(
                     fontSize: 14,
                     color: AppTheme.textPrimary,
@@ -525,9 +619,16 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
             }).toList(),
             onChanged: (newValue) {
               if (newValue != null) {
+                final matched = _languages.firstWhere(
+                  (l) =>
+                      l['name']?.toString().toLowerCase() ==
+                      newValue.toLowerCase(),
+                  orElse: () => {'id': null, 'name': newValue},
+                );
                 setState(() {
-                  _selectedLanguage = newValue;
-                  _languageController.text = newValue;
+                  _selectedLanguage = matched['name']?.toString() ?? newValue;
+                  _selectedLanguageId = matched['id'];
+                  _languageController.text = _selectedLanguage!;
                 });
               }
             },
@@ -736,6 +837,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
       );
       _isPreviewing = true;
     });
+    _scrollToBottom();
   }
 
   void _clearPreview() {
@@ -994,6 +1096,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 10),
               ],
             ],
           ),
@@ -1044,6 +1147,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
               title: title,
               category: _selectedCategory,
               language: language,
+              languageId: _selectedLanguageId,
               videoUrl: url,
               description: _descriptionController.text.trim(),
               thumbnailBytes: _thumbnailBytes,
@@ -1053,6 +1157,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
               title: title,
               category: _selectedCategory,
               language: language,
+              languageId: _selectedLanguageId,
               videoUrl: url,
               description: _descriptionController.text.trim(),
               thumbnailBytes: _thumbnailBytes,
@@ -1105,6 +1210,10 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
           'videoId': ytId,
           'title': videoData['title'] ?? title,
           'language': videoData['language'] ?? language,
+          'language_id':
+              videoData['language_id'] ??
+              videoData['languageId'] ??
+              _selectedLanguageId,
           'description':
               videoData['description'] ?? _descriptionController.text.trim(),
           'category': videoData['category'] ?? _selectedCategory,

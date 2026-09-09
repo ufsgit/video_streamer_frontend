@@ -365,29 +365,36 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
             children: [
               ...List.generate(_viewModel.categories.length, (index) {
                 final isSelected = _viewModel.selectedCategoryIndex == index;
+                final category = _viewModel.categories[index];
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
-                  child: ChoiceChip(
-                    showCheckmark: false,
-                    label: Text(_viewModel.categories[index]),
-                    selected: isSelected,
-                    onSelected: (selected) => _viewModel.selectCategory(index),
-                    selectedColor: AppTheme.categorySelectorColor,
-                    labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textSecondary,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      fontSize: 16,
-                    ),
-                    backgroundColor: AppTheme.secondaryBlue,
-                    side: BorderSide.none,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 0,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    onTap: () => _viewModel.selectCategory(index),
+                    borderRadius: BorderRadius.circular(16),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.categorySelectorColor
+                            : AppTheme.secondaryBlue,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        category,
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : AppTheme.textSecondary,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
                 );

@@ -18,7 +18,8 @@ class VideoLibraryViewModel extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
   int currentPage = 1;
-  static const int pageSize = 12;
+  // video number limit per page
+  static const int pageSize = 15;
   int totalVideos = 0;
   int totalPages = 1;
 
@@ -179,6 +180,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
                   item['language']?.toString() ??
                   item['language_name']?.toString() ??
                   '',
+              'language_id': item['language_id'] ?? item['languageId'],
               'duration': item['duration']?.toString() ?? 'Stream',
               'youtubeUrl': url,
               'imageUrl': thumbUrl,
@@ -234,6 +236,8 @@ class VideoLibraryViewModel extends ChangeNotifier {
     required String title,
     required String category,
     required String videoUrl,
+    String? language,
+    dynamic languageId,
     String? description,
     Uint8List? thumbnailBytes,
     String? thumbnailFilename,
@@ -244,6 +248,8 @@ class VideoLibraryViewModel extends ChangeNotifier {
         title: title,
         category: category,
         videoUrl: videoUrl,
+        language: language,
+        languageId: languageId,
         description: description,
         thumbnailBytes: thumbnailBytes,
         thumbnailFilename: thumbnailFilename,

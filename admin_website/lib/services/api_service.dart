@@ -172,6 +172,7 @@ class ApiService {
     required String category,
     required String videoUrl,
     required String language,
+    dynamic languageId,
     String? description,
     Uint8List? thumbnailBytes,
     String? thumbnailFilename,
@@ -182,6 +183,10 @@ class ApiService {
       'video_url': videoUrl,
       'language': language.toLowerCase(),
     };
+
+    if (languageId != null) {
+      formMap['language_id'] = languageId;
+    }
 
     if (description != null && description.trim().isNotEmpty) {
       formMap['description'] = description.trim();
@@ -234,6 +239,7 @@ class ApiService {
     required String category,
     required String videoUrl,
     String? language,
+    dynamic languageId,
     String? description,
     Uint8List? thumbnailBytes,
     String? thumbnailFilename,
@@ -246,6 +252,10 @@ class ApiService {
 
     if (language != null && language.trim().isNotEmpty) {
       formMap['language'] = language.trim();
+    }
+
+    if (languageId != null) {
+      formMap['language_id'] = languageId;
     }
 
     if (description != null) {
