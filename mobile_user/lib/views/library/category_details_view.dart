@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import '../../widgets/app_logo.dart';
+import '../../widgets/video_progress_bar.dart';
 import 'youtube_player_view.dart';
 import '../../models/video_model.dart';
 
@@ -314,49 +315,23 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                       horizontal: 16.0,
                                       vertical: 14.0,
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Expanded(
-                                          child: Text(
-                                            video.title,
-                                            style: const TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF101828),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                        Text(
+                                          video.title,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF101828),
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        if (isDone)
-                                          const Row(
-                                            children: [
-                                              Icon(
-                                                Icons.check,
-                                                size: 18,
-                                                color: Color(0xFF12B76A),
-                                              ),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                'Done',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Color(0xFF12B76A),
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                        else if (inProgress)
-                                          Text(
-                                            '${video.progressPercent}%',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF0052CC),
-                                            ),
-                                          ),
+                                        const SizedBox(height: 10),
+                                        VideoProgressBar(
+                                          videoKey: video.link ?? video.id.toString(),
+                                        ),
                                       ],
                                     ),
                                   ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../core/theme.dart';
 import '../widgets/sidebar.dart';
@@ -46,13 +47,15 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   int _resolveInitialIndex() {
-    final fragment = Uri.base.fragment.toLowerCase();
-    final path = Uri.base.path.toLowerCase();
+    if (kIsWeb) {
+      final fragment = Uri.base.fragment.toLowerCase();
+      final path = Uri.base.path.toLowerCase();
 
-    if (fragment.contains('library') || path.contains('library')) return 1;
-    if (fragment.contains('patient') || path.contains('patient')) return 2;
-    if (fragment.contains('profile') || path.contains('profile')) return 3;
-    if (fragment.contains('dashboard') || path.contains('dashboard')) return 0;
+      if (fragment.contains('library') || path.contains('library')) return 1;
+      if (fragment.contains('patient') || path.contains('patient')) return 2;
+      if (fragment.contains('profile') || path.contains('profile')) return 3;
+      if (fragment.contains('dashboard') || path.contains('dashboard')) return 0;
+    }
 
     return widget.initialIndex;
   }

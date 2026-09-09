@@ -57,7 +57,7 @@ class AuthViewModel extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      String errorMsg = 'Invalid credentials or server error. Please try again.';
+      String errorMsg = ' server error. Please try again.';
       if (e is DioException) {
         if (e.response?.data is Map && e.response?.data['message'] != null) {
           errorMsg = e.response!.data['message'].toString();

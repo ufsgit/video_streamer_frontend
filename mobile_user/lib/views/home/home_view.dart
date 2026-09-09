@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../viewmodels/home_viewmodel.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/video_container_no_image.dart';
+import '../../widgets/video_progress_bar.dart';
+import '../library/youtube_player_view.dart';
 
 class HomeView extends StatefulWidget {
   final HomeViewModel? viewModel;
@@ -204,39 +206,9 @@ class _HomeViewState extends State<HomeView> {
 
                               const SizedBox(height: 12),
 
-                              // Progress Text
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.radio_button_unchecked_rounded,
-                                    size: 16,
-                                    color: Colors.grey.shade500,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '20% complete',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              // Progress Bar
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: const LinearProgressIndicator(
-                                  value: 0.20,
-                                  minHeight: 6,
-                                  backgroundColor: Color(0xFFEAECF0),
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Color(0xFF5B61F6),
-                                  ),
-                                ),
+                              // Dynamic Progress Bar & Percent / Tick Status
+                              const VideoProgressBar(
+                                videoKey: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
                               ),
 
                               const SizedBox(height: 16),
@@ -247,10 +219,12 @@ class _HomeViewState extends State<HomeView> {
                                 height: 48,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Video playback API integration pending.',
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const YoutubePlayerView(
+                                          videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                                          title: 'Step 2: Post-ACL Program',
                                         ),
                                       ),
                                     );

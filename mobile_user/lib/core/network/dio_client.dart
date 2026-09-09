@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import '../constants/api_constants.dart';
 
 class DioClient {
@@ -18,9 +21,22 @@ class DioClient {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'X-Tunnel-Skip-Anti-Abuse': 'true',
+          'bypass-tunnel-reminder': 'true',
+          'X-Tunnel-Bypass': 'true',
         },
       ),
     );
+
+    if (!kIsWeb) {
+      dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () {
+          final client = HttpClient();
+          client.badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
+          return client;
+        },
+      );
+    }
 
     dio.interceptors.add(
       InterceptorsWrapper(

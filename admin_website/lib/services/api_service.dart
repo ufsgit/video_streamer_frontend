@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,11 +24,24 @@ class ApiService {
         receiveTimeout: const Duration(seconds: 10),
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Tunnel-Skip-Anti-Abuse': 'true',
           'bypass-tunnel-reminder': 'true',
           'X-Tunnel-Bypass': 'true',
         },
       ),
     );
+
+    if (!kIsWeb) {
+      _dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () {
+          final client = HttpClient();
+          client.badCertificateCallback =
+              (X509Certificate cert, String host, int port) => true;
+          return client;
+        },
+      );
+    }
 
     // Initialize token from storage if available
     _initTokenFromStorage();

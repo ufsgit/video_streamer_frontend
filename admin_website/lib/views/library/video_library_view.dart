@@ -263,9 +263,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                 ],
 
                 // Video Grid / Empty State (Scrollable Area)
-                Expanded(
-                  child: _buildVideoGrid(videos),
-                ),
+                Expanded(child: _buildVideoGrid(videos)),
 
                 // Fixed Bottom Center Pagination Controls
                 if (!_viewModel.isLoading && videos.isNotEmpty) ...[
@@ -914,8 +912,9 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
     final endIndex =
         (_viewModel.currentPage - 1) * VideoLibraryViewModel.pageSize +
         _viewModel.videos.length;
-    final total =
-        _viewModel.totalVideos > 0 ? _viewModel.totalVideos : endIndex;
+    final total = _viewModel.totalVideos > 0
+        ? _viewModel.totalVideos
+        : endIndex;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1138,8 +1137,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                     ),
                     const SizedBox(width: 8),
                     OutlinedButton.icon(
-                      onPressed:
-                          _viewModel.hasNextPage && !_viewModel.isLoading
+                      onPressed: _viewModel.hasNextPage && !_viewModel.isLoading
                           ? () => _viewModel.nextPage()
                           : null,
                       icon: const Icon(Icons.chevron_right, size: 18),

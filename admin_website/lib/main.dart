@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'core/theme.dart';
 import 'views/auth/login_view.dart';
 import 'views/main_layout.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -19,6 +21,9 @@ class MyApp extends StatelessWidget {
   }
 
   static String _getInitialRoute() {
+    if (!kIsWeb) {
+      return '/login';
+    }
     final fragment = Uri.base.fragment;
     final path = Uri.base.path;
     if (fragment.isNotEmpty) {
