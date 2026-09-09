@@ -16,6 +16,7 @@ class ApiConstants {
   static const String preOpVideosPath = '/api/v1/library/pre-op';
   static const String postOpVideosPath = '/api/v1/library/post-op';
   static const String searchVideosPath = '/api/v1/videos/search';
+  static const String appVersionCheckPath = '/api/app-version/check';
 
   // Full URL endpoints
   static const String userLogin = '$baseUrl$userLoginPath';
@@ -25,4 +26,5 @@ class ApiConstants {
   static const String preOpVideos = '$baseUrl$preOpVideosPath';
   static const String postOpVideos = '$baseUrl$postOpVideosPath';
   static const String searchVideos = '$baseUrl$searchVideosPath';
+  static const String appVersionCheck = '$baseUrl$appVersionCheckPath';
 }
