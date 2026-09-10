@@ -2,38 +2,40 @@
 // Update these fields when the backend API user schema is finalized.
 
 class UserModel {
-  final String id;
+  final int id;
   final String name;
-  final String email;
-  final String memberSince;
+  final String? email;
+  final String? registeredDate;
   final bool isVerified;
-  final String platformTime;
-  final int videosDone;
-  final int streakDays;
+  final int totalTimeOnPlatformSeconds;
+  final int totalVideoDone;
+  final int currentStreak;
+  final String? doctorName;
   final List<String>? languages;
 
   UserModel({
     required this.id,
     required this.name,
-    required this.email,
-    required this.memberSince,
-    required this.isVerified,
-    required this.platformTime,
-    required this.videosDone,
-    required this.streakDays,
+    this.email,
+    this.registeredDate,
+    this.isVerified = true,
+    this.totalTimeOnPlatformSeconds = 0,
+    this.totalVideoDone = 0,
+    this.currentStreak = 0,
+    this.doctorName,
     this.languages,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] ?? '',
+      id: json['id'] ?? 0,
       name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      memberSince: json['memberSince'] ?? '',
-      isVerified: json['isVerified'] ?? false,
-      platformTime: json['platformTime'] ?? '',
-      videosDone: json['videosDone'] ?? 0,
-      streakDays: json['streakDays'] ?? 0,
+      email: json['email'],
+      registeredDate: json['registered_date'],
+      totalTimeOnPlatformSeconds: json['total_time_on_platform_seconds'] ?? 0,
+      totalVideoDone: json['total_video_done'] ?? 0,
+      currentStreak: json['current_streak'] ?? 0,
+      doctorName: json['doctor_name'],
       languages: json['languages'] != null ? List<String>.from(json['languages']) : null,
     );
   }
@@ -43,11 +45,12 @@ class UserModel {
       'id': id,
       'name': name,
       'email': email,
-      'memberSince': memberSince,
-      'isVerified': isVerified,
-      'platformTime': platformTime,
-      'videosDone': videosDone,
-      'streakDays': streakDays,
+      'registered_date': registeredDate,
+      'is_verified': isVerified,
+      'total_time_on_platform_seconds': totalTimeOnPlatformSeconds,
+      'total_video_done': totalVideoDone,
+      'current_streak': currentStreak,
+      'doctor_name': doctorName,
       'languages': languages,
     };
   }

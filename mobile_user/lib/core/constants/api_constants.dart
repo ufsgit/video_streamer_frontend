@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
+  static const String baseUrl = 'https://b52kcl7t-3000.inc1.devtunnels.ms';
 
   ///'https://7qh4z02n-3000.inc1.devtunnels.ms'; - "riju"
   ///https://7qh4z02n-3000.inc1.devtunnels.ms
@@ -8,7 +8,7 @@ class ApiConstants {
 
   // Relative API Paths (for Dio)
   static const String userLoginPath = '/api/auth/user/login';
-  static const String userProfilePath = '/api/v1/user/profile';
+  static const String userProfilePath = '/api/user/profiles/list';
   static const String userLanguagesPath = '/api/user/languages/list';
   static const String videosListPath = '/api/user/videos/list';
   static const String continueWatchingPath = '/api/v1/videos/continue-watching';
