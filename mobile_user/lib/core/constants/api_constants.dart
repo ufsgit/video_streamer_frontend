@@ -8,7 +8,7 @@ class ApiConstants {
 
   // Relative API Paths (for Dio)
   static const String userLoginPath = '/api/auth/user/login';
-  static const String userProfilePath = '/api/v1/user/profile';
+  static const String userProfilePath = '/api/user/profiles/list';
   static const String userLanguagesPath = '/api/user/languages/list';
   static const String videosListPath = '/api/user/videos/list';
   static const String continueWatchingPath = '/api/v1/videos/continue-watching';

@@ -37,8 +37,29 @@ class _ProfileViewState extends State<ProfileView> {
       listenable: _viewModel,
       builder: (context, _) {
         final user = _viewModel.user;
-        final name = user?.name.isNotEmpty == true ? user!.name : 'John Doe';
+        final name = user?.name.isNotEmpty == true ? user!.name : 'Loading...';
         final initials = name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join();
+
+        String platformTime = '0m';
+        if (user != null) {
+          final seconds = user.totalTimeOnPlatformSeconds;
+          final hours = seconds ~/ 3600;
+          final mins = (seconds % 3600) ~/ 60;
+          if (hours > 0) {
+            platformTime = '${hours}h ${mins}m';
+          } else {
+            platformTime = '${mins}m';
+          }
+        }
+
+        String memberSince = '...';
+        if (user != null && user.registeredDate != null) {
+          try {
+            final date = DateTime.parse(user.registeredDate!);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            memberSince = '${months[date.month - 1]} ${date.year}';
+          } catch (_) {}
+        }
 
         return Scaffold(
           backgroundColor: const Color(0xFFF7F9FC),
@@ -180,9 +201,9 @@ class _ProfileViewState extends State<ProfileView> {
                                     Row(
                                       children: [
                                         Text(
-                                          user?.memberSince.isNotEmpty == true
-                                              ? 'Member since ${user!.memberSince}'
-                                              : 'Member since Jan 2023',
+                                          user != null
+                                              ? 'Member since $memberSince'
+                                              : 'Member since...',
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w500,
@@ -266,9 +287,7 @@ class _ProfileViewState extends State<ProfileView> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                user?.platformTime.isNotEmpty == true
-                                    ? user!.platformTime
-                                    : '12h 45m',
+                                platformTime,
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
@@ -310,7 +329,7 @@ class _ProfileViewState extends State<ProfileView> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                user != null ? '${user.videosDone}' : '42',
+                                user != null ? '${user.totalVideoDone}' : '0',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
@@ -352,7 +371,7 @@ class _ProfileViewState extends State<ProfileView> {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                user != null ? '${user.streakDays} days' : '5 days',
+                                user != null ? '${user.currentStreak} days' : '0 days',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
@@ -423,9 +442,9 @@ class _ProfileViewState extends State<ProfileView> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Dr. Sarah Jenkins',
-                              style: TextStyle(
+                            Text(
+                              user?.doctorName ?? 'Loading...',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF101828),

@@ -16,9 +16,12 @@ class UserRepositoryImpl implements UserRepository {
     try {
       final response = await _client.dio.get(ApiConstants.userProfilePath);
       if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          return UserModel.fromJson(data);
+        final body = response.data;
+        if (body is Map<String, dynamic> && body['success'] == true) {
+          final data = body['data'];
+          if (data is Map<String, dynamic>) {
+            return UserModel.fromJson(data);
+          }
         }
       }
     } catch (_) {}
