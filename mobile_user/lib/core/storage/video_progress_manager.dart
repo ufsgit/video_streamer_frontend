@@ -6,18 +6,26 @@ class VideoProgress {
   final double totalDuration; // in seconds
   final double currentPosition; // in seconds
   final bool isCompleted;
+  final dynamic videoId;
 
   const VideoProgress({
     this.totalDuration = 0.0,
     this.currentPosition = 0.0,
     this.isCompleted = false,
+    this.videoId,
   });
 
   /// Returns progress value from 0.0 to 1.0
   double get progressFraction {
-    if (isCompleted) return 1.0;
     if (totalDuration <= 0) return 0.0;
+    if (isCompleted || currentPosition >= totalDuration) return 1.0;
     return (currentPosition / totalDuration).clamp(0.0, 1.0);
+  }
+
+  /// Returns true ONLY when the current position equals or exceeds the total duration, or explicitly completed
+  bool get isActuallyCompleted {
+    if (totalDuration > 0 && currentPosition >= totalDuration) return true;
+    return isCompleted;
   }
 
   /// Returns percentage integer (0 to 100)
@@ -27,16 +35,22 @@ class VideoProgress {
     return {
       'totalDuration': totalDuration,
       'currentPosition': currentPosition,
-      'isCompleted': isCompleted,
+      'isCompleted': isActuallyCompleted,
+      'videoId': videoId,
     };
   }
 
   factory VideoProgress.fromMap(Map<dynamic, dynamic>? map) {
     if (map == null) return const VideoProgress();
+    final double dur = (map['totalDuration'] as num?)?.toDouble() ?? 0.0;
+    final double pos = (map['currentPosition'] as num?)?.toDouble() ?? 0.0;
+    final bool comp = map['isCompleted'] == true && (dur <= 0 || pos >= dur);
+
     return VideoProgress(
-      totalDuration: (map['totalDuration'] as num?)?.toDouble() ?? 0.0,
-      currentPosition: (map['currentPosition'] as num?)?.toDouble() ?? 0.0,
-      isCompleted: map['isCompleted'] == true,
+      totalDuration: dur,
+      currentPosition: pos,
+      isCompleted: comp,
+      videoId: map['videoId'],
     );
   }
 }
@@ -70,12 +84,13 @@ class VideoProgressManager {
     return const VideoProgress();
   }
 
-  /// Saves the whole duration, current position, and completion state in Hive.
+  /// Saves the total duration, current position, and completion state in Hive.
   static Future<void> saveProgress({
     required String? idOrUrl,
     required double currentPosition,
     required double totalDuration,
     bool? isCompleted,
+    dynamic videoId,
   }) async {
     try {
       final key = normalizeKey(idOrUrl);
@@ -84,34 +99,19 @@ class VideoProgressManager {
       }
 
       final existing = getProgress(key);
-      final bool completed = isCompleted ??
-          (existing.isCompleted ||
-              (totalDuration > 0 && currentPosition >= (totalDuration * 0.92)));
+      final double effectiveDur = totalDuration > 0
+          ? totalDuration
+          : existing.totalDuration;
+      final bool completed =
+          isCompleted ?? (effectiveDur > 0 && currentPosition >= effectiveDur);
 
       final progress = VideoProgress(
         currentPosition: currentPosition,
-        totalDuration: totalDuration > 0 ? totalDuration : existing.totalDuration,
+        totalDuration: effectiveDur,
         isCompleted: completed,
+        videoId: videoId ?? existing.videoId,
       );
 
-      await _box.put(key, progress.toMap());
-    } catch (_) {}
-  }
-
-  /// Marks the video as completed (bar 100% full with tick).
-  static Future<void> markCompleted(String? idOrUrl, {double? totalDuration}) async {
-    try {
-      final key = normalizeKey(idOrUrl);
-      if (!Hive.isBoxOpen(boxName)) {
-        await Hive.openBox(boxName);
-      }
-      final existing = getProgress(key);
-      final dur = totalDuration ?? existing.totalDuration;
-      final progress = VideoProgress(
-        totalDuration: dur,
-        currentPosition: dur > 0 ? dur : existing.currentPosition,
-        isCompleted: true,
-      );
       await _box.put(key, progress.toMap());
     } catch (_) {}
   }

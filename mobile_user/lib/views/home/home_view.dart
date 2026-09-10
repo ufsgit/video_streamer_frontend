@@ -222,9 +222,10 @@ class _HomeViewState extends State<HomeView> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => const YoutubePlayerView(
-                                          videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-                                          title: 'Step 2: Post-ACL Program',
+                                        builder: (context) => YoutubePlayerView(
+                                          videoId: _viewModel.continueWatchingVideo?.id,
+                                          videoUrl: _viewModel.continueWatchingVideo?.link ?? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                                          title: _viewModel.continueWatchingVideo?.title ?? 'Step 2: Post-ACL Program',
                                         ),
                                       ),
                                     );

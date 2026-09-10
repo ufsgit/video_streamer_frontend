@@ -42,4 +42,17 @@ class ApiService {
 
   Future<List<VideoModel>> searchVideos(String query) =>
       videoRepository.searchVideos(query);
+
+  Future<bool> updateVideoProgress({
+    required dynamic videoId,
+    required double currentTimestampSeconds,
+    required double totalWatchTimeSeconds,
+    required bool isCompleted,
+  }) =>
+      videoRepository.updateVideoProgress(
+        videoId: videoId,
+        currentTimestampSeconds: currentTimestampSeconds,
+        totalWatchTimeSeconds: totalWatchTimeSeconds,
+        isCompleted: isCompleted,
+      );
 }
