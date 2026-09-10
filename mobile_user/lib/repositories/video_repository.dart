@@ -17,6 +17,16 @@ abstract class VideoRepository {
     int page = 1,
     int limit = 10,
   });
+  /// Updates video watch progress on the backend.
+  /// [currentTimestampSeconds] is the user's current playback position in seconds.
+  /// [totalWatchTimeSeconds] is the total full duration of the video in seconds.
+  /// [isCompleted] indicates whether the video playback has completed.
+  Future<bool> updateVideoProgress({
+    required dynamic videoId,
+    required double currentTimestampSeconds,
+    required double totalWatchTimeSeconds,
+    required bool isCompleted,
+  });
 }
 
 class VideoRepositoryImpl implements VideoRepository {
@@ -138,8 +148,41 @@ class VideoRepositoryImpl implements VideoRepository {
         }
       }
     } catch (e) {
-      print('Error fetching videos by category: $e');
+      log('Error fetching videos by category: $e');
     }
     return [];
+  }
+
+  @override
+  Future<bool> updateVideoProgress({
+    required dynamic videoId,
+    required double currentTimestampSeconds,
+    required double totalWatchTimeSeconds,
+    required bool isCompleted,
+  }) async {
+    try {
+      final dynamic formattedVideoId = int.tryParse(videoId.toString()) ?? videoId;
+      final Map<String, dynamic> data = {
+        'video_id': formattedVideoId,
+        'current_timestamp_seconds': currentTimestampSeconds.round(),
+        'total_watch_time_seconds': totalWatchTimeSeconds.round(),
+        'is_completed': isCompleted,
+      };
+
+      log('DEBUG: Updating video progress with payload: $data');
+
+      final response = await _client.dio.post(
+        ApiConstants.videoProgressPath,
+        data: data,
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        log('DEBUG: Video progress successfully updated on server: ${response.data}');
+        return true;
+      }
+    } catch (e) {
+      log('Error updating video progress on server: $e');
+    }
+    return false;
   }
 }

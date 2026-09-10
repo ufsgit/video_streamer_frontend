@@ -28,7 +28,7 @@ class VideoProgressBar extends StatelessWidget {
       valueListenable: VideoProgressManager.listenable(keys: [normalized]),
       builder: (context, box, _) {
         final progress = VideoProgressManager.getProgress(normalized);
-        final bool isCompleted = progress.isCompleted;
+        final bool isCompleted = progress.isActuallyCompleted;
         final double fraction = progress.progressFraction;
         final int percent = progress.percentInt;
 

@@ -222,6 +222,7 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => YoutubePlayerView(
+                                      videoId: video.id,
                                       videoUrl: video.link!,
                                       title: video.title,
                                     ),
