@@ -16,7 +16,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   late int _currentIndex;
 
   final List<Widget> _screens = const [
-    HomeView(),
+    // HomeView(),
     LibraryView(),
     ProfileView(),
   ];
@@ -30,10 +30,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -55,20 +52,20 @@ class _MainNavigationViewState extends State<MainNavigationView> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
+                // _buildNavItem(
+                //   index: 0,
+                //   icon: Icons.home_rounded,
+                //   label: 'Home',
+                // ),
                 _buildNavItem(
                   index: 0,
-                  icon: Icons.home_rounded,
-                  label: 'Home',
-                ),
-                _buildNavItem(
-                  index: 1,
                   icon: Icons.article_outlined,
                   label: 'Library',
                 ),
                 _buildNavItem(
-                  index: 2,
+                  index: 1,
                   icon: Icons.person_outline_rounded,
                   label: 'Profile',
                 ),

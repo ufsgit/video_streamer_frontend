@@ -28,7 +28,8 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
   @override
   void initState() {
     super.initState();
-    final videoId = YoutubePlayerController.convertUrlToId(widget.videoUrl) ?? '';
+    final videoId =
+        YoutubePlayerController.convertUrlToId(widget.videoUrl) ?? '';
 
     // Load initial saved progress
     final saved = VideoProgressManager.getProgress(widget.videoUrl);
@@ -64,7 +65,10 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
       }
 
       final bool ended = value.playerState == PlayerState.ended;
-      final bool completed = ended || _isCompleted || (_totalDuration > 0 && _currentPosition >= (_totalDuration * 0.92));
+      final bool completed =
+          ended ||
+          _isCompleted ||
+          (_totalDuration > 0 && _currentPosition >= (_totalDuration * 0.92));
 
       if (completed != _isCompleted) {
         setState(() {
@@ -100,26 +104,6 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
     super.dispose();
   }
 
-  void _toggleManualComplete() async {
-    setState(() {
-      _isCompleted = !_isCompleted;
-    });
-
-    if (_isCompleted) {
-      await VideoProgressManager.markCompleted(
-        widget.videoUrl,
-        totalDuration: _totalDuration,
-      );
-    } else {
-      await VideoProgressManager.saveProgress(
-        idOrUrl: widget.videoUrl,
-        currentPosition: _currentPosition,
-        totalDuration: _totalDuration,
-        isCompleted: false,
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final double fraction = _totalDuration > 0
@@ -147,9 +131,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
             color: Colors.black,
             child: AspectRatio(
               aspectRatio: 16 / 9,
-              child: YoutubePlayer(
-                controller: _controller,
-              ),
+              child: YoutubePlayer(controller: _controller),
             ),
           ),
 
@@ -251,38 +233,6 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
                   ),
 
                   const Spacer(),
-
-                  // Mark as Completed Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _toggleManualComplete,
-                      icon: Icon(
-                        _isCompleted
-                            ? Icons.check_circle_rounded
-                            : Icons.check_circle_outline_rounded,
-                        size: 20,
-                      ),
-                      label: Text(
-                        _isCompleted ? 'Mark as Incomplete' : 'Mark as Completed',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isCompleted
-                            ? const Color(0xFF12B76A)
-                            : const Color(0xFF0052CC),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
