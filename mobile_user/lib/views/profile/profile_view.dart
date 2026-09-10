@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../auth/login_view.dart';
+import 'personal_info_view.dart';
 
 class ProfileView extends StatefulWidget {
   final ProfileViewModel? viewModel;
@@ -504,7 +505,14 @@ class _ProfileViewState extends State<ProfileView> {
                         _buildSettingsTile(
                           icon: Icons.person_outline_rounded,
                           title: 'Personal information',
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PersonalInfoView(user: user),
+                              ),
+                            );
+                          },
                         ),
                         const Divider(height: 1, color: Color(0xFFF2F4F7)),
                         _buildSettingsTile(
@@ -514,8 +522,8 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                         const Divider(height: 1, color: Color(0xFFF2F4F7)),
                         _buildSettingsTile(
-                          icon: Icons.help_outline_rounded,
-                          title: 'Help & support',
+                          icon: Icons.language_rounded,
+                          title: 'Language',
                           onTap: () {},
                         ),
                         const Divider(height: 1, color: Color(0xFFF2F4F7)),

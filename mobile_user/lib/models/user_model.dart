@@ -12,6 +12,10 @@ class UserModel {
   final int currentStreak;
   final String? doctorName;
   final List<String>? languages;
+  final String? dateOfBirth;
+  final int? age;
+  final String? sex;
+  final String? phoneNumber;
 
   UserModel({
     required this.id,
@@ -24,6 +28,10 @@ class UserModel {
     this.currentStreak = 0,
     this.doctorName,
     this.languages,
+    this.dateOfBirth,
+    this.age,
+    this.sex,
+    this.phoneNumber,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -37,6 +45,10 @@ class UserModel {
       currentStreak: json['current_streak'] ?? 0,
       doctorName: json['doctor_name'],
       languages: json['languages'] != null ? List<String>.from(json['languages']) : null,
+      dateOfBirth: json['date_of_birth'],
+      age: json['age'],
+      sex: json['sex'],
+      phoneNumber: json['phone_number'],
     );
   }
 
@@ -52,6 +64,10 @@ class UserModel {
       'current_streak': currentStreak,
       'doctor_name': doctorName,
       'languages': languages,
+      'date_of_birth': dateOfBirth,
+      'age': age,
+      'sex': sex,
+      'phone_number': phoneNumber,
     };
   }
 }

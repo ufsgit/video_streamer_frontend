@@ -101,6 +101,11 @@ class ApiService {
     return await _dio.get('/health');
   }
 
+  // --- Admin Profile ---
+  Future<Response> getAdminProfile() async {
+    return await _dio.get('/admin/profile');
+  }
+
   // --- 2. Authentication ---
   Future<Response> login(Map<String, dynamic> credentials) async {
     return await _dio.post('/auth/admin/login', data: credentials);
