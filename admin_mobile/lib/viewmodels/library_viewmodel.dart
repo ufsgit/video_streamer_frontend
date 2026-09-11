@@ -129,6 +129,8 @@ class VideoLibraryViewModel extends ChangeNotifier {
                   item['language_name']?.toString() ??
                   '',
               'duration': item['duration']?.toString() ?? 'Stream',
+              'total_duration_seconds':
+                  item['total_duration_seconds'] ?? item['duration_seconds'],
               'youtubeUrl': url,
               'imageUrl': thumbUrl,
               'thumbnail_url': thumbUrl,
@@ -171,6 +173,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
     required String videoUrl,
     String? language,
     String? description,
+    int? totalDurationSeconds,
     Uint8List? thumbnailBytes,
     String? thumbnailFilename,
   }) async {
@@ -182,6 +185,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
         language: language,
         videoUrl: videoUrl,
         description: description,
+        totalDurationSeconds: totalDurationSeconds,
         thumbnailBytes: thumbnailBytes,
         thumbnailFilename: thumbnailFilename,
       );

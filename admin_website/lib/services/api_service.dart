@@ -196,6 +196,7 @@ class ApiService {
     String? description,
     Uint8List? thumbnailBytes,
     String? thumbnailFilename,
+    dynamic totalDurationSeconds,
   }) async {
     final Map<String, dynamic> formMap = {
       'title': title,
@@ -203,6 +204,10 @@ class ApiService {
       'video_url': videoUrl,
       'language': language.toLowerCase(),
     };
+
+    if (totalDurationSeconds != null) {
+      formMap['total_duration_seconds'] = totalDurationSeconds;
+    }
 
     if (languageId != null) {
       formMap['language_id'] = languageId;
@@ -263,12 +268,17 @@ class ApiService {
     String? description,
     Uint8List? thumbnailBytes,
     String? thumbnailFilename,
+    dynamic totalDurationSeconds,
   }) async {
     final Map<String, dynamic> formMap = {
       'title': title,
       'category': category.toLowerCase(),
       'video_url': videoUrl,
     };
+
+    if (totalDurationSeconds != null) {
+      formMap['total_duration_seconds'] = totalDurationSeconds;
+    }
 
     if (language != null && language.trim().isNotEmpty) {
       formMap['language'] = language.trim();

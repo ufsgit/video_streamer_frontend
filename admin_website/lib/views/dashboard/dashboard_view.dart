@@ -144,11 +144,14 @@ class _DashboardViewState extends State<DashboardView> {
                             Divider(color: Colors.grey.shade200, height: 8),
                         itemBuilder: (context, index) {
                           final log = _viewModel.activityLogs[index];
-                          final isNarrow = MediaQuery.of(context).size.width < 600;
+                          final isNarrow =
+                              MediaQuery.of(context).size.width < 600;
 
                           if (isNarrow) {
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 6.0,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -166,7 +169,8 @@ class _DashboardViewState extends State<DashboardView> {
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           log.patientName,
@@ -187,20 +191,26 @@ class _DashboardViewState extends State<DashboardView> {
                                         Row(
                                           children: [
                                             Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
                                               decoration: BoxDecoration(
-                                                color: log.progressPercentage == 100
+                                                color:
+                                                    log.progressPercentage ==
+                                                        100
                                                     ? AppTheme.successLight
                                                     : Colors.blue.shade50,
-                                                borderRadius: BorderRadius.circular(6),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
                                               ),
                                               child: Text(
                                                 "${log.progressPercentage}%",
                                                 style: TextStyle(
-                                                  color: log.progressPercentage == 100
+                                                  color:
+                                                      log.progressPercentage ==
+                                                          100
                                                       ? Colors.green.shade700
                                                       : AppTheme.primaryBlue,
                                                   fontSize: 11,
@@ -274,29 +284,7 @@ class _DashboardViewState extends State<DashboardView> {
                                     ),
                                   ),
                                 ),
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: log.progressPercentage == 100
-                                          ? AppTheme.successLight
-                                          : Colors.blue.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      "${log.progressPercentage}% Complete",
-                                      style: TextStyle(
-                                        color: log.progressPercentage == 100
-                                            ? Colors.green.shade700
-                                            : AppTheme.primaryBlue,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+
                                 Expanded(
                                   child: Text(
                                     "${log.videosWatched}/${log.totalVideos}",
@@ -331,11 +319,7 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Widget _buildMetricCard(
-    String title,
-    String value,
-    IconData icon,
-  ) {
+  Widget _buildMetricCard(String title, String value, IconData icon) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -355,10 +339,7 @@ class _DashboardViewState extends State<DashboardView> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ],
       ),

@@ -35,16 +35,94 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
   String? _thumbnailName;
   bool _isSubmitting = false;
   String? _errorMessage;
+  int? _detectedDurationSeconds;
+  String? _currentDetectingYtId;
 
   YoutubePlayerController? _previewYoutubeController;
+  YoutubePlayerController? _detectorController;
   bool _isPreviewing = false;
   String? _previewErrorMessage;
 
   bool get isEditing => widget.videoToEdit != null;
 
+  String _formatDuration(int totalSeconds) {
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  int? _parseDuration(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+    if (trimmed.contains(':')) {
+      final parts = trimmed.split(':');
+      if (parts.length == 2) {
+        final m = int.tryParse(parts[0]) ?? 0;
+        final s = int.tryParse(parts[1]) ?? 0;
+        return (m * 60) + s;
+      } else if (parts.length == 3) {
+        final h = int.tryParse(parts[0]) ?? 0;
+        final m = int.tryParse(parts[1]) ?? 0;
+        final s = int.tryParse(parts[2]) ?? 0;
+        return (h * 3600) + (m * 60) + s;
+      }
+    }
+    return int.tryParse(trimmed) ?? double.tryParse(trimmed)?.round();
+  }
+
+  void _onUrlChanged() {
+    final url = _urlController.text.trim();
+    final ytId = _extractYtId(url);
+    if (ytId != null && ytId.isNotEmpty) {
+      _autoDetectDuration(ytId);
+      _autoLoadPreview(ytId);
+    } else {
+      if (_isPreviewing) {
+        _clearPreview();
+      }
+    }
+  }
+
+  void _autoDetectDuration(String ytId) {
+    if (_currentDetectingYtId == ytId && _detectedDurationSeconds != null) return;
+    _currentDetectingYtId = ytId;
+
+    _detectorController?.close();
+    final controller = YoutubePlayerController.fromVideoId(
+      videoId: ytId,
+      autoPlay: false,
+      params: const YoutubePlayerParams(
+        showControls: false,
+        showFullscreenButton: false,
+        mute: true,
+      ),
+    );
+
+    controller.listen((value) async {
+      try {
+        final dur = await controller.duration;
+        if (dur > 0 && mounted) {
+          final secs = dur.round();
+          if (_detectedDurationSeconds != secs) {
+            setState(() {
+              _detectedDurationSeconds = secs;
+            });
+          }
+        }
+      } catch (_) {}
+    });
+
+    if (mounted) {
+      setState(() {
+        _detectorController = controller;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _urlController.addListener(_onUrlChanged);
     _fetchLanguages();
     if (widget.videoToEdit != null) {
       final v = widget.videoToEdit!;
@@ -55,6 +133,20 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
           v['video_url']?.toString() ??
           v['url']?.toString() ??
           '';
+
+      final existingDur =
+          v['total_duration_seconds'] ?? v['duration_seconds'] ?? v['duration'];
+      if (existingDur != null) {
+        if (existingDur is num) {
+          _detectedDurationSeconds = existingDur.round();
+        } else {
+          final str = existingDur.toString().trim();
+          final parsed = _parseDuration(str);
+          if (parsed != null && parsed > 0) {
+            _detectedDurationSeconds = parsed;
+          }
+        }
+      }
 
       final cat = (v['category']?.toString() ?? '').toLowerCase();
       if (cat.contains('pre')) {
@@ -72,6 +164,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
       final url = _urlController.text.trim();
       final ytId = _extractYtId(url);
       if (ytId != null && ytId.isNotEmpty) {
+        _autoDetectDuration(ytId);
         _previewYoutubeController = YoutubePlayerController.fromVideoId(
           videoId: ytId,
           autoPlay: false,
@@ -88,11 +181,13 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
 
   @override
   void dispose() {
+    _urlController.removeListener(_onUrlChanged);
     _titleController.dispose();
     _urlController.dispose();
     _descriptionController.dispose();
     _languageController.dispose();
     _previewYoutubeController?.close();
+    _detectorController?.close();
     super.dispose();
   }
 
@@ -225,6 +320,50 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
     return null;
   }
 
+  String? _currentPreviewYtId;
+
+  void _autoLoadPreview(String ytId, {bool autoPlay = false}) {
+    if (_previewYoutubeController != null &&
+        _isPreviewing &&
+        _currentPreviewYtId == ytId) {
+      return;
+    }
+    _currentPreviewYtId = ytId;
+
+    final controller = YoutubePlayerController.fromVideoId(
+      videoId: ytId,
+      autoPlay: autoPlay,
+      params: const YoutubePlayerParams(
+        showControls: true,
+        showFullscreenButton: true,
+        mute: false,
+        showVideoAnnotations: false,
+        enableCaption: true,
+      ),
+    );
+
+    controller.listen((value) async {
+      try {
+        final dur = await controller.duration;
+        if (dur > 0 && mounted) {
+          final secs = dur.round();
+          if (_detectedDurationSeconds != secs) {
+            setState(() {
+              _detectedDurationSeconds = secs;
+            });
+          }
+        }
+      } catch (_) {}
+    });
+
+    setState(() {
+      _previewErrorMessage = null;
+      _previewYoutubeController?.close();
+      _previewYoutubeController = controller;
+      _isPreviewing = true;
+    });
+  }
+
   void _toggleOrLoadPreview() {
     if (_isPreviewing) {
       _clearPreview();
@@ -240,26 +379,12 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
       return;
     }
 
-    setState(() {
-      _previewErrorMessage = null;
-      _previewYoutubeController?.close();
-      _previewYoutubeController = YoutubePlayerController.fromVideoId(
-        videoId: ytId,
-        autoPlay: true,
-        params: const YoutubePlayerParams(
-          showControls: true,
-          showFullscreenButton: true,
-          mute: false,
-          showVideoAnnotations: false,
-          enableCaption: true,
-        ),
-      );
-      _isPreviewing = true;
-    });
+    _autoLoadPreview(ytId, autoPlay: true);
   }
 
   void _clearPreview() {
     setState(() {
+      _currentPreviewYtId = null;
       _isPreviewing = false;
       _previewErrorMessage = null;
       _previewYoutubeController?.close();
@@ -300,6 +425,24 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
       _errorMessage = null;
     });
 
+    if (_detectedDurationSeconds == null && _detectorController != null) {
+      try {
+        final dur = await _detectorController!.duration;
+        if (dur > 0) {
+          _detectedDurationSeconds = dur.round();
+        }
+      } catch (_) {}
+    }
+    if (_detectedDurationSeconds == null && _previewYoutubeController != null) {
+      try {
+        final dur = await _previewYoutubeController!.duration;
+        if (dur > 0) {
+          _detectedDurationSeconds = dur.round();
+        }
+      } catch (_) {}
+    }
+    final totalDurationSeconds = _detectedDurationSeconds;
+
     try {
       final response = isEditing
           ? await _apiService.editVideo(
@@ -313,6 +456,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
               description: _descriptionController.text.trim(),
               thumbnailBytes: _thumbnailBytes,
               thumbnailFilename: _thumbnailName,
+              totalDurationSeconds: totalDurationSeconds,
             )
           : await _apiService.createVideo(
               title: title,
@@ -322,6 +466,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
               description: _descriptionController.text.trim(),
               thumbnailBytes: _thumbnailBytes,
               thumbnailFilename: _thumbnailName,
+              totalDurationSeconds: totalDurationSeconds,
             );
 
       if (response.statusCode == 200 ||
@@ -360,6 +505,16 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
               'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=500&q=60';
         }
 
+        String formattedDuration = 'Stream';
+        if (videoData['duration'] != null &&
+            videoData['duration'].toString().trim().isNotEmpty) {
+          formattedDuration = videoData['duration'].toString().trim();
+        } else if (totalDurationSeconds != null && totalDurationSeconds > 0) {
+          formattedDuration = _formatDuration(totalDurationSeconds);
+        } else if (widget.videoToEdit?['duration'] != null) {
+          formattedDuration = widget.videoToEdit!['duration'].toString();
+        }
+
         final savedVideo = {
           'id':
               videoData['id']?.toString() ??
@@ -373,10 +528,9 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
           'description':
               videoData['description'] ?? _descriptionController.text.trim(),
           'category': videoData['category'] ?? _selectedCategory,
-          'duration':
-              videoData['duration'] ??
-              widget.videoToEdit?['duration'] ??
-              'Stream',
+          'duration': formattedDuration,
+          'total_duration_seconds':
+              totalDurationSeconds ?? videoData['total_duration_seconds'],
           'youtubeUrl': url,
           'imageUrl': thumbUrl,
           'thumbnail_url': thumbUrl,
@@ -692,7 +846,15 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            if (_detectorController != null)
+              Offstage(
+                offstage: true,
+                child: SizedBox(
+                  width: 1,
+                  height: 1,
+                  child: YoutubePlayer(controller: _detectorController!),
+                ),
+              ),
 
             // Video URL
             Row(
@@ -711,11 +873,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                   child: TextField(
                     controller: _urlController,
                     onChanged: (val) {
-                      if (_isPreviewing) {
-                        _clearPreview();
-                      } else {
-                        setState(() {});
-                      }
+                      setState(() {});
                     },
                     decoration: InputDecoration(
                       hintText: "https://youtube.com/watch?v=...",
