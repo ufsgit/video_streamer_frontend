@@ -106,19 +106,21 @@ class ApiService {
     return await _dio.post('/auth/user/login', data: credentials);
   }
 
+  // --- Admin Profile ---
+  Future<Response> getAdminProfile() async {
+    return await _dio.get('/admin/profile');
+  }
+
   Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
-      final res = await _dio.get('/auth/me');
-      if (res.data != null && res.data['user'] != null) {
-        return Map<String, dynamic>.from(res.data['user']);
+      final res = await getAdminProfile();
+      if (res.data != null && res.data['data'] != null) {
+        return Map<String, dynamic>.from(res.data['data']);
       }
-    } catch (_) {}
-    return {
-      'name': 'Administrator',
-      'username': 'admin',
-      'email': 'admin@carestream.local',
-      'role': 'Admin',
-    };
+    } catch (e) {
+      debugPrint('Error fetching user: $e');
+    }
+    return null;
   }
 
   // --- 3. Admin Dashboard Statistics ---

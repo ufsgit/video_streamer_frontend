@@ -117,91 +117,117 @@ class _MobileProfileViewState extends State<MobileProfileView> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      _userProfile?['username'] ?? _userProfile?['name'] ?? 'Admin User',
+                      _userProfile?['name'] ?? _userProfile?['username'] ?? 'Admin User',
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _userProfile?['email'] ?? 'admin@carestream.local',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textMuted,
-                      ),
-                    ),
                     const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.successLight,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.check_circle, color: AppTheme.success, size: 14),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'Active',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.shield_outlined, color: AppTheme.textPrimary, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                _userProfile?['role'] ?? 'Administrative Access',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Personal Details
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppTheme.primary.withValues(alpha: 0.3),
-                        ),
+                        color: AppTheme.cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.border),
                       ),
-                      child: Text(
-                        (_userProfile?['role'] ?? 'ADMINISTRATOR').toString().toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primary,
-                          letterSpacing: 0.5,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.badge_outlined, color: AppTheme.primaryDark, size: 22),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Personal Details',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Divider(height: 1),
+                          const SizedBox(height: 16),
+                          _buildDetailRow(
+                            'Email Address',
+                            _userProfile?['email'] ?? 'N/A',
+                            isEditable: true,
+                          ),
+                          const SizedBox(height: 24),
+                          _buildDetailRow(
+                            'Phone Number',
+                            _userProfile?['phone_number'] ?? 'N/A',
+                            isEditable: true,
+                          ),
+                          const SizedBox(height: 24),
+                          _buildDetailRow(
+                            'Date of Birth',
+                            _userProfile?['dob'] ?? 'N/A',
+                            isEditable: false,
+                            icon: Icons.lock_outline,
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 32),
 
-                    // Quick Settings / Info Section
-                    _buildSectionHeader('Account & System'),
-                    const SizedBox(height: 12),
-                    _buildSettingsTile(
-                      icon: Icons.shield_outlined,
-                      title: 'Role & Permissions',
-                      subtitle: 'Full Administrator Access',
-                      onTap: () {},
-                    ),
-                    _buildSettingsTile(
-                      icon: Icons.notifications_none_rounded,
-                      title: 'Push Notifications',
-                      subtitle: 'Alerts on patient video completion',
-                      trailing: Switch(
-                        value: true,
-                        activeThumbColor: AppTheme.primary,
-                        onChanged: (val) {},
-                      ),
-                    ),
-                    _buildSettingsTile(
-                      icon: Icons.cloud_outlined,
-                      title: 'Server Sync Status',
-                      subtitle: 'Connected (Online)',
-                      trailing: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppTheme.success,
-                        ),
-                      ),
-                    ),
 
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('Application Info'),
-                    const SizedBox(height: 12),
-                    _buildSettingsTile(
-                      icon: Icons.info_outline_rounded,
-                      title: 'App Version',
-                      subtitle: 'v1.0.0 (Admin Mobile Suite)',
-                    ),
-                    _buildSettingsTile(
-                      icon: Icons.support_agent_rounded,
-                      title: 'CareStream Support',
-                      subtitle: 'Documentation & Technical Help',
-                      onTap: () {},
-                    ),
-
-                    const SizedBox(height: 32),
                     // Logout button
                     SizedBox(
                       width: double.infinity,
@@ -247,6 +273,40 @@ class _MobileProfileViewState extends State<MobileProfileView> {
           letterSpacing: 1.1,
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value, {bool isEditable = false, IconData? icon}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ),
+            if (isEditable)
+              const Icon(Icons.edit, color: AppTheme.primaryDark, size: 18)
+            else if (icon != null)
+              Icon(icon, color: AppTheme.primaryDark, size: 18),
+          ],
+        ),
+      ],
     );
   }
 
