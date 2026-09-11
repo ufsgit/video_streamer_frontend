@@ -199,6 +199,7 @@ class ApiService {
     required String videoUrl,
     required String language,
     String? description,
+    int? totalDurationSeconds,
     Uint8List? thumbnailBytes,
     String? thumbnailFilename,
   }) async {
@@ -208,6 +209,10 @@ class ApiService {
       'video_url': videoUrl,
       'language': language.trim(),
     };
+
+    if (totalDurationSeconds != null && totalDurationSeconds > 0) {
+      formMap['total_duration_seconds'] = totalDurationSeconds;
+    }
 
     if (description != null && description.trim().isNotEmpty) {
       formMap['description'] = description.trim();
@@ -257,6 +262,7 @@ class ApiService {
     required String videoUrl,
     String? language,
     String? description,
+    int? totalDurationSeconds,
     Uint8List? thumbnailBytes,
     String? thumbnailFilename,
   }) async {
@@ -265,6 +271,10 @@ class ApiService {
       'category': category.toLowerCase(),
       'video_url': videoUrl,
     };
+
+    if (totalDurationSeconds != null && totalDurationSeconds > 0) {
+      formMap['total_duration_seconds'] = totalDurationSeconds;
+    }
 
     if (language != null && language.trim().isNotEmpty) {
       formMap['language'] = language.trim();

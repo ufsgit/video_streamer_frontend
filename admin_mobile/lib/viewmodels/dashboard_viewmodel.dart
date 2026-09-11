@@ -85,9 +85,22 @@ class DashboardViewModel extends ChangeNotifier {
       if (loginsData is Map<String, dynamic>) {
         final d = loginsData['data'] ?? loginsData;
         if (d is Map) {
-          totalLogins = d['totalLogins'] ?? d['count'] ?? d['total'] ?? 0;
+          final val = d['total_logins'] ??
+              d['totalLogins'] ??
+              d['count'] ??
+              d['total'] ??
+              d['logins'];
+          if (val is num) {
+            totalLogins = val.toInt();
+          } else if (val is String) {
+            totalLogins =
+                int.tryParse(val) ?? (double.tryParse(val)?.toInt() ?? 0);
+          }
         } else if (d is num) {
           totalLogins = d.toInt();
+        } else if (d is String) {
+          totalLogins =
+              int.tryParse(d) ?? (double.tryParse(d)?.toInt() ?? 0);
         }
       }
 
@@ -96,9 +109,22 @@ class DashboardViewModel extends ChangeNotifier {
       if (avgData is Map<String, dynamic>) {
         final d = avgData['data'] ?? avgData;
         if (d is Map) {
-          avgVideosWatched = (d['avgVideos'] ?? d['average'] ?? 0).toDouble();
+          final val = d['avg_videos_watched'] ??
+              d['avgVideosWatched'] ??
+              d['avg_videos'] ??
+              d['avgVideos'] ??
+              d['average'] ??
+              d['avg'] ??
+              d['count'];
+          if (val is num) {
+            avgVideosWatched = val.toDouble();
+          } else if (val is String) {
+            avgVideosWatched = double.tryParse(val) ?? 0.0;
+          }
         } else if (d is num) {
           avgVideosWatched = d.toDouble();
+        } else if (d is String) {
+          avgVideosWatched = double.tryParse(d) ?? 0.0;
         }
       }
 
@@ -107,9 +133,20 @@ class DashboardViewModel extends ChangeNotifier {
       if (compData is Map<String, dynamic>) {
         final d = compData['data'] ?? compData;
         if (d is Map) {
-          completionRate = (d['completionRate'] ?? d['rate'] ?? 0).toDouble();
+          final val = d['completion_rate'] ??
+              d['completionRate'] ??
+              d['rate'] ??
+              d['completion'] ??
+              d['percentage'];
+          if (val is num) {
+            completionRate = val.toDouble();
+          } else if (val is String) {
+            completionRate = double.tryParse(val) ?? 0.0;
+          }
         } else if (d is num) {
           completionRate = d.toDouble();
+        } else if (d is String) {
+          completionRate = double.tryParse(d) ?? 0.0;
         }
       }
 

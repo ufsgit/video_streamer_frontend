@@ -319,6 +319,9 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
         TextButton.icon(
           onPressed: _openAddVideoDialog,
           icon: const Icon(Icons.add, size: 16, color: AppTheme.primaryBlue),
+          style: TextButton.styleFrom(
+            side: const BorderSide(color: AppTheme.primaryBlue, width: 2),
+          ),
           label: const Text(
             "Add Video",
             style: TextStyle(
