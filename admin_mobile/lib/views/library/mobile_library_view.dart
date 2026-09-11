@@ -14,6 +14,14 @@ class MobileLibraryView extends StatefulWidget {
 
 class _MobileLibraryViewState extends State<MobileLibraryView> {
   final VideoLibraryViewModel _viewModel = VideoLibraryViewModel();
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _viewModel.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,10 +153,22 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
                   children: [
                     // Search Bar
                     TextField(
+                      controller: _searchController,
                       decoration: InputDecoration(
                         hintText: "Search video titles...",
                         hintStyle: const TextStyle(fontSize: 13),
                         prefixIcon: const Icon(Icons.search, size: 20),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                color: Colors.grey.shade600,
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _viewModel.updateSearchQuery("");
+                                  setState(() {});
+                                },
+                              )
+                            : null,
                         filled: true,
                         fillColor: Colors.grey.shade50,
                         isDense: true,
@@ -163,7 +183,10 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
                           borderSide: BorderSide(color: Colors.grey.shade200),
                         ),
                       ),
-                      onChanged: _viewModel.updateSearchQuery,
+                      onChanged: (val) {
+                        _viewModel.updateSearchQuery(val);
+                        setState(() {});
+                      },
                     ),
                     const SizedBox(height: 10),
 

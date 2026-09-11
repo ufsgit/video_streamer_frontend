@@ -52,24 +52,20 @@ class UserModel {
           'N/A',
       email: json['email']?.toString() ?? 'N/A',
       status: json['status']?.toString() ?? 'Active',
-      date: json['date']?.toString() ??
-          json['memberSince']?.toString() ??
-          json['createdAt']?.toString() ??
-          json['registeredAt']?.toString() ??
+      date: json['registered_date']?.toString() ??
+          json['registration_date']?.toString() ??
+          json['date']?.toString() ??
           '',
-      streak: json['streak']?.toString() ??
-          (json['streakDays'] != null ? '${json['streakDays']} days' : null) ??
-          '0 days',
-      imageUrl: json['photo']?.toString() ??
+      streak: json['current_streak'] != null
+          ? '${json['current_streak']} days'
+          : (json['streak']?.toString() ??
+              (json['streakDays'] != null
+                  ? '${json['streakDays']} days'
+                  : null) ??
+              '0 days'),
+      imageUrl: json['photo_url']?.toString() ??
+          json['photo']?.toString() ??
           json['imageUrl']?.toString() ??
-          json['image']?.toString() ??
-          json['photoUrl']?.toString() ??
-          json['photo_url']?.toString() ??
-          json['avatar']?.toString() ??
-          json['profilePicture']?.toString() ??
-          json['profile_picture']?.toString() ??
-          json['profileImage']?.toString() ??
-          json['profile_image']?.toString() ??
           '',
       note: json['note']?.toString() ?? '',
     );

@@ -39,37 +39,42 @@ class PatientDetailViewModel extends ChangeNotifier {
       final resData = response.data;
 
       Map<String, dynamic> userData = {};
-      if (resData is Map<String, dynamic>) {
-        if (resData['data'] is Map<String, dynamic>) {
-          userData = Map<String, dynamic>.from(resData['data']);
-        } else if (resData['user'] is Map<String, dynamic>) {
-          userData = Map<String, dynamic>.from(resData['user']);
+      if (resData is Map) {
+        if (resData['data'] is Map) {
+          userData = Map<String, dynamic>.from(resData['data'] as Map);
+        } else if (resData['user'] is Map) {
+          userData = Map<String, dynamic>.from(resData['user'] as Map);
         } else {
-          userData = resData;
+          userData = Map<String, dynamic>.from(resData);
         }
       }
 
       if (userData.isNotEmpty) {
         patient = UserModel.fromJson(userData);
 
-        // Parse assigned or watched videos
-        final List<dynamic> rawVideos =
+        // Parse assigned or watched videos safely
+        final dynamic rawVideosData =
             userData['assigned_videos'] ??
             userData['assignedVideos'] ??
             userData['videos'] ??
             userData['history'] ??
-            userData['watched_videos'] ??
-            [];
+            userData['watched_videos'];
 
-        videoHistory = rawVideos
-            .map((v) => Map<String, dynamic>.from(v as Map))
-            .toList();
+        if (rawVideosData is List) {
+          videoHistory = rawVideosData
+              .whereType<Map>()
+              .map((v) => Map<String, dynamic>.from(v))
+              .toList();
+        } else {
+          videoHistory = [];
+        }
 
         // Calculate / extract statistics
         totalVideos =
             int.tryParse(
               userData['total_videos']?.toString() ??
                   userData['totalVideos']?.toString() ??
+                  userData['total_assigned']?.toString() ??
                   userData['total_watched']?.toString() ??
                   '',
             ) ??
@@ -102,8 +107,8 @@ class PatientDetailViewModel extends ChangeNotifier {
           progressRate = 0;
         }
       }
-    } catch (e) {
-      debugPrint("Error fetching patient details: $e");
+    } catch (e, stackTrace) {
+      debugPrint("Error fetching patient details: $e\n$stackTrace");
       errorMessage = "Failed to fetch latest details from server.";
     } finally {
       isLoading = false;

@@ -257,7 +257,18 @@ class _AssignVideosDialogState extends State<AssignVideosDialog> {
                                 ),
                               ),
                             )
-                          : null,
+                          : (_searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  color: Colors.grey.shade600,
+                                  tooltip: "Clear search",
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _searchResults.clear();
+                                    setState(() {});
+                                  },
+                                )
+                              : null),
                       filled: true,
                       fillColor: Colors.white,
                       border: OutlineInputBorder(

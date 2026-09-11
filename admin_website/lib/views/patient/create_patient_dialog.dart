@@ -282,10 +282,6 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final todayStr =
-        "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
-
     final isMobile = MediaQuery.of(context).size.width < 650;
 
     return Dialog(
@@ -1196,10 +1192,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                       _buildLabel("Registration Date"),
                       const SizedBox(height: 8),
                       TextFormField(
-                        initialValue:
-                            isEditing && widget.patientToEdit!.date.isNotEmpty
-                            ? widget.patientToEdit!.date
-                            : todayStr,
+                        initialValue: _formatDateTime(
+                          isEditing && widget.patientToEdit!.date.isNotEmpty
+                              ? widget.patientToEdit!.date
+                              : DateTime.now().toIso8601String(),
+                        ),
                         enabled: false,
                         style: const TextStyle(
                           fontSize: 14,
@@ -1459,5 +1456,23 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
         ),
       ),
     );
+  }
+
+  String _formatDateTime(String rawDate) {
+    if (rawDate.trim().isEmpty) return "N/A";
+    final parsed = DateTime.tryParse(rawDate);
+    if (parsed != null) {
+      final local = parsed.toLocal();
+      final day = local.day.toString().padLeft(2, '0');
+      final month = local.month.toString().padLeft(2, '0');
+      final year = local.year.toString();
+      final hour = local.hour;
+      final minute = local.minute.toString().padLeft(2, '0');
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final hourStr = displayHour.toString().padLeft(2, '0');
+      return "$day/$month/$year, $hourStr:$minute $period";
+    }
+    return rawDate;
   }
 }

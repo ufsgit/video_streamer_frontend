@@ -228,7 +228,17 @@ class _MobileAssignVideosSheetState extends State<MobileAssignVideosSheet> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       )
-                    : null,
+                    : (_searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            color: Colors.grey.shade600,
+                            onPressed: () {
+                              _searchController.clear();
+                              _searchResults.clear();
+                              setState(() {});
+                            },
+                          )
+                        : null),
                 filled: true,
                 fillColor: Colors.grey.shade50,
                 contentPadding: const EdgeInsets.symmetric(

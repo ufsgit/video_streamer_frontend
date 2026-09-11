@@ -75,7 +75,7 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
     final ytId = _extractYtId(url);
     if (ytId != null && ytId.isNotEmpty) {
       _autoDetectDuration(ytId);
-      _autoLoadPreview(ytId);
+      _autoLoadPreview(ytId, autoPlay: true, scroll: true);
     } else {
       if (_isPreviewing) {
         _clearPreview();
@@ -220,13 +220,15 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 450),
-          curve: Curves.easeInOutCubic,
-        );
-      }
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeInOutCubic,
+          );
+        }
+      });
     });
   }
 
@@ -914,12 +916,15 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
 
   void _autoLoadPreview(
     String ytId, {
-    bool autoPlay = false,
+    bool autoPlay = true,
     bool scroll = false,
   }) {
     if (_previewYoutubeController != null &&
         _isPreviewing &&
         _currentPreviewYtId == ytId) {
+      if (scroll) {
+        _scrollToBottom();
+      }
       return;
     }
     _currentPreviewYtId = ytId;

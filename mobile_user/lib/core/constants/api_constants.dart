@@ -1,8 +1,7 @@
 class ApiConstants {
-  static const String baseUrl = 'https://b52kcl7t-3000.inc1.devtunnels.ms';
+  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
 
   ///'https://7qh4z02n-3000.inc1.devtunnels.ms'; - "riju"
-  ///https://7qh4z02n-3000.inc1.devtunnels.ms
 
   /// 'https://b52kcl7t-3000.inc1.devtunnels.ms'; - "sw"
 

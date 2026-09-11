@@ -10,11 +10,7 @@ class MobileAddVideoSheet extends StatefulWidget {
   final ValueChanged<Map<String, dynamic>>? onVideoAdded;
   final Map<String, dynamic>? videoToEdit;
 
-  const MobileAddVideoSheet({
-    super.key,
-    this.onVideoAdded,
-    this.videoToEdit,
-  });
+  const MobileAddVideoSheet({super.key, this.onVideoAdded, this.videoToEdit});
 
   @override
   State<MobileAddVideoSheet> createState() => _MobileAddVideoSheetState();
@@ -25,6 +21,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
   final TextEditingController _urlController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _languageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
 
   String _selectedCategory = 'Post-Op';
@@ -75,7 +72,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
     final ytId = _extractYtId(url);
     if (ytId != null && ytId.isNotEmpty) {
       _autoDetectDuration(ytId);
-      _autoLoadPreview(ytId);
+      _autoLoadPreview(ytId, autoPlay: true, scroll: true);
     } else {
       if (_isPreviewing) {
         _clearPreview();
@@ -84,7 +81,8 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
   }
 
   void _autoDetectDuration(String ytId) {
-    if (_currentDetectingYtId == ytId && _detectedDurationSeconds != null) return;
+    if (_currentDetectingYtId == ytId && _detectedDurationSeconds != null)
+      return;
     _currentDetectingYtId = ytId;
 
     _detectorController?.close();
@@ -182,6 +180,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
   @override
   void dispose() {
     _urlController.removeListener(_onUrlChanged);
+    _scrollController.dispose();
     _titleController.dispose();
     _urlController.dispose();
     _descriptionController.dispose();
@@ -189,6 +188,20 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
     _previewYoutubeController?.close();
     _detectorController?.close();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 450),
+            curve: Curves.easeInOutCubic,
+          );
+        }
+      });
+    });
   }
 
   Future<void> _fetchLanguages() async {
@@ -215,15 +228,16 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
               parsed.add(val);
             }
           } else if (item is Map) {
-            final name = (item['language_name'] ??
-                    item['languageName'] ??
-                    item['name'] ??
-                    item['language'] ??
-                    item['title'] ??
-                    item['code'] ??
-                    '')
-                .toString()
-                .trim();
+            final name =
+                (item['language_name'] ??
+                        item['languageName'] ??
+                        item['name'] ??
+                        item['language'] ??
+                        item['title'] ??
+                        item['code'] ??
+                        '')
+                    .toString()
+                    .trim();
             if (name.isNotEmpty &&
                 !parsed.any((p) => p.toLowerCase() == name.toLowerCase())) {
               parsed.add(name);
@@ -322,10 +336,17 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
 
   String? _currentPreviewYtId;
 
-  void _autoLoadPreview(String ytId, {bool autoPlay = false}) {
+  void _autoLoadPreview(
+    String ytId, {
+    bool autoPlay = true,
+    bool scroll = false,
+  }) {
     if (_previewYoutubeController != null &&
         _isPreviewing &&
         _currentPreviewYtId == ytId) {
+      if (scroll) {
+        _scrollToBottom();
+      }
       return;
     }
     _currentPreviewYtId = ytId;
@@ -362,6 +383,9 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
       _previewYoutubeController = controller;
       _isPreviewing = true;
     });
+    if (scroll) {
+      _scrollToBottom();
+    }
   }
 
   void _toggleOrLoadPreview() {
@@ -601,6 +625,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
         maxHeight: MediaQuery.of(context).size.height * 0.9,
       ),
       child: SingleChildScrollView(
+        controller: _scrollController,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
@@ -708,7 +733,10 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          Text("*", style: TextStyle(color: Colors.red, fontSize: 13)),
+                          Text(
+                            "*",
+                            style: TextStyle(color: Colors.red, fontSize: 13),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -728,7 +756,9 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                               SizedBox(
                                 width: 14,
                                 height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                               SizedBox(width: 8),
                               Text(
@@ -743,12 +773,13 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                         )
                       else
                         DropdownButtonFormField<String>(
-                          initialValue: _selectedLanguage != null &&
+                          initialValue:
+                              _selectedLanguage != null &&
                                   _languageOptions.contains(_selectedLanguage)
                               ? _selectedLanguage
                               : (_languageOptions.isNotEmpty
-                                  ? _languageOptions.first
-                                  : null),
+                                    ? _languageOptions.first
+                                    : null),
                           isExpanded: true,
                           decoration: InputDecoration(
                             filled: true,
@@ -759,11 +790,15 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
                             ),
                           ),
                           items: _languageOptions.map((lang) {
@@ -803,7 +838,10 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          Text("*", style: TextStyle(color: Colors.red, fontSize: 13)),
+                          Text(
+                            "*",
+                            style: TextStyle(color: Colors.red, fontSize: 13),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -963,9 +1001,7 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                 clipBehavior: Clip.antiAlias,
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: YoutubePlayer(
-                    controller: _previewYoutubeController!,
-                  ),
+                  child: YoutubePlayer(controller: _previewYoutubeController!),
                 ),
               ),
             ],
@@ -993,7 +1029,10 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                         width: 60,
                         height: 40,
                         color: Colors.grey.shade200,
-                        child: Image.memory(_thumbnailBytes!, fit: BoxFit.cover),
+                        child: Image.memory(
+                          _thumbnailBytes!,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1125,7 +1164,11 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.red, size: 16),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -1157,7 +1200,9 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
               label: Text(
                 _isSubmitting
                     ? (isEditing ? "Saving..." : "Creating...")
-                    : (isEditing ? "Save Video Changes" : "Save & Publish Video"),
+                    : (isEditing
+                          ? "Save Video Changes"
+                          : "Save & Publish Video"),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryBlue,

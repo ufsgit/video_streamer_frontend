@@ -505,7 +505,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             _buildInfoRow("GENDER : ", patient.gender),
             if (patient.dob.isNotEmpty) ...[
               const SizedBox(height: 10),
-              _buildInfoRow("DATE OF BIRTH : ", patient.dob),
+              _buildInfoRow(
+                "DATE OF BIRTH : ",
+                _formatDateOnly(patient.dob),
+              ),
             ],
             const SizedBox(height: 10),
             _buildInfoRow(
@@ -520,11 +523,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             const SizedBox(height: 10),
             _buildInfoRow(
               "REGISTRATION DATE : ",
-              patient.date.isNotEmpty
-                  ? (patient.date.length >= 10
-                        ? patient.date.substring(0, 10)
-                        : patient.date)
-                  : "N/A",
+              _formatDateTime(patient.date),
             ),
             const SizedBox(height: 10),
             _buildInfoRow(
@@ -539,6 +538,40 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         ],
       ),
     );
+  }
+
+  String _formatDateTime(String rawDate) {
+    if (rawDate.trim().isEmpty) return "N/A";
+    final parsed = DateTime.tryParse(rawDate);
+    if (parsed != null) {
+      final local = parsed.toLocal();
+      final day = local.day.toString().padLeft(2, '0');
+      final month = local.month.toString().padLeft(2, '0');
+      final year = local.year.toString();
+      final hour = local.hour;
+      final minute = local.minute.toString().padLeft(2, '0');
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final hourStr = displayHour.toString().padLeft(2, '0');
+      return "$day/$month/$year, $hourStr:$minute $period";
+    }
+    return rawDate;
+  }
+
+  String _formatDateOnly(String rawDate) {
+    if (rawDate.trim().isEmpty) return "N/A";
+    final parsed = DateTime.tryParse(rawDate);
+    if (parsed != null) {
+      final local = parsed.toLocal();
+      final day = local.day.toString().padLeft(2, '0');
+      final month = local.month.toString().padLeft(2, '0');
+      final year = local.year.toString();
+      return "$day/$month/$year";
+    }
+    if (rawDate.length >= 10) {
+      return rawDate.substring(0, 10);
+    }
+    return rawDate;
   }
 
   Widget _buildInfoRow(String label, String value) {

@@ -15,9 +15,11 @@ class VideoLibraryView extends StatefulWidget {
 
 class _VideoLibraryViewState extends State<VideoLibraryView> {
   final VideoLibraryViewModel _viewModel = VideoLibraryViewModel();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void dispose() {
+    _searchController.dispose();
     _viewModel.dispose();
     super.dispose();
   }
@@ -339,10 +341,23 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
       children: [
         // Search Input
         TextField(
+          controller: _searchController,
           decoration: InputDecoration(
             hintText: "Search titles or categories...",
             hintStyle: const TextStyle(fontSize: 13),
             prefixIcon: const Icon(Icons.search, size: 20),
+            suffixIcon: _searchController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    color: Colors.grey.shade600,
+                    tooltip: "Clear search",
+                    onPressed: () {
+                      _searchController.clear();
+                      _viewModel.updateSearchQuery("");
+                      setState(() {});
+                    },
+                  )
+                : null,
             filled: true,
             fillColor: Colors.white,
             isDense: true,
@@ -356,7 +371,10 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
               borderSide: BorderSide(color: Colors.grey.shade200),
             ),
           ),
-          onChanged: _viewModel.updateSearchQuery,
+          onChanged: (val) {
+            _viewModel.updateSearchQuery(val);
+            setState(() {});
+          },
         ),
         const SizedBox(height: 10),
         // Category Selector & Selection Mode
