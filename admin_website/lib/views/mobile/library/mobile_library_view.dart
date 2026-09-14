@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:admin_website/core/theme.dart';
 import 'package:admin_website/viewmodels/library_viewmodel.dart';
+import 'package:admin_website/widgets/app_logo.dart';
 import 'mobile_assign_videos_sheet.dart';
 import 'mobile_add_video_sheet.dart';
 
@@ -250,7 +251,12 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
 
   Widget _buildVideoContent() {
     if (_viewModel.isLoading && _viewModel.videos.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: AppLogoLoader(
+          size: 52,
+          message: "Loading video library...",
+        ),
+      );
     }
 
     if (_viewModel.errorMessage != null && _viewModel.videos.isEmpty) {

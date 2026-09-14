@@ -152,8 +152,11 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
               if (_viewModel.isLoading && _viewModel.activityLogs.isEmpty)
                 const Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: CircularProgressIndicator(color: AppTheme.primaryBlue),
+                    padding: EdgeInsets.all(36.0),
+                    child: AppLogoLoader(
+                      size: 48,
+                      message: "Loading dashboard activity...",
+                    ),
                   ),
                 )
               else if (_viewModel.activityLogs.isEmpty)

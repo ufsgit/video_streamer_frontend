@@ -75,3 +75,115 @@ class AppLogo extends StatelessWidget {
     );
   }
 }
+
+/// Animated Loading Indicator featuring the branded logo with pulsing glow and circular ring
+class AppLogoLoader extends StatefulWidget {
+  final double size;
+  final String? message;
+  final bool isFullScreen;
+
+  const AppLogoLoader({
+    super.key,
+    this.size = 56.0,
+    this.message,
+    this.isFullScreen = false,
+  });
+
+  @override
+  State<AppLogoLoader> createState() => _AppLogoLoaderState();
+}
+
+class _AppLogoLoaderState extends State<AppLogoLoader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.92, end: 1.06).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final loaderContent = Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              // Spinning Progress Ring
+              SizedBox(
+                width: widget.size + 24,
+                height: widget.size + 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    const Color(0xFF0F3D81).withValues(alpha: 0.85),
+                  ),
+                ),
+              ),
+              // Pulsing Branded Logo
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: Opacity(
+                      opacity: _opacityAnimation.value,
+                      child: AppLogo(
+                        size: widget.size,
+                        backgroundColor: Colors.white,
+                        hasShadow: true,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          if (widget.message != null && widget.message!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              widget.message!,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (widget.isFullScreen) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF4F7FB),
+        body: loaderContent,
+      );
+    }
+
+    return loaderContent;
+  }
+}

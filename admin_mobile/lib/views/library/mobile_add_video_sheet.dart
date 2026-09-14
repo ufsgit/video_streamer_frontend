@@ -81,8 +81,9 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
   }
 
   void _autoDetectDuration(String ytId) {
-    if (_currentDetectingYtId == ytId && _detectedDurationSeconds != null)
+    if (_currentDetectingYtId == ytId && _detectedDurationSeconds != null) {
       return;
+    }
     _currentDetectingYtId = ytId;
 
     _detectorController?.close();

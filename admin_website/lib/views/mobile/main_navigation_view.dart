@@ -3,15 +3,11 @@ import 'package:admin_website/core/theme.dart';
 import 'dashboard/mobile_dashboard_view.dart';
 import 'library/mobile_library_view.dart';
 import 'patient/mobile_patients_view.dart';
-import 'profile/mobile_profile_view.dart';
 
 class MainNavigationView extends StatefulWidget {
   final int initialIndex;
 
-  const MainNavigationView({
-    super.key,
-    this.initialIndex = 0,
-  });
+  const MainNavigationView({super.key, this.initialIndex = 0});
 
   @override
   State<MainNavigationView> createState() => _MainNavigationViewState();
@@ -24,31 +20,22 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     MobileDashboardView(),
     MobileLibraryView(),
     MobilePatientsView(),
-    MobileProfileView(),
   ];
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    _currentIndex = widget.initialIndex < _views.length ? widget.initialIndex : 0;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _views,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _views),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppTheme.cardBg,
-          border: Border(
-            top: BorderSide(
-              color: AppTheme.border,
-              width: 1,
-            ),
-          ),
+          border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
@@ -73,23 +60,27 @@ class _MainNavigationViewState extends State<MainNavigationView> {
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard_rounded, color: AppTheme.primary),
+              selectedIcon: Icon(
+                Icons.dashboard_rounded,
+                color: AppTheme.primary,
+              ),
               label: 'Dashboard',
             ),
             NavigationDestination(
               icon: Icon(Icons.video_library_outlined),
-              selectedIcon: Icon(Icons.video_library_rounded, color: AppTheme.primary),
+              selectedIcon: Icon(
+                Icons.video_library_rounded,
+                color: AppTheme.primary,
+              ),
               label: 'Library',
             ),
             NavigationDestination(
               icon: Icon(Icons.people_alt_outlined),
-              selectedIcon: Icon(Icons.people_alt_rounded, color: AppTheme.primary),
+              selectedIcon: Icon(
+                Icons.people_alt_rounded,
+                color: AppTheme.primary,
+              ),
               label: 'Patients',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded, color: AppTheme.primary),
-              label: 'Profile',
             ),
           ],
         ),

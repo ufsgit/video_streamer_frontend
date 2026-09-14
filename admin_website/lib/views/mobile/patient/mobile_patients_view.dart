@@ -4,6 +4,7 @@ import 'package:admin_website/core/theme.dart';
 import 'package:admin_website/models/user_model.dart';
 import 'package:admin_website/services/api_service.dart';
 import 'package:admin_website/viewmodels/patients_list_viewmodel.dart';
+import 'package:admin_website/widgets/app_logo.dart';
 import 'mobile_create_patient_view.dart';
 import 'mobile_patient_detail_view.dart';
 
@@ -121,7 +122,10 @@ class _MobilePatientsViewState extends State<MobilePatientsView> {
           Expanded(
             child: _viewModel.isLoading && _viewModel.patients.isEmpty
                 ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.primaryBlue),
+                    child: AppLogoLoader(
+                      size: 52,
+                      message: "Loading patient records...",
+                    ),
                   )
                 : _viewModel.patients.isEmpty
                     ? Center(

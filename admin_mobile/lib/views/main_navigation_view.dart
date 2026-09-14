@@ -3,7 +3,6 @@ import '../core/theme.dart';
 import 'dashboard/mobile_dashboard_view.dart';
 import 'library/mobile_library_view.dart';
 import 'patient/mobile_patients_view.dart';
-import 'profile/mobile_profile_view.dart';
 
 class MainNavigationView extends StatefulWidget {
   final int initialIndex;
@@ -24,13 +23,12 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     MobileDashboardView(),
     MobileLibraryView(),
     MobilePatientsView(),
-    MobileProfileView(),
   ];
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    _currentIndex = widget.initialIndex < _views.length ? widget.initialIndex : 0;
   }
 
   @override
@@ -85,11 +83,6 @@ class _MainNavigationViewState extends State<MainNavigationView> {
               icon: Icon(Icons.people_alt_outlined),
               selectedIcon: Icon(Icons.people_alt_rounded, color: AppTheme.primary),
               label: 'Patients',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded, color: AppTheme.primary),
-              label: 'Profile',
             ),
           ],
         ),

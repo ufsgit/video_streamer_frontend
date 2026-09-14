@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:admin_website/core/theme.dart';
 import 'package:admin_website/services/api_service.dart';
+import 'package:admin_website/widgets/app_logo.dart';
 import '../auth/mobile_login_view.dart';
 
 class MobileProfileView extends StatefulWidget {
@@ -81,7 +82,12 @@ class _MobileProfileViewState extends State<MobileProfileView> {
         automaticallyImplyLeading: false,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: AppLogoLoader(
+                size: 52,
+                message: "Loading admin profile...",
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _loadProfile,
               child: SingleChildScrollView(

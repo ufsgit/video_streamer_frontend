@@ -5,6 +5,7 @@ import 'package:admin_website/core/theme.dart';
 import 'package:admin_website/models/user_model.dart';
 import 'package:admin_website/services/api_service.dart';
 import 'package:admin_website/viewmodels/library_viewmodel.dart';
+import 'package:admin_website/widgets/app_logo.dart';
 import '../library/mobile_assign_videos_sheet.dart';
 import 'mobile_create_patient_view.dart';
 
@@ -390,7 +391,10 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
       ),
       body: _isLoading && _videoHistory.isEmpty
           ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primaryBlue),
+              child: AppLogoLoader(
+                size: 52,
+                message: "Loading patient details...",
+              ),
             )
           : RefreshIndicator(
               onRefresh: _fetchPatientDetails,
