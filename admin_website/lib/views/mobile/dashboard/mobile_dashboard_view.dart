@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/theme.dart';
-import '../../viewmodels/dashboard_viewmodel.dart';
-import '../../widgets/app_logo.dart';
+import 'package:admin_website/core/theme.dart';
+import 'package:admin_website/viewmodels/dashboard_viewmodel.dart';
+import 'package:admin_website/widgets/app_logo.dart';
 
 class MobileDashboardView extends StatefulWidget {
   const MobileDashboardView({super.key});

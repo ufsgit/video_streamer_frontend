@@ -7,7 +7,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
+  static const String baseUrl = 'https://videostreamerapi.ufstech.net.in';
 
   late Dio _dio;
   String? _authToken;

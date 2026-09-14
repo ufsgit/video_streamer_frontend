@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../mobile/auth/mobile_login_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -49,6 +50,9 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    if (size.width < 768) {
+      return const MobileLoginView();
+    }
     final isDesktop = size.width >= 850;
 
     return Scaffold(
@@ -460,24 +464,26 @@ class _LoginViewState extends State<LoginView> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 32,
-          height: 32,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            color: const Color(0xFF4ADE80), // Vibrant Mint Green
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF22C55E).withValues(alpha: 0.35),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-          child: const Center(
-            child: Icon(
-              Icons.monitor_heart_rounded,
-              color: Colors.white,
-              size: 20,
+          padding: const EdgeInsets.all(4),
+          child: Image.asset(
+            'assets/images/logo_transparent.png',
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) => Image.asset(
+              'assets/images/logo.png',
+              fit: BoxFit.contain,
             ),
           ),
         ),

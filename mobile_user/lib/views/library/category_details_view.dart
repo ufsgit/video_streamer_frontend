@@ -90,10 +90,7 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
             ),
             const SizedBox(width: 12),
             const AppLogo(
-              size: 44,
-              iconSize: 24,
-              isSquircle: true,
-              backgroundColor: Color(0xFF5B67F6),
+              size: 36,
             ),
             const SizedBox(width: 14),
             const Text(

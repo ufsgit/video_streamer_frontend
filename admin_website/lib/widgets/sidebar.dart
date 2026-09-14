@@ -20,14 +20,27 @@ class Sidebar extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4ADE80),
-                    borderRadius: BorderRadius.circular(6),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: const Center(
-                    child: Icon(Icons.monitor_heart_rounded, color: Colors.white, size: 18),
+                  padding: const EdgeInsets.all(3),
+                  child: Image.asset(
+                    'assets/images/logo_transparent.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                      'assets/images/logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),

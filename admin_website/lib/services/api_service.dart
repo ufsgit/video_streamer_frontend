@@ -9,7 +9,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
+  static const String baseUrl = 'https://videostreamerapi.ufstech.net.in';
 
   late Dio _dio;
   String? _authToken;
@@ -113,6 +113,19 @@ class ApiService {
 
   Future<Response> userLogin(Map<String, dynamic> credentials) async {
     return await _dio.post('/auth/user/login', data: credentials);
+  }
+
+
+  Future<Map<String, dynamic>?> getCurrentUser() async {
+    try {
+      final res = await getAdminProfile();
+      if (res.data != null && res.data['data'] != null) {
+        return Map<String, dynamic>.from(res.data['data']);
+      }
+    } catch (e) {
+      debugPrint('Error fetching user: $e');
+    }
+    return null;
   }
 
   // --- 3. Admin Dashboard Statistics ---

@@ -39,10 +39,7 @@ class _LibraryViewState extends State<LibraryView> {
             title: const Row(
               children: [
                 AppLogo(
-                  size: 44,
-                  iconSize: 24,
-                  isSquircle: true,
-                  backgroundColor: Color(0xFF5B67F6),
+                  size: 36,
                 ),
                 SizedBox(width: 14),
                 Text(

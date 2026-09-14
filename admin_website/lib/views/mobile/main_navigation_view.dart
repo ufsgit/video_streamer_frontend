@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/theme.dart';
+import 'package:admin_website/core/theme.dart';
 import 'dashboard/mobile_dashboard_view.dart';
 import 'library/mobile_library_view.dart';
 import 'patient/mobile_patients_view.dart';

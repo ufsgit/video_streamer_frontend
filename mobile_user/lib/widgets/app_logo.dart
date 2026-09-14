@@ -144,50 +144,80 @@ class StethoscopePainter extends CustomPainter {
       oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
 }
 
-/// App Logo widget with squircle/circle container and Health Shield emblem.
+/// App Logo widget rendering the official logo asset with optional container styling
 class AppLogo extends StatelessWidget {
   final double size;
-  final double iconSize;
+  final double? iconSize;
   final bool isSquircle;
-  final Color backgroundColor;
+  final Color? backgroundColor;
+  final bool hasShadow;
+  final EdgeInsetsGeometry? padding;
 
   const AppLogo({
     super.key,
     this.size = 44.0,
-    this.iconSize = 26.0,
+    this.iconSize,
     this.isSquircle = true,
-    this.backgroundColor = const Color(0xFF5B67F6),
+    this.backgroundColor,
+    this.hasShadow = false,
+    this.padding,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final double innerSize = iconSize ?? size;
+
+    Widget imageWidget = Image.asset(
+      'assets/images/logo_transparent.png',
+      width: innerSize,
+      height: innerSize,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        return Image.asset(
+          'assets/images/logo.png',
+          width: innerSize,
+          height: innerSize,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return CustomPaint(
+              size: Size(innerSize, innerSize),
+              painter: HealthShieldPainter(
+                color: Colors.blue.shade600,
+                strokeWidth: innerSize * 0.09,
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (backgroundColor != null || hasShadow || padding != null) {
+      return Container(
+        width: size,
+        height: size,
+        padding: padding ?? EdgeInsets.all(size * 0.08),
+        decoration: BoxDecoration(
+          color: backgroundColor ?? Colors.white,
+          borderRadius: isSquircle ? BorderRadius.circular(size * 0.28) : null,
+          shape: isSquircle ? BoxShape.rectangle : BoxShape.circle,
+          boxShadow: hasShadow
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
+        ),
+        child: Center(child: imageWidget),
+      );
+    }
+
+    return SizedBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: isSquircle ? BorderRadius.circular(size * 0.32) : null,
-        shape: isSquircle ? BoxShape.rectangle : BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: backgroundColor.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Center(
-        child: SizedBox(
-          width: iconSize,
-          height: iconSize,
-          child: CustomPaint(
-            painter: HealthShieldPainter(
-              color: Colors.white,
-              strokeWidth: iconSize * 0.09,
-            ),
-          ),
-        ),
-      ),
+      child: Center(child: imageWidget),
     );
   }
 }

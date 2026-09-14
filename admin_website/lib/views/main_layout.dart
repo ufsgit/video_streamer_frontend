@@ -6,6 +6,10 @@ import 'dashboard/dashboard_view.dart';
 import 'library/video_library_view.dart';
 import 'profile/patient_profile_view.dart';
 import 'patient/patients_list_view.dart';
+import 'mobile/dashboard/mobile_dashboard_view.dart';
+import 'mobile/library/mobile_library_view.dart';
+import 'mobile/patient/mobile_patients_view.dart';
+import 'mobile/profile/mobile_profile_view.dart';
 
 class MainLayout extends StatefulWidget {
   final int initialIndex;
@@ -26,18 +30,18 @@ class _MainLayoutState extends State<MainLayout> {
     '/profile',
   ];
 
-  final List<Widget> _views = [
+  final List<Widget> _desktopViews = [
     const DashboardView(),
     const VideoLibraryView(),
     const PatientsListView(),
     const PatientProfileView(),
   ];
 
-  static const List<String> _titles = [
-    'Dashboard',
-    'Video Library',
-    'Patients',
-    'Profile',
+  final List<Widget> _mobileViews = const [
+    MobileDashboardView(),
+    MobileLibraryView(),
+    MobilePatientsView(),
+    MobileProfileView(),
   ];
 
   @override
@@ -76,45 +80,62 @@ class _MainLayoutState extends State<MainLayout> {
 
     if (isMobile) {
       return Scaffold(
-        appBar: AppBar(
-          elevation: 0,
-          backgroundColor: Colors.white,
-          title: Row(
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4ADE80),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Center(
-                  child: Icon(Icons.monitor_heart_rounded, color: Colors.white, size: 16),
-                ),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: _mobileViews,
+        ),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.cardBg,
+            border: const Border(
+              top: BorderSide(
+                color: AppTheme.border,
+                width: 1,
               ),
-              const SizedBox(width: 8),
-              Text(
-                _titles[_selectedIndex],
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
               ),
             ],
           ),
-          iconTheme: const IconThemeData(color: AppTheme.textPrimary),
-        ),
-        drawer: Drawer(
-          child: Sidebar(
+          child: NavigationBar(
             selectedIndex: _selectedIndex,
-            onItemSelected: (index) {
-              Navigator.pop(context); // Close drawer
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            indicatorColor: Colors.transparent,
+            elevation: 0,
+            height: 64,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            onDestinationSelected: (index) {
               _onItemSelected(index);
             },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.dashboard_outlined),
+                selectedIcon: Icon(Icons.dashboard_rounded, color: AppTheme.primary),
+                label: 'Dashboard',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.video_library_outlined),
+                selectedIcon: Icon(Icons.video_library_rounded, color: AppTheme.primary),
+                label: 'Library',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.people_alt_outlined),
+                selectedIcon: Icon(Icons.people_alt_rounded, color: AppTheme.primary),
+                label: 'Patients',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline_rounded),
+                selectedIcon: Icon(Icons.person_rounded, color: AppTheme.primary),
+                label: 'Profile',
+              ),
+            ],
           ),
         ),
-        body: _views[_selectedIndex],
       );
     }
 
@@ -125,7 +146,7 @@ class _MainLayoutState extends State<MainLayout> {
             selectedIndex: _selectedIndex,
             onItemSelected: _onItemSelected,
           ),
-          Expanded(child: _views[_selectedIndex]),
+          Expanded(child: _desktopViews[_selectedIndex]),
         ],
       ),
     );

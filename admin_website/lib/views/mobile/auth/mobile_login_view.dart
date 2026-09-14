@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import '../../core/theme.dart';
-import '../../services/api_service.dart';
-import '../../widgets/app_logo.dart';
+import 'package:admin_website/core/theme.dart';
+import 'package:admin_website/services/api_service.dart';
+import 'package:admin_website/widgets/app_logo.dart';
 
 class MobileLoginView extends StatefulWidget {
   const MobileLoginView({super.key});
