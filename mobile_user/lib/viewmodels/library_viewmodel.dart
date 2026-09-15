@@ -6,7 +6,7 @@ class LibraryViewModel extends ChangeNotifier {
   final VideoRepository _videoRepository;
 
   LibraryViewModel({VideoRepository? videoRepository})
-      : _videoRepository = videoRepository ?? VideoRepositoryImpl();
+    : _videoRepository = videoRepository ?? VideoRepositoryImpl();
 
   bool _isLoading = false;
   String _selectedCategory = 'Pre-op';
@@ -40,19 +40,6 @@ class LibraryViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchCategoryVideos() async {
-    _isLoading = true;
-    notifyListeners();
-
-    final preOp = await _videoRepository.getPreOpLibraryVideos();
-    final postOp = await _videoRepository.getPostOpLibraryVideos();
-
-    _preOpVideos = preOp;
-    _postOpVideos = postOp;
-    _isLoading = false;
-    notifyListeners();
-  }
-
   int _currentPage = 1;
   bool _hasMore = true;
   bool _isLoadingMore = false;
@@ -61,7 +48,10 @@ class LibraryViewModel extends ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
 
-  Future<void> fetchDynamicCategoryVideos(String category, {int? languageId}) async {
+  Future<void> fetchDynamicCategoryVideos(
+    String category, {
+    int? languageId,
+  }) async {
     _isLoading = true;
     _currentPage = 1;
     _hasMore = true;
@@ -83,12 +73,15 @@ class LibraryViewModel extends ChangeNotifier {
     } else {
       _postOpVideos = videos;
     }
-    
+
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> loadMoreCategoryVideos(String category, {int? languageId}) async {
+  Future<void> loadMoreCategoryVideos(
+    String category, {
+    int? languageId,
+  }) async {
     if (_isLoadingMore || !_hasMore) return;
 
     _isLoadingMore = true;

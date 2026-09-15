@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'services/notification_service.dart';
 import 'views/auth/auth_gate.dart';
 
 void main() async {
@@ -8,6 +9,7 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('settings');
   await Hive.openBox('video_progress');
+  await NotificationService.instance.initialize();
   runApp(const MeridianHealthApp());
 }
 

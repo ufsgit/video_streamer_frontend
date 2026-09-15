@@ -93,13 +93,17 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
               size: 36,
             ),
             const SizedBox(width: 14),
-            const Text(
-              'Library',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF1E293B),
-                letterSpacing: -0.5,
+            const Flexible(
+              child: Text(
+                'Library',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF1E293B),
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
           ],

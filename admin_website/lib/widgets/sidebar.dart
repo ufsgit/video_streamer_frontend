@@ -5,7 +5,11 @@ class Sidebar extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemSelected;
 
-  const Sidebar({super.key, required this.selectedIndex, required this.onItemSelected});
+  const Sidebar({
+    super.key,
+    required this.selectedIndex,
+    required this.onItemSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,12 +54,19 @@ class Sidebar extends StatelessWidget {
                     children: [
                       const Text(
                         "CarePulse",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF0F172A)),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Color(0xFF0F172A),
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         "Admin Portal",
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 11),
+                        style: TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 11,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -77,7 +88,11 @@ class Sidebar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: const [
-                  Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 19),
+                  Icon(
+                    Icons.logout_rounded,
+                    color: Color(0xFFEF4444),
+                    size: 19,
+                  ),
                   SizedBox(width: 12),
                   Text(
                     "Sign Out",
@@ -106,16 +121,22 @@ class Sidebar extends StatelessWidget {
         color: isSelected ? Colors.white.withAlpha(128) : Colors.transparent,
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary, size: 20),
+            Icon(
+              icon,
+              color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Text(
               title,
               style: TextStyle(
-                color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary,
+                color: isSelected
+                    ? AppTheme.primaryBlue
+                    : AppTheme.textSecondary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 13,
               ),
-            )
+            ),
           ],
         ),
       ),

@@ -9,8 +9,12 @@ class PersonalInfoView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = user?.name.isNotEmpty == true ? user!.name : 'Loading...';
-    final initials = name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join();
-    
+    final initials = name
+        .split(' ')
+        .map((e) => e.isNotEmpty ? e[0] : '')
+        .take(2)
+        .join();
+
     // For now, if age is missing, we calculate a mock age or show standard text.
     final dob = user?.dateOfBirth ?? 'Not provided';
     final ageStr = user?.age != null ? '${user!.age} yrs' : '-';
@@ -25,7 +29,11 @@ class PersonalInfoView extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF152C5B), size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Color(0xFF152C5B),
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -42,7 +50,11 @@ class PersonalInfoView extends StatelessWidget {
             child: CircleAvatar(
               radius: 16,
               backgroundColor: const Color(0xFF027A48),
-              child: const Icon(Icons.person_outline_rounded, color: Colors.white, size: 18),
+              child: const Icon(
+                Icons.person_outline_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -167,10 +179,7 @@ class PersonalInfoView extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   // Full Name Box
-                  _buildInfoBox(
-                    label: 'Full Name',
-                    value: name,
-                  ),
+                  _buildInfoBox(label: 'Full Name', value: name),
                   const SizedBox(height: 12),
 
                   // DOB and Age Row
@@ -201,7 +210,8 @@ class PersonalInfoView extends StatelessWidget {
                   _buildInfoBox(
                     label: 'Sex',
                     value: sexStr,
-                    icon: Icons.female_rounded, // Using female icon as default per UI, can be logic based later
+                    icon: Icons
+                        .female_rounded, // Using female icon as default per UI, can be logic based later
                   ),
                 ],
               ),
@@ -274,7 +284,7 @@ class PersonalInfoView extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 40),
           ],
         ),
@@ -371,11 +381,7 @@ class PersonalInfoView extends StatelessWidget {
               color: trailingIconColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              trailingIcon,
-              color: Colors.white,
-              size: 20,
-            ),
+            child: Icon(trailingIcon, color: Colors.white, size: 20),
           ),
         ],
       ),

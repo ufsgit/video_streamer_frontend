@@ -19,7 +19,6 @@ class _LibraryViewState extends State<LibraryView> {
   void initState() {
     super.initState();
     _viewModel = widget.viewModel ?? LibraryViewModel();
-    _viewModel.fetchCategoryVideos();
   }
 
   @override
@@ -42,13 +41,17 @@ class _LibraryViewState extends State<LibraryView> {
                   size: 36,
                 ),
                 SizedBox(width: 14),
-                Text(
-                  'Library',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF1E293B),
-                    letterSpacing: -0.5,
+                Flexible(
+                  child: Text(
+                    'Library',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1E293B),
+                      letterSpacing: -0.5,
+                    ),
                   ),
                 ),
               ],
@@ -252,29 +255,34 @@ class _LibraryViewState extends State<LibraryView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.28),
-                                width: 1,
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
                               ),
-                            ),
-                            child: Text(
-                              tag,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.6,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.28),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                tag,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.6,
+                                ),
                               ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             width: 44,
                             height: 44,
@@ -310,14 +318,19 @@ class _LibraryViewState extends State<LibraryView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Explore protocols',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.92),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                          Flexible(
+                            child: Text(
+                              'Explore protocols',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.92),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             width: 34,
                             height: 34,

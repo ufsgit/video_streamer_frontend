@@ -11,6 +11,6 @@ void main() {
     await tester.pumpWidget(const MyApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Admin Portal'), findsWidgets);
+    expect(find.text('Sign In'), findsWidgets);
   });
 }

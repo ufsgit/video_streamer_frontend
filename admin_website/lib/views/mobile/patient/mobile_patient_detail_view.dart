@@ -11,8 +11,15 @@ import 'mobile_create_patient_view.dart';
 
 class MobilePatientDetailView extends StatefulWidget {
   final UserModel patient;
+  final bool autoFetch;
+  final List<Map<String, dynamic>>? initialVideos;
 
-  const MobilePatientDetailView({super.key, required this.patient});
+  const MobilePatientDetailView({
+    super.key,
+    required this.patient,
+    this.autoFetch = true,
+    this.initialVideos,
+  });
 
   @override
   State<MobilePatientDetailView> createState() =>
@@ -34,7 +41,17 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
   void initState() {
     super.initState();
     _patient = widget.patient;
-    _fetchPatientDetails();
+    if (widget.initialVideos != null) {
+      _videoHistory = widget.initialVideos!;
+      _totalVideos = _videoHistory.length;
+      _completedVideos = _videoHistory.where((v) => v['isCompleted'] == true || v['progress'] == 100).length;
+      _progressRate = _totalVideos > 0 ? ((_completedVideos / _totalVideos) * 100).round() : 0;
+      _isLoading = false;
+    } else if (!widget.autoFetch) {
+      _isLoading = false;
+    } else {
+      _fetchPatientDetails();
+    }
   }
 
   Future<void> _fetchPatientDetails() async {
@@ -450,6 +467,8 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                         Expanded(
                                           child: Text(
                                             _patient.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,
@@ -593,34 +612,41 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            const Text(
-                              "Assigned Videos",
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppTheme.secondaryBlue,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                "${_videoHistory.length}",
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryBlue,
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Flexible(
+                                child: Text(
+                                  "Assigned Videos",
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.secondaryBlue,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  "${_videoHistory.length}",
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primaryBlue,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         ElevatedButton.icon(
                           onPressed: _openAssignSheet,
                           icon: const Icon(Icons.add, size: 15),
@@ -737,6 +763,8 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                         const SizedBox(height: 2),
                                         Text(
                                           "${v['duration'] ?? '10:00'} • ${v['category'] ?? 'General'}",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             color: AppTheme.textSecondary,
                                             fontSize: 11.5,
@@ -901,20 +929,26 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: color,
+              ),
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppTheme.textSecondary,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.textSecondary,
+              ),
             ),
           ),
         ],

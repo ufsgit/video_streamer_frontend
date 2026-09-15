@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../auth/login_view.dart';
+import 'notification_settings_view.dart';
 import 'personal_info_view.dart';
 
 class ProfileView extends StatefulWidget {
@@ -39,7 +40,11 @@ class _ProfileViewState extends State<ProfileView> {
       builder: (context, _) {
         final user = _viewModel.user;
         final name = user?.name.isNotEmpty == true ? user!.name : 'Loading...';
-        final initials = name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join();
+        final initials = name
+            .split(' ')
+            .map((e) => e.isNotEmpty ? e[0] : '')
+            .take(2)
+            .join();
 
         String platformTime = '0m';
         if (user != null) {
@@ -57,7 +62,20 @@ class _ProfileViewState extends State<ProfileView> {
         if (user != null && user.registeredDate != null) {
           try {
             final date = DateTime.parse(user.registeredDate!);
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const months = [
+              'Jan',
+              'Feb',
+              'Mar',
+              'Apr',
+              'May',
+              'Jun',
+              'Jul',
+              'Aug',
+              'Sep',
+              'Oct',
+              'Nov',
+              'Dec',
+            ];
             memberSince = '${months[date.month - 1]} ${date.year}';
           } catch (_) {}
         }
@@ -66,7 +84,10 @@ class _ProfileViewState extends State<ProfileView> {
           backgroundColor: const Color(0xFFF7F9FC),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 12.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -80,25 +101,6 @@ class _ProfileViewState extends State<ProfileView> {
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF152C5B),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.settings_outlined,
-                          color: Color(0xFF152C5B),
-                          size: 22,
                         ),
                       ),
                     ],
@@ -161,10 +163,15 @@ class _ProfileViewState extends State<ProfileView> {
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFEFF4FF),
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 4),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 4,
+                                        ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.08),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.08,
+                                            ),
                                             blurRadius: 8,
                                             offset: const Offset(0, 3),
                                           ),
@@ -172,7 +179,11 @@ class _ProfileViewState extends State<ProfileView> {
                                       ),
                                       child: Center(
                                         child: Text(
-                                          initials.isNotEmpty ? initials : 'JD',
+                                          initials.isNotEmpty
+                                              ? initials
+                                              : (user?.email?.isNotEmpty == true
+                                                  ? user!.email![0].toUpperCase()
+                                                  : 'U'),
                                           style: const TextStyle(
                                             color: Color(0xFF0052CC),
                                             fontSize: 24,
@@ -192,6 +203,8 @@ class _ProfileViewState extends State<ProfileView> {
                                   children: [
                                     Text(
                                       name,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w800,
@@ -201,17 +214,21 @@ class _ProfileViewState extends State<ProfileView> {
                                     const SizedBox(height: 6),
                                     Row(
                                       children: [
-                                        Text(
-                                          user != null
-                                              ? 'Member since $memberSince'
-                                              : 'Member since...',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.grey.shade600,
+                                        Flexible(
+                                          child: Text(
+                                            user != null
+                                                ? 'Member since $memberSince'
+                                                : 'Member since...',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey.shade600,
+                                            ),
                                           ),
                                         ),
-                                        const SizedBox(width: 10),
+                                        const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 8,
@@ -219,7 +236,9 @@ class _ProfileViewState extends State<ProfileView> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFECFDF3),
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
                                           child: const Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -257,7 +276,10 @@ class _ProfileViewState extends State<ProfileView> {
 
                   // Stats Row
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 18,
+                      horizontal: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -287,12 +309,15 @@ class _ProfileViewState extends State<ProfileView> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              Text(
-                                platformTime,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF101828),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  platformTime,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF101828),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -329,12 +354,15 @@ class _ProfileViewState extends State<ProfileView> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              Text(
-                                user != null ? '${user.totalVideoDone}' : '0',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF101828),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  user != null ? '${user.totalVideoDone}' : '0',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF101828),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -371,12 +399,17 @@ class _ProfileViewState extends State<ProfileView> {
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              Text(
-                                user != null ? '${user.currentStreak} days' : '0 days',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF101828),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  user != null
+                                      ? '${user.currentStreak} days'
+                                      : '0 days',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF101828),
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -440,29 +473,39 @@ class _ProfileViewState extends State<ProfileView> {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user?.doctorName ?? 'Loading...',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF101828),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user != null
+                                    ? (user.doctorName?.isNotEmpty == true
+                                        ? user.doctorName!
+                                        : 'Not Assigned')
+                                    : 'Loading...',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF101828),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              'Senior physiotherapist',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF667085),
+                              const SizedBox(height: 2),
+                              const Text(
+                                'Senior physiotherapist',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF667085),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 8),
                         const Icon(
                           Icons.chevron_right_rounded,
                           color: Color(0xFF98A2B3),
@@ -506,19 +549,37 @@ class _ProfileViewState extends State<ProfileView> {
                           icon: Icons.person_outline_rounded,
                           title: 'Personal information',
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PersonalInfoView(user: user),
-                              ),
-                            );
+                            if (user != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      PersonalInfoView(user: user),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Loading user profile, please wait...'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
                           },
                         ),
                         const Divider(height: 1, color: Color(0xFFF2F4F7)),
                         _buildSettingsTile(
                           icon: Icons.notifications_none_rounded,
                           title: 'Notification settings',
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const NotificationSettingsView(),
+                              ),
+                            );
+                          },
                         ),
                         const Divider(height: 1, color: Color(0xFFF2F4F7)),
                         _buildSettingsTile(
@@ -566,11 +627,7 @@ class _ProfileViewState extends State<ProfileView> {
             color: iconColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: iconColor,
-          ),
+          child: Icon(icon, size: 20, color: iconColor),
         ),
         title: Text(
           title,

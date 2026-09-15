@@ -8,12 +8,18 @@ class YoutubePlayerView extends StatefulWidget {
   final String videoUrl;
   final String title;
   final dynamic videoId;
+  final Widget? customPlayerWidget;
+  final YoutubePlayerController? controller;
+  final bool enableApiSync;
 
   const YoutubePlayerView({
     super.key,
     required this.videoUrl,
     required this.title,
     this.videoId,
+    this.customPlayerWidget,
+    this.controller,
+    this.enableApiSync = true,
   });
 
   @override
@@ -21,8 +27,9 @@ class YoutubePlayerView extends StatefulWidget {
 }
 
 class _YoutubePlayerViewState extends State<YoutubePlayerView> {
-  late YoutubePlayerController _controller;
+  YoutubePlayerController? _controller;
   StreamSubscription? _subscription;
+  Timer? _fallbackTimer;
 
   double _currentPosition = 0.0;
   double _totalDuration = 0.0;
@@ -51,19 +58,23 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
       _resumeEstablished = true;
     }
 
-    _controller = YoutubePlayerController.fromVideoId(
-      videoId: videoId,
-      autoPlay: true,
-      startSeconds: resumeSecs > 0 ? resumeSecs : null,
-      params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
-      ),
-    );
+    if (widget.controller != null) {
+      _controller = widget.controller;
+    } else if (widget.customPlayerWidget == null) {
+      _controller = YoutubePlayerController.fromVideoId(
+        videoId: videoId,
+        autoPlay: true,
+        startSeconds: resumeSecs > 0 ? resumeSecs : null,
+        params: const YoutubePlayerParams(
+          showControls: true,
+          showFullscreenButton: true,
+        ),
+      );
+    }
 
     // Fallback: unlock position updates after 3 seconds in case player never sends matching timestamp
-    if (resumeSecs > 0) {
-      Future.delayed(const Duration(seconds: 3), () {
+    if (resumeSecs > 0 && widget.customPlayerWidget == null) {
+      _fallbackTimer = Timer(const Duration(seconds: 3), () {
         if (mounted && !_resumeEstablished) {
           setState(() {
             _resumeEstablished = true;
@@ -73,74 +84,76 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
     }
 
     // Track playback stream & player states
-    _subscription = _controller.listen((value) async {
-      if (!mounted) return;
+    if (_controller != null) {
+      _subscription = _controller!.listen((value) async {
+        if (!mounted) return;
 
-      final double dur = await _controller.duration;
-      final double pos = await _controller.currentTime;
+        final double dur = await _controller!.duration;
+        final double pos = await _controller!.currentTime;
 
-      if (dur > 0) _totalDuration = dur;
+        if (dur > 0) _totalDuration = dur;
 
-      // When resuming, ensure we seek to the saved timestamp once the player starts
-      if (!_hasSeekedToResume && _savedResumePosition > 0 && !_isCompleted) {
-        if (value.playerState == PlayerState.playing ||
-            value.playerState == PlayerState.buffering ||
-            value.playerState == PlayerState.cued) {
-          _hasSeekedToResume = true;
-          await _controller.seekTo(seconds: _savedResumePosition, allowSeekAhead: true);
-          _currentPosition = _savedResumePosition;
+        // When resuming, ensure we seek to the saved timestamp once the player starts
+        if (!_hasSeekedToResume && _savedResumePosition > 0 && !_isCompleted) {
+          if (value.playerState == PlayerState.playing ||
+              value.playerState == PlayerState.buffering ||
+              value.playerState == PlayerState.cued) {
+            _hasSeekedToResume = true;
+            await _controller!.seekTo(seconds: _savedResumePosition, allowSeekAhead: true);
+            _currentPosition = _savedResumePosition;
+          }
         }
-      }
 
-      // Safeguard: ignore initial 0s ticks before player seeks to saved resume position
-      if (_resumeEstablished) {
-        if (pos > 0) {
-          _currentPosition = pos;
+        // Safeguard: ignore initial 0s ticks before player seeks to saved resume position
+        if (_resumeEstablished) {
+          if (pos > 0) {
+            _currentPosition = pos;
+          }
+        } else {
+          if (pos >= (_savedResumePosition - 1.5)) {
+            _resumeEstablished = true;
+            _currentPosition = pos;
+          }
         }
-      } else {
-        if (pos >= (_savedResumePosition - 1.5)) {
-          _resumeEstablished = true;
-          _currentPosition = pos;
-        }
-      }
 
-      final PlayerState currentState = value.playerState;
-      final bool ended = currentState == PlayerState.ended;
-      final bool isDone = ended || (_totalDuration > 0 && _currentPosition >= _totalDuration);
+        final PlayerState currentState = value.playerState;
+        final bool ended = currentState == PlayerState.ended;
+        final bool isDone = ended || (_totalDuration > 0 && _currentPosition >= _totalDuration);
 
-      // Send to API and update UI/Hive immediately ONLY when user pauses
-      if (currentState == PlayerState.paused && _lastPlayerState != PlayerState.paused) {
-        if (pos > 0) {
-          _currentPosition = pos;
+        // Send to API and update UI/Hive immediately ONLY when user pauses
+        if (currentState == PlayerState.paused && _lastPlayerState != PlayerState.paused) {
+          if (pos > 0) {
+            _currentPosition = pos;
+          }
+          if (mounted) {
+            setState(() {
+              _isCompleted = isDone;
+            });
+          }
+          _saveToHiveAndApi(
+            current: _currentPosition,
+            total: _totalDuration,
+            isCompleted: isDone,
+          );
         }
-        if (mounted) {
-          setState(() {
-            _isCompleted = isDone;
-          });
-        }
-        _saveToHiveAndApi(
-          current: _currentPosition,
-          total: _totalDuration,
-          isCompleted: isDone,
-        );
-      }
 
-      // Send to API and update UI/Hive when video finishes/ends
-      if (ended && _lastPlayerState != PlayerState.ended) {
-        if (mounted) {
-          setState(() {
-            _isCompleted = true;
-          });
+        // Send to API and update UI/Hive when video finishes/ends
+        if (ended && _lastPlayerState != PlayerState.ended) {
+          if (mounted) {
+            setState(() {
+              _isCompleted = true;
+            });
+          }
+          _saveToHiveAndApi(
+            current: _totalDuration > 0 ? _totalDuration : _currentPosition,
+            total: _totalDuration,
+            isCompleted: true,
+          );
         }
-        _saveToHiveAndApi(
-          current: _totalDuration > 0 ? _totalDuration : _currentPosition,
-          total: _totalDuration,
-          isCompleted: true,
-        );
-      }
 
-      _lastPlayerState = currentState;
-    });
+        _lastPlayerState = currentState;
+      });
+    }
   }
 
   /// Saves progress to Hive and sends payload to API
@@ -164,12 +177,14 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
             VideoProgressManager.getProgress(widget.videoUrl).videoId ??
             0);
 
-    ApiService().updateVideoProgress(
-      videoId: effectiveId,
-      currentTimestampSeconds: current,
-      totalWatchTimeSeconds: total,
-      isCompleted: completed,
-    );
+    if (widget.enableApiSync) {
+      ApiService().updateVideoProgress(
+        videoId: effectiveId,
+        currentTimestampSeconds: current,
+        totalWatchTimeSeconds: total,
+        isCompleted: completed,
+      );
+    }
   }
 
   /// Triggered when user goes back or leaves the screen
@@ -184,9 +199,10 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
 
   @override
   void dispose() {
+    _fallbackTimer?.cancel();
     _onExitScreen();
     _subscription?.cancel();
-    _controller.close();
+    _controller?.close();
     super.dispose();
   }
 
@@ -222,7 +238,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
               color: Colors.black,
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: YoutubePlayer(controller: _controller),
+                child: widget.customPlayerWidget ?? (_controller != null ? YoutubePlayer(controller: _controller!) : const SizedBox.shrink()),
               ),
             ),
 

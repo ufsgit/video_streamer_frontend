@@ -34,12 +34,6 @@ class ApiService {
   Future<List<VideoModel>> getCompletedVideos() =>
       videoRepository.getCompletedVideos();
 
-  Future<List<VideoModel>> getPreOpLibraryVideos() =>
-      videoRepository.getPreOpLibraryVideos();
-
-  Future<List<VideoModel>> getPostOpLibraryVideos() =>
-      videoRepository.getPostOpLibraryVideos();
-
   Future<List<VideoModel>> searchVideos(String query) =>
       videoRepository.searchVideos(query);
 

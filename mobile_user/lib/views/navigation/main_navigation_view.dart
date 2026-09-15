@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/daily_reminder_dialog.dart';
 import '../library/library_view.dart';
 import '../profile/profile_view.dart';
 
@@ -24,6 +25,13 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+
+    // Check & prompt for daily video reminders on login/launch if time is not set
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        DailyReminderDialog.showIfNeeded(context);
+      }
+    });
   }
 
   @override

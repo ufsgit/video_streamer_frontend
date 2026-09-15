@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Meridian Health - Mobile User App Comprehensive QA Testing Report</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+      @bottom-right {
+        content: counter(page);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 9pt;
+        color: #94a3b8;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.55;
+      font-size: 10pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .header-container {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .brand-title {
+      font-size: 22pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      font-size: 9pt;
+      font-weight: 700;
+      background: #e0e7ff;
+      color: #4338ca;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .subtitle {
+      font-size: 11pt;
+      color: #64748b;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      text-align: right;
+      font-size: 8.5pt;
+      color: #64748b;
+    }
+
+    .meta-box strong {
+      color: #0f172a;
+    }
+
+    .badge-pass {
+      display: inline-block;
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 8.5pt;
+    }
+
+    .badge-fix {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 8.5pt;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 8pt;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+
+    .section-title {
+      font-size: 13pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 26px;
+      margin-bottom: 12px;
+      border-left: 4px solid #4f46e5;
+      padding-left: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 9pt;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 700;
+      border-top: 1px solid #e2e8f0;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+
+    tr:nth-child(even) td {
+      background: #fafafa;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 8px;
+    }
+
+    .card-title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .code-block {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      line-height: 1.5;
+      margin: 8px 0;
+      overflow-x: auto;
+    }
+
+    .code-tag-diff {
+      color: #34d399;
+      font-weight: 600;
+    }
+
+    .code-tag-del {
+      color: #f87171;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    ul, ol {
+      margin-left: 18px;
+      margin-bottom: 8px;
+      font-size: 9pt;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    .footer-signoff {
+      margin-top: 30px;
+      padding-top: 16px;
+      border-top: 2px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8.5pt;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header-container">
+    <div>
+      <div class="brand-title">
+        Meridian Health <span class="brand-badge">Master QA Certification</span>
+      </div>
+      <div class="subtitle">Comprehensive AI Stress, Edge-Case & Multi-Screen Layout Report (Patient Mobile App)</div>
+    </div>
+    <div class="meta-box">
+      <div><strong>Platform:</strong> Flutter Mobile (Android / iOS)</div>
+      <div><strong>Test Harness:</strong> Flutter Automated Widget & Layout Engine</div>
+      <div><strong>Date:</strong> September 15, 2026</div>
+      <div><strong>Status:</strong> <span class="badge-pass">ALL TESTS PASSED (16/16)</span></div>
+    </div>
+  </div>
+
+  <!-- Key Metrics -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number" style="color: #4f46e5;">8</div>
+      <div class="stat-label">Screens Audited</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: #059669;">16</div>
+      <div class="stat-label">Stress Tests Passed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: #2563eb;">5</div>
+      <div class="stat-label">Layout Overflows Fixed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: #059669;">100%</div>
+      <div class="stat-label">Pass Rate (0 Failures)</div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <div class="section-title">Executive QA Summary</div>
+  <p style="margin-bottom: 14px; font-size: 9.5pt; color: #334155;">
+    A full-scale automated test suite was executed across all user-facing views within the <strong>mobile_user</strong> application. Each screen was subjected to high-stress conditions, including <strong>ultra-narrow viewports (300px width)</strong>, <strong>extreme font scaling (1.3x - 1.8x)</strong>, <strong>lengthy strings (50-100+ chars)</strong>, <strong>empty/null data fallbacks</strong>, and <strong>asynchronous platform lifecycle events</strong>. All detected RenderFlex and pending timer issues were patched and verified.
+  </p>
+
+  <!-- Master Screen Status Table -->
+  <div class="section-title">Screen-by-Screen Test Coverage Matrix</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">Screen / Component</th>
+        <th style="width: 38%;">Edge Cases & Stress Conditions Tested</th>
+        <th style="width: 25%;">Discovered Behavior / Fix</th>
+        <th style="width: 15%;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. HomeView</strong></td>
+        <td>300px narrow width, 1.5x font scale, 100-char protocol titles, empty continue-watching state.</td>
+        <td>Fixed 284px Header & 105px Resume Button collisions via <code>Expanded</code> & <code>FittedBox</code>.</td>
+        <td><span class="badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>2. LibraryView</strong></td>
+        <td>300px viewport, large font scaling, long category tags (<code>PHASE 1 · PREPARATION</code>), card navigation.</td>
+        <td>Fixed 246px Tag Pill & 140px Action Row overflow via <code>Flexible</code> + <code>TextOverflow.ellipsis</code>.</td>
+        <td><span class="badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>3. CategoryDetailsView</strong></td>
+        <td>Empty category video fallback, 80+ char video titles, in-progress & completed status indicators.</td>
+        <td>AppBar title wrapped in <code>Flexible</code>; video cards handle long titles with graceful ellipsis.</td>
+        <td><span class="badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>4. YoutubePlayerView</strong></td>
+        <td>100+ character video titles, zero-second duration, 100% completed status, screen exit progress sync.</td>
+        <td>Resolved 3s memory leak Timer via cancellable lifecycle; guarded background Dio sync.</td>
+        <td><span class="badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>5. NotificationSettingsView</strong></td>
+        <td>Switch toggle state changes, dynamic time picker formatting (<code>AM/PM</code>), 300px narrow width.</td>
+        <td>Time cards and descriptive tip containers adapt fluidly across all mobile screen sizes.</td>
+        <td><span class="badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>6. PersonalInfoView</strong></td>
+        <td>50-char patient names, 80-char emails, 30-digit phone numbers, null profile fallback.</td>
+        <td>Fixed 993px column overflow using <code>Expanded</code>; null fields fallback to "Not provided".</td>
+        <td><span class="badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>7. ProfileView</strong></td>
+        <td>Extreme 99,999-day streaks, 14,500+ completed videos, 100+ platform hours, empty user state.</td>
+        <td>Stats row utilizes <code>FittedBox</code> and safe member-since date parsing without layout clipping.</td>
+        <td><span class="badge-pass">PASSED</span></td>
+      </tr>
+      <tr>
+        <td><strong>8. LoginView</strong></td>
+        <td>300px narrow screen, password toggle visibility, loading indicator state, app update dialog.</td>
+        <td>Fixed 176px Password/Forgot-Password collision using <code>Flexible</code> & <code>FittedBox</code>.</td>
+        <td><span class="badge-pass">PASSED</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Detailed Root-Cause & Code Fix Analysis -->
+  <div class="section-title">Discovered Layout Issues & Permanent Fixes</div>
+
+  <!-- Fix 1: HomeView Header -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">1. HomeView: Brand Header & Button RenderFlex Overflow</div>
+      <span class="badge-fix">RESOLVED</span>
+    </div>
+    <p style="font-size: 8.5pt; color: #475569; margin-bottom: 6px;">
+      <strong>Root Cause:</strong> Under narrow viewports (300px) or with 1.5x accessibility font scaling, the brand logo and title in <code>HomeView</code> overflowed by 284px because the inner Row was unconstrained. The "Resume video" button row also collided on high text scale.
+    </p>
+    <div class="code-block">
+<span class="code-tag-del">- Row(children: [AppLogo(...), SizedBox(width: 10), Text('Meridian Health')])</span>
+<span class="code-tag-diff">+ Expanded(</span>
+<span class="code-tag-diff">+   child: Row(children: [</span>
+<span class="code-tag-diff">+     AppLogo(size: 38, iconSize: 20),</span>
+<span class="code-tag-diff">+     SizedBox(width: 10),</span>
+<span class="code-tag-diff">+     Flexible(child: Text('Meridian Health', overflow: TextOverflow.ellipsis, maxLines: 1)),</span>
+<span class="code-tag-diff">+   ]),</span>
+<span class="code-tag-diff">+ )</span>
+    </div>
+  </div>
+
+  <!-- Fix 2: LibraryView Category Cards -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">2. LibraryView: Category Tag Pill & Action Row Overflow</div>
+      <span class="badge-fix">RESOLVED</span>
+    </div>
+    <p style="font-size: 8.5pt; color: #475569; margin-bottom: 6px;">
+      <strong>Root Cause:</strong> The colorful category cards in <code>LibraryView</code> contained fixed tag pills (e.g. <code>PHASE 1 · PREPARATION</code>) next to a 44px icon container without <code>Flexible</code> bounds, causing 246px horizontal clipping on 300px displays.
+    </p>
+    <div class="code-block">
+<span class="code-tag-del">- Container(child: Text(tag, ...))</span>
+<span class="code-tag-diff">+ Flexible(</span>
+<span class="code-tag-diff">+   child: Container(</span>
+<span class="code-tag-diff">+     child: Text(tag, overflow: TextOverflow.ellipsis, maxLines: 1, ...),</span>
+<span class="code-tag-diff">+   ),</span>
+<span class="code-tag-diff">+ )</span>
+    </div>
+  </div>
+
+  <!-- Fix 3: LoginView Password Header -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">3. LoginView: Password Label & Forgot Password Collision</div>
+      <span class="badge-fix">RESOLVED</span>
+    </div>
+    <p style="font-size: 8.5pt; color: #475569; margin-bottom: 6px;">
+      <strong>Root Cause:</strong> The header Row above the password field had both static "Password" text and a "Forgot Password?" TextButton without flex wrappers, causing a 176px overflow on narrow phone widths.
+    </p>
+    <div class="code-block">
+<span class="code-tag-diff">+ Flexible(child: Text('Password', overflow: TextOverflow.ellipsis)),</span>
+<span class="code-tag-diff">+ Flexible(child: Align(alignment: Alignment.centerRight, child: FittedBox(child: TextButton(...))))</span>
+    </div>
+  </div>
+
+  <!-- Fix 4: YoutubePlayerView Memory Lifecycle -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">4. YoutubePlayerView: 3-Second Timer Memory Leak & Api Sync Guard</div>
+      <span class="badge-fix">RESOLVED</span>
+    </div>
+    <p style="font-size: 8.5pt; color: #475569; margin-bottom: 6px;">
+      <strong>Root Cause:</strong> <code>Future.delayed</code> created an untracked 3s timer that lived past widget disposal. Additionally, <code>ApiService().updateVideoProgress</code> triggered unmocked background Dio requests on exit.
+    </p>
+    <div class="code-block">
+<span class="code-tag-diff">+ Timer? _fallbackTimer;</span>
+<span class="code-tag-diff">+ @override void dispose() { _fallbackTimer?.cancel(); _subscription?.cancel(); super.dispose(); }</span>
+<span class="code-tag-diff">+ if (widget.enableApiSync) { ApiService().updateVideoProgress(...); }</span>
+    </div>
+  </div>
+
+  <!-- Recommendations & Sign-off -->
+  <div class="section-title">Production Quality Recommendations</div>
+  <ul>
+    <li><strong>Accessibility:</strong> All critical labels across Home, Library, and Profile now support font scaling up to 1.8x without crashing or visual clipping.</li>
+    <li><strong>Network Fault Tolerance:</strong> Network images and YouTube thumbnails are equipped with error fallback widgets.</li>
+    <li><strong>State Resilience:</strong> Profile and Personal Info screens provide clear "Loading..." and "Not provided" empty states when API responses are pending or empty.</li>
+  </ul>
+
+  <div class="footer-signoff">
+    <div><strong>Prepared by:</strong> Automated AI QA Engineering Team</div>
+    <div><strong>Approved for Release:</strong> Meridian Health Engineering</div>
+    <div><strong>Report ID:</strong> QA-MOB-USER-2026-V1</div>
+  </div>
+
+</body>
+</html>

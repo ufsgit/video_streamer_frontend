@@ -8,8 +8,6 @@ import '../models/video_model.dart';
 abstract class VideoRepository {
   Future<VideoModel?> getContinueWatchingVideo();
   Future<List<VideoModel>> getCompletedVideos();
-  Future<List<VideoModel>> getPreOpLibraryVideos();
-  Future<List<VideoModel>> getPostOpLibraryVideos();
   Future<List<VideoModel>> searchVideos(String query);
   Future<List<VideoModel>> getVideosByCategory({
     required String category,
@@ -17,6 +15,7 @@ abstract class VideoRepository {
     int page = 1,
     int limit = 10,
   });
+
   /// Updates video watch progress on the backend.
   /// [currentTimestampSeconds] is the user's current playback position in seconds.
   /// [totalWatchTimeSeconds] is the total full duration of the video in seconds.
@@ -63,34 +62,6 @@ class VideoRepositoryImpl implements VideoRepository {
   }
 
   @override
-  Future<List<VideoModel>> getPreOpLibraryVideos() async {
-    try {
-      final response = await _client.dio.get(ApiConstants.preOpVideosPath);
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is List) {
-          return data.map((json) => VideoModel.fromJson(json)).toList();
-        }
-      }
-    } catch (_) {}
-    return [];
-  }
-
-  @override
-  Future<List<VideoModel>> getPostOpLibraryVideos() async {
-    try {
-      final response = await _client.dio.get(ApiConstants.postOpVideosPath);
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is List) {
-          return data.map((json) => VideoModel.fromJson(json)).toList();
-        }
-      }
-    } catch (_) {}
-    return [];
-  }
-
-  @override
   Future<List<VideoModel>> searchVideos(String query) async {
     try {
       final response = await _client.dio.get(
@@ -126,12 +97,14 @@ class VideoRepositoryImpl implements VideoRepository {
         'page': page,
         'limit': limit,
       };
-      
+
       if (effectiveLanguageId != null) {
         queryParams['language_id'] = effectiveLanguageId;
       }
 
-      log('DEBUG: Calling ${ApiConstants.videosListPath} with params: $queryParams');
+      log(
+        'DEBUG: Calling ${ApiConstants.videosListPath} with params: $queryParams',
+      );
 
       final response = await _client.dio.get(
         ApiConstants.videosListPath,
@@ -142,7 +115,9 @@ class VideoRepositoryImpl implements VideoRepository {
         final data = response.data;
         // The API might return { "success": true, "data": [...] }
         if (data is Map<String, dynamic> && data['data'] is List) {
-          return (data['data'] as List).map((json) => VideoModel.fromJson(json)).toList();
+          return (data['data'] as List)
+              .map((json) => VideoModel.fromJson(json))
+              .toList();
         } else if (data is List) {
           return data.map((json) => VideoModel.fromJson(json)).toList();
         }
@@ -161,7 +136,8 @@ class VideoRepositoryImpl implements VideoRepository {
     required bool isCompleted,
   }) async {
     try {
-      final dynamic formattedVideoId = int.tryParse(videoId.toString()) ?? videoId;
+      final dynamic formattedVideoId =
+          int.tryParse(videoId.toString()) ?? videoId;
       final Map<String, dynamic> data = {
         'video_id': formattedVideoId,
         'current_timestamp_seconds': currentTimestampSeconds.round(),
@@ -177,7 +153,9 @@ class VideoRepositoryImpl implements VideoRepository {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        log('DEBUG: Video progress successfully updated on server: ${response.data}');
+        log(
+          'DEBUG: Video progress successfully updated on server: ${response.data}',
+        );
         return true;
       }
     } catch (e) {

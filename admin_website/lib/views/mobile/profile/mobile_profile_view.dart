@@ -5,7 +5,14 @@ import 'package:admin_website/widgets/app_logo.dart';
 import '../auth/mobile_login_view.dart';
 
 class MobileProfileView extends StatefulWidget {
-  const MobileProfileView({super.key});
+  final Map<String, dynamic>? initialProfile;
+  final bool autoFetch;
+
+  const MobileProfileView({
+    super.key,
+    this.initialProfile,
+    this.autoFetch = true,
+  });
 
   @override
   State<MobileProfileView> createState() => _MobileProfileViewState();
@@ -19,7 +26,10 @@ class _MobileProfileViewState extends State<MobileProfileView> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _userProfile = widget.initialProfile;
+    if (widget.autoFetch && _userProfile == null) {
+      _loadProfile();
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -81,7 +91,7 @@ class _MobileProfileViewState extends State<MobileProfileView> {
         title: const Text('Admin Profile'),
         automaticallyImplyLeading: false,
       ),
-      body: _isLoading
+      body: _isLoading && _userProfile == null
           ? const Center(
               child: AppLogoLoader(
                 size: 52,
@@ -124,14 +134,19 @@ class _MobileProfileViewState extends State<MobileProfileView> {
                     const SizedBox(height: 16),
                     Text(
                       _userProfile?['name'] ?? _userProfile?['username'] ?? 'Admin User',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -155,7 +170,6 @@ class _MobileProfileViewState extends State<MobileProfileView> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
@@ -167,12 +181,16 @@ class _MobileProfileViewState extends State<MobileProfileView> {
                             children: [
                               const Icon(Icons.shield_outlined, color: AppTheme.textPrimary, size: 14),
                               const SizedBox(width: 4),
-                              Text(
-                                _userProfile?['role'] ?? 'Administrative Access',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textPrimary,
+                              Flexible(
+                                child: Text(
+                                  _userProfile?['role'] ?? 'Administrative Access',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimary,
+                                  ),
                                 ),
                               ),
                             ],
@@ -197,12 +215,14 @@ class _MobileProfileViewState extends State<MobileProfileView> {
                             children: [
                               Icon(Icons.badge_outlined, color: AppTheme.primaryDark, size: 22),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Personal Details',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
+                              const Expanded(
+                                child: Text(
+                                  'Personal Details',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textPrimary,
+                                  ),
                                 ),
                               ),
                             ],
@@ -232,7 +252,6 @@ class _MobileProfileViewState extends State<MobileProfileView> {
                       ),
                     ),
                     const SizedBox(height: 32),
-
 
                     // Logout button
                     SizedBox(
@@ -285,6 +304,8 @@ class _MobileProfileViewState extends State<MobileProfileView> {
             Expanded(
               child: Text(
                 value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 16,
                   color: AppTheme.textPrimary,

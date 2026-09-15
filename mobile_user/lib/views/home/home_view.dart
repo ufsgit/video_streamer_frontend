@@ -48,20 +48,28 @@ class _HomeViewState extends State<HomeView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
-                        children: [
-                          AppLogo(size: 38, iconSize: 20),
-                          SizedBox(width: 10),
-                          Text(
-                            'Meridian Health',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF152C5B),
+                      const Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppLogo(size: 38, iconSize: 20),
+                            SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                'Meridian Health',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF152C5B),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 12),
                       // Notification icon with badge
                       Stack(
                         children: [
@@ -238,19 +246,22 @@ class _HomeViewState extends State<HomeView> {
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                   ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        'Resume video',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
+                                  child: const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          'Resume video',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
-                                      ),
-                                      SizedBox(width: 8),
-                                      Icon(Icons.arrow_forward_rounded, size: 18),
-                                    ],
+                                        SizedBox(width: 8),
+                                        Icon(Icons.arrow_forward_rounded, size: 18),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),

@@ -12,8 +12,6 @@ class ApiConstants {
   static const String videosListPath = '/api/user/videos/list';
   static const String continueWatchingPath = '/api/v1/videos/continue-watching';
   static const String completedVideosPath = '/api/v1/videos/completed';
-  static const String preOpVideosPath = '/api/v1/library/pre-op';
-  static const String postOpVideosPath = '/api/v1/library/post-op';
   static const String searchVideosPath = '/api/v1/videos/search';
   static const String appVersionCheckPath = '/api/app-version/check';
   static const String videoProgressPath = '/api/user/videos/progress';
@@ -23,8 +21,6 @@ class ApiConstants {
   static const String userProfile = '$baseUrl$userProfilePath';
   static const String continueWatching = '$baseUrl$continueWatchingPath';
   static const String completedVideos = '$baseUrl$completedVideosPath';
-  static const String preOpVideos = '$baseUrl$preOpVideosPath';
-  static const String postOpVideos = '$baseUrl$postOpVideosPath';
   static const String searchVideos = '$baseUrl$searchVideosPath';
   static const String appVersionCheck = '$baseUrl$appVersionCheckPath';
   static const String videoProgress = '$baseUrl$videoProgressPath';
