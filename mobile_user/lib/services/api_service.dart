@@ -22,11 +22,18 @@ class ApiService {
   Future<Map<String, dynamic>> login({
     required String username,
     required String password,
-  }) =>
-      authRepository.login(username: username, password: password);
+  }) => authRepository.login(username: username, password: password);
 
-  Future<UserModel?> getUserProfile() =>
-      userRepository.getUserProfile();
+  Future<UserModel?> getUserProfile() => userRepository.getUserProfile();
+
+  Future<bool> updateUserLanguage({
+    required int languageId,
+    required String languageName,
+  }) =>
+      userRepository.updateUserLanguage(
+        languageId: languageId,
+        languageName: languageName,
+      );
 
   Future<VideoModel?> getContinueWatchingVideo() =>
       videoRepository.getContinueWatchingVideo();
@@ -42,11 +49,10 @@ class ApiService {
     required double currentTimestampSeconds,
     required double totalWatchTimeSeconds,
     required bool isCompleted,
-  }) =>
-      videoRepository.updateVideoProgress(
-        videoId: videoId,
-        currentTimestampSeconds: currentTimestampSeconds,
-        totalWatchTimeSeconds: totalWatchTimeSeconds,
-        isCompleted: isCompleted,
-      );
+  }) => videoRepository.updateVideoProgress(
+    videoId: videoId,
+    currentTimestampSeconds: currentTimestampSeconds,
+    totalWatchTimeSeconds: totalWatchTimeSeconds,
+    isCompleted: isCompleted,
+  );
 }

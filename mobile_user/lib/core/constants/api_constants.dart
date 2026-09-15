@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'https://videostreamerapi.ufstech.net.in';
+  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
 
   ///'https://7qh4z02n-3000.inc1.devtunnels.ms'; - "riju"
 
@@ -9,6 +9,7 @@ class ApiConstants {
   static const String userLoginPath = '/api/auth/user/login';
   static const String userProfilePath = '/api/user/profiles/list';
   static const String userLanguagesPath = '/api/user/languages/list';
+  static const String userProfileLanguagePath = '/api/user/profiles/language';
   static const String videosListPath = '/api/user/videos/list';
   static const String continueWatchingPath = '/api/v1/videos/continue-watching';
   static const String completedVideosPath = '/api/v1/videos/completed';
@@ -19,6 +20,7 @@ class ApiConstants {
   // Full URL endpoints
   static const String userLogin = '$baseUrl$userLoginPath';
   static const String userProfile = '$baseUrl$userProfilePath';
+  static const String userProfileLanguage = '$baseUrl$userProfileLanguagePath';
   static const String continueWatching = '$baseUrl$continueWatchingPath';
   static const String completedVideos = '$baseUrl$completedVideosPath';
   static const String searchVideos = '$baseUrl$searchVideosPath';

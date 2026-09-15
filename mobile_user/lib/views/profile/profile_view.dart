@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../../core/constants/api_constants.dart';
+import '../../core/network/dio_client.dart';
+import '../../services/api_service.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../auth/login_view.dart';
 import 'notification_settings_view.dart';
@@ -182,8 +186,9 @@ class _ProfileViewState extends State<ProfileView> {
                                           initials.isNotEmpty
                                               ? initials
                                               : (user?.email?.isNotEmpty == true
-                                                  ? user!.email![0].toUpperCase()
-                                                  : 'U'),
+                                                    ? user!.email![0]
+                                                          .toUpperCase()
+                                                    : 'U'),
                                           style: const TextStyle(
                                             color: Color(0xFF0052CC),
                                             fontSize: 24,
@@ -480,8 +485,8 @@ class _ProfileViewState extends State<ProfileView> {
                               Text(
                                 user != null
                                     ? (user.doctorName?.isNotEmpty == true
-                                        ? user.doctorName!
-                                        : 'Not Assigned')
+                                          ? user.doctorName!
+                                          : 'Not Assigned')
                                     : 'Loading...',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -560,7 +565,9 @@ class _ProfileViewState extends State<ProfileView> {
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Loading user profile, please wait...'),
+                                  content: Text(
+                                    'Loading user profile, please wait...',
+                                  ),
                                   duration: Duration(seconds: 2),
                                 ),
                               );
@@ -582,10 +589,17 @@ class _ProfileViewState extends State<ProfileView> {
                           },
                         ),
                         const Divider(height: 1, color: Color(0xFFF2F4F7)),
-                        _buildSettingsTile(
-                          icon: Icons.language_rounded,
-                          title: 'Language',
-                          onTap: () {},
+                        ValueListenableBuilder(
+                          valueListenable: Hive.box('settings').listenable(keys: ['selected_language']),
+                          builder: (context, box, _) {
+                            final currentLanguage = box.get('selected_language')?.toString() ?? 'Not selected';
+                            return _buildSettingsTile(
+                              icon: Icons.language_rounded,
+                              title: 'Language',
+                              subtitle: currentLanguage,
+                              onTap: () => _showLanguageSelectionModal(context),
+                            );
+                          },
                         ),
                         const Divider(height: 1, color: Color(0xFFF2F4F7)),
                         _buildSettingsTile(
@@ -609,9 +623,23 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
+  void _showLanguageSelectionModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) => _LanguageSelectionBottomSheet(
+        onLanguageSelected: (languageId, languageName) {
+          setState(() {});
+        },
+      ),
+    );
+  }
+
   Widget _buildSettingsTile({
     required IconData icon,
     required String title,
+    String? subtitle,
     required VoidCallback onTap,
     Color iconColor = const Color(0xFF0052CC),
     Color textColor = const Color(0xFF101828),
@@ -637,11 +665,290 @@ class _ProfileViewState extends State<ProfileView> {
             color: textColor,
           ),
         ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF6C757D),
+                ),
+              )
+            : null,
         trailing: const Icon(
           Icons.chevron_right_rounded,
           color: Color(0xFF98A2B3),
           size: 22,
         ),
+      ),
+    );
+  }
+}
+
+class _LanguageSelectionBottomSheet extends StatefulWidget {
+  final Function(int id, String name) onLanguageSelected;
+
+  const _LanguageSelectionBottomSheet({required this.onLanguageSelected});
+
+  @override
+  State<_LanguageSelectionBottomSheet> createState() =>
+      _LanguageSelectionBottomSheetState();
+}
+
+class _LanguageSelectionBottomSheetState
+    extends State<_LanguageSelectionBottomSheet> {
+  List<Map<String, dynamic>> _languagesData = [];
+  bool _isLoading = true;
+  String? _selectedLanguageName;
+  bool _isUpdating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final box = Hive.box('settings');
+    _selectedLanguageName = box.get('selected_language')?.toString();
+    _fetchLanguages();
+  }
+
+  Future<void> _fetchLanguages() async {
+    try {
+      final response =
+          await DioClient().dio.get(ApiConstants.userLanguagesPath);
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        final List<dynamic> dataList = response.data['data'];
+        if (mounted) {
+          setState(() {
+            _languagesData = List<Map<String, dynamic>>.from(dataList);
+            final uniqueNames = <String>{};
+            _languagesData.retainWhere(
+              (item) => uniqueNames.add(item['language_name'].toString()),
+            );
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _selectLanguage(Map<String, dynamic> langItem) async {
+    if (_isUpdating) return;
+
+    final name = langItem['language_name'].toString();
+    final rawId = langItem['id'] ?? langItem['language_id'] ?? langItem['_id'];
+    final id = rawId != null ? int.tryParse(rawId.toString()) ?? 0 : 0;
+
+    setState(() {
+      _isUpdating = true;
+      _selectedLanguageName = name;
+    });
+
+    final box = Hive.box('settings');
+    await box.put('selected_language', name);
+    await box.put('selected_language_id', id);
+
+    try {
+      await ApiService().updateUserLanguage(
+        languageId: id,
+        languageName: name,
+      );
+      if (mounted) {
+        widget.onLanguageSelected(id, name);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Language updated to $name'),
+            backgroundColor: const Color(0xFF0052CC),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update language: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE2E8F0),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0052CC).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.language_rounded,
+                  color: Color(0xFF0052CC),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select Language',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF152C5B),
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Choose your preferred language for content',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6C757D),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Color(0xFF6C757D)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFEDF2F7)),
+          const SizedBox(height: 12),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 36),
+              child: Center(
+                child: CircularProgressIndicator(color: Color(0xFF0052CC)),
+              ),
+            )
+          else if (_languagesData.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  'No languages available',
+                  style: TextStyle(color: Color(0xFF6C757D)),
+                ),
+              ),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const ClampingScrollPhysics(),
+                itemCount: _languagesData.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final item = _languagesData[index];
+                  final name = item['language_name'].toString();
+                  final isSelected = _selectedLanguageName == name;
+
+                  return InkWell(
+                    onTap: _isUpdating ? null : () => _selectLanguage(item),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF0052CC).withValues(alpha: 0.06)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF0052CC)
+                              : const Color(0xFFE2E8F0),
+                          width: isSelected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected
+                                ? Icons.radio_button_checked_rounded
+                                : Icons.radio_button_off_rounded,
+                            color: isSelected
+                                ? const Color(0xFF0052CC)
+                                : const Color(0xFF94A3B8),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? const Color(0xFF0052CC)
+                                    : const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                          if (isSelected && _isUpdating)
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF0052CC),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }

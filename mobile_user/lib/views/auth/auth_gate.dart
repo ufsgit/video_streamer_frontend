@@ -239,9 +239,14 @@ class _AuthGateState extends State<AuthGate> {
         if (_viewModel.isAuthenticated) {
           final box = Hive.box('settings');
           final selectedLanguage = box.get('selected_language');
+          final selectedLanguageId = box.get('selected_language_id');
 
-          if (selectedLanguage != null &&
-              selectedLanguage.toString().isNotEmpty) {
+          final bool hasValidLanguage = selectedLanguage != null &&
+              selectedLanguage.toString().trim().isNotEmpty &&
+              selectedLanguage.toString().trim().toLowerCase() != 'none' &&
+              selectedLanguageId != null;
+
+          if (hasValidLanguage) {
             return const MainNavigationView();
           } else {
             // Need to select language
@@ -249,9 +254,7 @@ class _AuthGateState extends State<AuthGate> {
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (context) => LanguageSelectionDialog(
-                  languages: _viewModel.currentUser?.languages,
-                ),
+                builder: (context) => const LanguageSelectionDialog(),
               );
             });
             // Return empty scaffold while dialog is shown

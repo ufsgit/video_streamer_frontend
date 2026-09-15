@@ -342,10 +342,23 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                 const SizedBox(height: 16),
 
                 // Username
-                _buildFieldLabel("Username (Optional)"),
+                _buildFieldLabel(isEditing ? "Username (Unchangeable)" : "Username (Optional)"),
                 TextFormField(
                   controller: _usernameController,
-                  decoration: _inputDecoration("e.g. janedoe", Icons.alternate_email),
+                  readOnly: isEditing,
+                  enabled: !isEditing,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isEditing ? const Color(0xFF64748B) : AppTheme.textPrimary,
+                  ),
+                  decoration: _inputDecoration(
+                    "e.g. janedoe",
+                    Icons.alternate_email,
+                    suffixIcon: isEditing
+                        ? const Icon(Icons.lock_outline_rounded, color: Color(0xFF94A3B8), size: 18)
+                        : null,
+                    fillColor: isEditing ? const Color(0xFFF1F5F9) : null,
+                  ),
                 ),
                 const SizedBox(height: 16),
 
@@ -560,13 +573,19 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint, IconData? icon) {
+  InputDecoration _inputDecoration(
+    String hint,
+    IconData? icon, {
+    Widget? suffixIcon,
+    Color? fillColor,
+  }) {
     return InputDecoration(
       hintText: hint,
       hintStyle: const TextStyle(fontSize: 13),
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: fillColor ?? Colors.grey.shade50,
       prefixIcon: icon != null ? Icon(icon, size: 20) : null,
+      suffixIcon: suffixIcon,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -575,6 +594,10 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),

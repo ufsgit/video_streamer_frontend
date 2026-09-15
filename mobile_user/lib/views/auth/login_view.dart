@@ -58,7 +58,12 @@ class _LoginViewState extends State<LoginView> {
       final selectedLanguage = box.get('selected_language');
       final selectedLanguageId = box.get('selected_language_id');
       
-      if (selectedLanguage != null && selectedLanguage.toString().isNotEmpty && selectedLanguageId != null) {
+      final bool hasValidLanguage = selectedLanguage != null &&
+          selectedLanguage.toString().trim().isNotEmpty &&
+          selectedLanguage.toString().trim().toLowerCase() != 'none' &&
+          selectedLanguageId != null;
+
+      if (hasValidLanguage) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainNavigationView()),

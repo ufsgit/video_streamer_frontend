@@ -537,11 +537,13 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel("Username *"),
+                            _buildLabel(isEditing ? "Username (Unchangeable)" : "Username *"),
                             const SizedBox(height: 8),
                             _buildTextFormField(
                               controller: _usernameController,
                               hint: "e.g. janedoe",
+                              readOnly: isEditing,
+                              enabled: !isEditing,
                             ),
                           ],
                         ),
@@ -570,11 +572,13 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildLabel("Username *"),
+                                  _buildLabel(isEditing ? "Username (Unchangeable)" : "Username *"),
                                   const SizedBox(height: 8),
                                   _buildTextFormField(
                                     controller: _usernameController,
                                     hint: "e.g. janedoe",
+                                    readOnly: isEditing,
+                                    enabled: !isEditing,
                                   ),
                                 ],
                               ),
@@ -1401,17 +1405,24 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
     Widget? suffixIcon,
     bool obscureText = false,
     bool readOnly = false,
+    bool enabled = true,
+    Color? fillColor,
     TextInputType? keyboardType,
     VoidCallback? onTap,
     String? Function(String?)? validator,
   }) {
+    final bool isFieldDisabled = !enabled || readOnly;
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
       readOnly: readOnly,
+      enabled: enabled,
       keyboardType: keyboardType,
       onTap: onTap,
-      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
+      style: TextStyle(
+        fontSize: 14,
+        color: isFieldDisabled ? const Color(0xFF64748B) : const Color(0xFF0F172A),
+      ),
       validator: validator,
       decoration: InputDecoration(
         hintText: hint,
@@ -1427,9 +1438,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                       size: 19,
                     ),
                   )
-                : null),
+                : (isFieldDisabled
+                    ? const Icon(Icons.lock_outline_rounded, color: Color(0xFF94A3B8), size: 18)
+                    : null)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: fillColor ?? (isFieldDisabled ? const Color(0xFFF1F5F9) : Colors.white),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 13,
@@ -1441,6 +1454,10 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
