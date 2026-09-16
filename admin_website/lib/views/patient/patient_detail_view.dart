@@ -18,6 +18,7 @@ class PatientDetailView extends StatefulWidget {
 
 class _PatientDetailViewState extends State<PatientDetailView> {
   late final PatientDetailViewModel _viewModel;
+  String _selectedOpStage = "Pre-op";
 
   @override
   void initState() {
@@ -118,7 +119,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               size: 20,
             ),
             tooltip: "Refresh Details",
-            onPressed: _viewModel.isLoading ? null : _viewModel.fetchPatientDetails,
+            onPressed: _viewModel.isLoading
+                ? null
+                : _viewModel.fetchPatientDetails,
           ),
           if (MediaQuery.of(context).size.width < 600) ...[
             IconButton(
@@ -371,7 +374,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _viewModel.isAccountInfoCollapsed ? "Expand" : "Collapse",
+                          _viewModel.isAccountInfoCollapsed
+                              ? "Expand"
+                              : "Collapse",
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -505,10 +510,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             _buildInfoRow("GENDER : ", patient.gender),
             if (patient.dob.isNotEmpty) ...[
               const SizedBox(height: 10),
-              _buildInfoRow(
-                "DATE OF BIRTH : ",
-                _formatDateOnly(patient.dob),
-              ),
+              _buildInfoRow("DATE OF BIRTH : ", _formatDateOnly(patient.dob)),
             ],
             const SizedBox(height: 10),
             _buildInfoRow(
@@ -735,16 +737,119 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.bar_chart, color: AppTheme.primaryBlue, size: 16),
-              SizedBox(width: 6),
-              Text(
-                "Engagement Overview",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryBlue,
+              const Row(
+                children: [
+                  Icon(Icons.bar_chart, color: AppTheme.primaryBlue, size: 16),
+                  SizedBox(width: 6),
+                  Text(
+                    "Engagement Overview",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                ],
+              ),
+
+              // PRE-OP OR POST-OP SELECTION BOX
+              Container(
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: PopupMenuButton<String>(
+                  tooltip: "",
+                  offset: const Offset(0, 42),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  color: Colors.white,
+                  elevation: 4,
+                  onSelected: (String newValue) {
+                    setState(() {
+                      _selectedOpStage = newValue;
+                    });
+                    _viewModel.setOpStage(newValue);
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: "Pre-op",
+                      height: 38,
+                      child: Text(
+                        "Pre-op",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: _selectedOpStage == "Pre-op"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _selectedOpStage == "Pre-op"
+                              ? AppTheme.primaryBlue
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: "Post-op",
+                      height: 38,
+                      child: Text(
+                        "Post-op",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: _selectedOpStage == "Post-op"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _selectedOpStage == "Post-op"
+                              ? AppTheme.primaryBlue
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: "All",
+                      height: 38,
+                      child: Text(
+                        "All",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: _selectedOpStage == "All"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _selectedOpStage == "All"
+                              ? AppTheme.primaryBlue
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _selectedOpStage,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 18,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],

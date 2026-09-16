@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:admin_website/core/theme.dart';
@@ -54,6 +55,16 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
     }
   }
 
+  int? _parseInt(dynamic val) {
+    if (val == null) return null;
+    if (val is num) return val.toInt();
+    if (val is String) {
+      final cleaned = val.replaceAll('%', '').trim();
+      return int.tryParse(cleaned) ?? (double.tryParse(cleaned)?.round());
+    }
+    return null;
+  }
+
   Future<void> _fetchPatientDetails() async {
     setState(() {
       _isLoading = true;
@@ -61,7 +72,19 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
     });
 
     try {
-      final response = await _apiService.getUserById(_patient.id);
+      final results = await Future.wait([
+        _apiService.getUserById(_patient.id),
+        _apiService.getUserProgress(_patient.id).catchError((e) {
+          debugPrint("Error fetching user progress: $e");
+          return Response(
+            requestOptions: RequestOptions(path: ''),
+            data: null,
+          );
+        }),
+      ]);
+
+      final response = results[0];
+      final engagementRes = results[1];
       final resData = response.data;
 
       Map<String, dynamic> userData = {};
@@ -88,17 +111,18 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
         _videoHistory =
             rawVideos.map((v) => Map<String, dynamic>.from(v as Map)).toList();
 
-        _totalVideos = int.tryParse(
-              userData['total_videos']?.toString() ??
-                  userData['totalVideos']?.toString() ??
-                  '',
+        _totalVideos = _parseInt(
+              userData['total_videos'] ??
+                  userData['totalVideos'] ??
+                  userData['total_assigned'] ??
+                  userData['total_watched'],
             ) ??
             _videoHistory.length;
 
-        _completedVideos = int.tryParse(
-              userData['total_completed']?.toString() ??
-                  userData['completed_videos']?.toString() ??
-                  '',
+        _completedVideos = _parseInt(
+              userData['total_completed'] ??
+                  userData['completed_videos'] ??
+                  userData['completedCount'],
             ) ??
             _videoHistory
                 .where((v) =>
@@ -110,8 +134,113 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
 
         if (_totalVideos > 0) {
           _progressRate = ((_completedVideos / _totalVideos) * 100).round();
+        } else if (userData['progress'] != null) {
+          _progressRate = _parseInt(userData['progress']) ?? 0;
         } else {
           _progressRate = 0;
+        }
+      }
+
+      // Parse engagement data from admin/users/engagement/{id}
+      if (engagementRes.data != null) {
+        final eRaw = engagementRes.data;
+        Map<String, dynamic> engagementData = {};
+        if (eRaw is Map) {
+          if (eRaw['data'] is Map) {
+            engagementData = Map<String, dynamic>.from(eRaw['data'] as Map);
+            if (engagementData['engagement'] is Map) {
+              engagementData = Map<String, dynamic>.from(
+                engagementData['engagement'] as Map,
+              );
+            } else if (engagementData['overview'] is Map) {
+              engagementData = Map<String, dynamic>.from(
+                engagementData['overview'] as Map,
+              );
+            } else if (engagementData['stats'] is Map) {
+              engagementData = Map<String, dynamic>.from(
+                engagementData['stats'] as Map,
+              );
+            }
+          } else if (eRaw['engagement'] is Map) {
+            engagementData = Map<String, dynamic>.from(
+              eRaw['engagement'] as Map,
+            );
+          } else if (eRaw['stats'] is Map) {
+            engagementData = Map<String, dynamic>.from(eRaw['stats'] as Map);
+          } else if (eRaw['overview'] is Map) {
+            engagementData = Map<String, dynamic>.from(eRaw['overview'] as Map);
+          } else {
+            engagementData = Map<String, dynamic>.from(eRaw);
+          }
+        }
+
+        if (engagementData.isNotEmpty) {
+          final parsedTotal = _parseInt(
+            engagementData['totalAssigned'] ??
+                engagementData['total_assigned'] ??
+                engagementData['totalVideos'] ??
+                engagementData['total_videos'] ??
+                engagementData['assignedVideos'] ??
+                engagementData['assigned_videos'] ??
+                engagementData['assigned'] ??
+                engagementData['total'] ??
+                engagementData['count'],
+          );
+          if (parsedTotal != null) {
+            _totalVideos = parsedTotal;
+          }
+
+          final parsedCompleted = _parseInt(
+            engagementData['totalCompleted'] ??
+                engagementData['total_completed'] ??
+                engagementData['completedVideos'] ??
+                engagementData['completed_videos'] ??
+                engagementData['completedCount'] ??
+                engagementData['completed_count'] ??
+                engagementData['completed'] ??
+                engagementData['watchedVideos'] ??
+                engagementData['watched_videos'] ??
+                engagementData['videosWatched'] ??
+                engagementData['videos_watched'],
+          );
+          if (parsedCompleted != null) {
+            _completedVideos = parsedCompleted;
+          }
+
+          final parsedProgress = _parseInt(
+            engagementData['progressRate'] ??
+                engagementData['progress_rate'] ??
+                engagementData['overallProgress'] ??
+                engagementData['overall_progress'] ??
+                engagementData['completionRate'] ??
+                engagementData['completion_rate'] ??
+                engagementData['progressPercentage'] ??
+                engagementData['progress_percentage'] ??
+                engagementData['progress'] ??
+                engagementData['rate'] ??
+                engagementData['percentage'],
+          );
+          if (parsedProgress != null) {
+            _progressRate = parsedProgress;
+          } else if (_totalVideos > 0) {
+            _progressRate = ((_completedVideos / _totalVideos) * 100).round();
+          }
+
+          // Fallback populate _videoHistory if empty
+          if (_videoHistory.isEmpty) {
+            final dynamic rawHist =
+                engagementData['video_history'] ??
+                engagementData['videoHistory'] ??
+                engagementData['videos'] ??
+                engagementData['history'] ??
+                engagementData['assigned_videos'];
+            if (rawHist is List) {
+              _videoHistory = rawHist
+                  .whereType<Map>()
+                  .map((v) => Map<String, dynamic>.from(v))
+                  .toList();
+            }
+          }
         }
       }
     } catch (e) {

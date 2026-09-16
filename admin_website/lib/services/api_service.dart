@@ -9,7 +9,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'https://videostreamerapi.ufstech.net.in';
+  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
 
   late Dio _dio;
   String? _authToken;
@@ -115,7 +115,6 @@ class ApiService {
     return await _dio.post('/auth/user/login', data: credentials);
   }
 
-
   Future<Map<String, dynamic>?> getCurrentUser() async {
     try {
       final res = await getAdminProfile();
@@ -185,6 +184,32 @@ class ApiService {
       }
       rethrow;
     }
+  }
+
+  Future<Response> getUserProgress(String id, {String? category, String? stage}) async {
+    final Map<String, dynamic> queryParams = {};
+    final cat = category ?? stage;
+    if (cat != null && cat.trim().isNotEmpty) {
+      queryParams['category'] = cat.trim().toLowerCase();
+    }
+    try {
+      return await _dio.get(
+        '/admin/users/progress/$id',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      );
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 404) {
+        return await _dio.get(
+          '/api/admin/users/progress/$id',
+          queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  Future<Response> getUserEngagement(String id, {String? category, String? stage}) async {
+    return await getUserProgress(id, category: category, stage: stage);
   }
 
   Future<Response> createUser(dynamic userData) async {
