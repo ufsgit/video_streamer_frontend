@@ -39,20 +39,27 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Delete Patient"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          "Delete Patient",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         content: Text(
           "Are you sure you want to delete ${_viewModel.patient.name.isNotEmpty ? _viewModel.patient.name : 'this patient'}? This action cannot be undone.",
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
+            child: const Text("Cancel", style: TextStyle(color: AppTheme.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppTheme.red,
               foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text("Delete"),
           ),
@@ -65,12 +72,20 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Patient deleted successfully")),
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppTheme.emerald,
+              content: Text("Patient deleted successfully"),
+            ),
           );
           Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Error deleting patient")),
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppTheme.red,
+              content: Text("Error deleting patient"),
+            ),
           );
         }
       }
@@ -91,16 +106,24 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           padding: const EdgeInsets.only(left: 12.0),
           child: IconButton(
             icon: const Icon(
-              Icons.arrow_back,
-              color: AppTheme.primaryBlue,
+              Icons.arrow_back_rounded,
+              color: AppTheme.primary,
               size: 20,
             ),
             onPressed: () => Navigator.pop(context),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
+            tooltip: "Back",
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white,
+              side: const BorderSide(color: AppTheme.border),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
           ),
         ),
-        leadingWidth: 40,
+        leadingWidth: 46,
         title: Text(
           patient.name.isNotEmpty ? patient.name : 'Unnamed Patient',
           style: const TextStyle(
@@ -112,22 +135,11 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.refresh,
-              color: AppTheme.primaryBlue,
-              size: 20,
-            ),
-            tooltip: "Refresh Details",
-            onPressed: _viewModel.isLoading
-                ? null
-                : _viewModel.fetchPatientDetails,
-          ),
           if (MediaQuery.of(context).size.width < 600) ...[
             IconButton(
               icon: const Icon(
-                Icons.edit,
-                color: AppTheme.primaryBlue,
+                Icons.edit_outlined,
+                color: AppTheme.primary,
                 size: 20,
               ),
               tooltip: "Edit",
@@ -143,12 +155,11 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+              icon: const Icon(Icons.delete_outline, color: AppTheme.red, size: 20),
               tooltip: "Delete",
               onPressed: _confirmDelete,
             ),
           ] else ...[
-            const SizedBox(width: 4),
             ElevatedButton.icon(
               onPressed: () async {
                 final updated = await showDialog<bool>(
@@ -160,40 +171,38 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                   _viewModel.fetchPatientDetails();
                 }
               },
-              icon: const Icon(Icons.edit, size: 16),
-              label: const Text("Edit", style: TextStyle(fontSize: 14)),
+              icon: const Icon(Icons.edit_outlined, size: 15),
+              label: const Text("Edit Patient", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryBlue,
+                backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                minimumSize: const Size(0, 32),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                minimumSize: const Size(0, 34),
               ),
             ),
             const SizedBox(width: 8),
             OutlinedButton.icon(
               onPressed: _confirmDelete,
-              icon: const Icon(Icons.delete, size: 16),
-              label: const Text("Delete", style: TextStyle(fontSize: 14)),
+              icon: const Icon(Icons.delete_outline, size: 15),
+              label: const Text("Delete", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                minimumSize: const Size(0, 32),
+                foregroundColor: AppTheme.red,
+                backgroundColor: AppTheme.redBg,
+                side: const BorderSide(color: AppTheme.redBorder),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                minimumSize: const Size(0, 34),
               ),
             ),
           ],
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
         ],
       ),
       body: _viewModel.isLoading && _viewModel.videoHistory.isEmpty
           ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primaryBlue),
+              child: CircularProgressIndicator(color: AppTheme.primary),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -208,30 +217,30 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
+                        color: AppTheme.amberBg,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.amber.shade300),
+                        border: Border.all(color: AppTheme.amberBorder),
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.amber.shade800,
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            color: AppTheme.amber,
                             size: 18,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _viewModel.errorMessage!,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
-                                color: Colors.amber.shade900,
+                                color: AppTheme.amberText,
                               ),
                             ),
                           ),
                           TextButton(
                             onPressed: _viewModel.fetchPatientDetails,
-                            child: const Text("Retry"),
+                            child: const Text("Retry", style: TextStyle(color: AppTheme.amberText)),
                           ),
                         ],
                       ),
@@ -303,46 +312,73 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.person_outline,
-                color: AppTheme.primaryBlue,
-                size: 16,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.blueBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.person_outline_rounded,
+                  color: AppTheme.primary,
+                  size: 16,
+                ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               const Text(
                 "Account Info",
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryBlue,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
                 ),
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isActive
-                      ? Colors.green.shade100
-                      : Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  isActive ? "Active Member" : "Inactive",
-                  style: TextStyle(
-                    color: isActive
-                        ? Colors.green.shade800
-                        : Colors.grey.shade700,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+                  color: isActive ? AppTheme.emeraldBg : AppTheme.borderSubtle,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isActive ? AppTheme.emeraldBorder : AppTheme.border,
                   ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: isActive ? AppTheme.emerald : AppTheme.textMuted,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isActive ? "Active Member" : "Inactive",
+                      style: TextStyle(
+                        color: isActive ? AppTheme.emeraldText : AppTheme.textSecondary,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
@@ -359,18 +395,19 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                      color: AppTheme.blueBg,
                       borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppTheme.blueBorder),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           _viewModel.isAccountInfoCollapsed
-                              ? Icons.arrow_downward
-                              : Icons.arrow_upward,
-                          size: 14,
-                          color: AppTheme.primaryBlue,
+                              ? Icons.arrow_downward_rounded
+                              : Icons.arrow_upward_rounded,
+                          size: 13,
+                          color: AppTheme.primary,
                         ),
                         const SizedBox(width: 4),
                         Text(
@@ -379,8 +416,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                               : "Collapse",
                           style: const TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primaryBlue,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primary,
                           ),
                         ),
                       ],
@@ -412,7 +449,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                                       ? patient.username
                                       : 'Unnamed'),
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.textPrimary,
                             ),
@@ -435,10 +472,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "${patient.age > 0 ? '${patient.age} yrs' : 'N/A'} • ${patient.gender.isNotEmpty ? patient.gender : 'N/A'}",
-                            style: TextStyle(
+                            "${patient.age > 0 ? '${patient.age} yrs' : 'N/A'} • ${patient.gender.isNotEmpty ? patient.gender : 'N/A'}${patient.language.isNotEmpty ? ' • ${patient.language}' : ''}",
+                            style: const TextStyle(
                               fontSize: 11.5,
-                              color: Colors.grey.shade600,
+                              color: Color(0xFF475569),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -453,88 +490,90 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             const SizedBox(height: 16),
 
             // Avatar and Profile Header
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  _buildPatientAvatar(patient),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          patient.name.isNotEmpty
-                              ? patient.name
-                              : (patient.username.isNotEmpty
-                                    ? patient.username
-                                    : 'Unnamed'),
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                          ),
+            Row(
+              children: [
+                _buildPatientAvatar(patient),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        patient.name.isNotEmpty
+                            ? patient.name
+                            : (patient.username.isNotEmpty
+                                  ? patient.username
+                                  : 'Unnamed'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
                         ),
-                        if (patient.username.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            "@${patient.username}",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ],
+                      ),
+                      if (patient.username.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
-                          "ID: ${patient.id.length > 8 ? patient.id.substring(0, 8) : patient.id}",
-                          style: TextStyle(
+                          "@${patient.username}",
+                          style: const TextStyle(
                             fontSize: 12.5,
-                            color: Colors.grey.shade500,
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                       ],
-                    ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "ID: ${patient.id.length > 8 ? patient.id.substring(0, 8) : patient.id}",
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: AppTheme.textMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
 
-            const Divider(height: 24, color: Color(0xFFF1F5F9)),
+            const SizedBox(height: 14),
+            const Divider(height: 1, color: AppTheme.borderSubtle),
+            const SizedBox(height: 14),
 
-            _buildInfoRow(
-              "AGE : ",
-              patient.age > 0 ? '${patient.age} yrs' : 'N/A',
-            ),
+            _buildInfoRow("AGE", patient.age > 0 ? '${patient.age} yrs' : 'N/A'),
             const SizedBox(height: 10),
-            _buildInfoRow("GENDER : ", patient.gender),
+            _buildInfoRow("GENDER", patient.gender),
             if (patient.dob.isNotEmpty) ...[
               const SizedBox(height: 10),
-              _buildInfoRow("DATE OF BIRTH : ", _formatDateOnly(patient.dob)),
+              _buildInfoRow("DATE OF BIRTH", _formatDateOnly(patient.dob)),
             ],
             const SizedBox(height: 10),
             _buildInfoRow(
-              "PHONE NUMBER : ",
+              "LANGUAGE",
+              patient.language.isNotEmpty ? patient.language : "N/A",
+            ),
+            const SizedBox(height: 10),
+            _buildInfoRow(
+              "PHONE NUMBER",
               patient.phone.isNotEmpty ? patient.phone : "N/A",
             ),
             const SizedBox(height: 10),
             _buildInfoRow(
-              "EMAIL ADDRESS : ",
+              "EMAIL ADDRESS",
               patient.email.isNotEmpty ? patient.email : "N/A",
             ),
             const SizedBox(height: 10),
             _buildInfoRow(
-              "REGISTRATION DATE : ",
+              "REGISTRATION DATE",
               _formatDateTime(patient.date),
             ),
             const SizedBox(height: 10),
             _buildInfoRow(
-              "ACTIVITY STREAK : ",
+              "ACTIVITY STREAK",
               patient.streak.isNotEmpty ? patient.streak : "0 days",
             ),
             if (patient.note.isNotEmpty) ...[
               const SizedBox(height: 10),
-              _buildInfoRow("CLINICAL NOTE : ", patient.note),
+              _buildInfoRow("CLINICAL NOTE", patient.note),
             ],
           ],
         ],
@@ -580,25 +619,28 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primaryBlue,
-            letterSpacing: 0.8,
+        SizedBox(
+          width: 125,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textSecondary,
+              letterSpacing: 0.4,
+            ),
           ),
         ),
-        const SizedBox(height: 3),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 12.5,
-            color: AppTheme.textPrimary,
-            fontWeight: FontWeight.bold,
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12.5,
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-        const SizedBox(height: 20),
       ],
     );
   }
@@ -612,21 +654,19 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         photoUrl.toLowerCase() != 'undefined' &&
         photoUrl.toLowerCase() != 'none';
 
-    // If no image is provided, display initial letters directly
     if (!hasImage) {
       return _buildInitialsAvatar(patient);
     }
 
     final fullUrl = ApiService().getFullImageUrl(photoUrl);
 
-    // If Base64 string, render directly with initials fallback on error
     if (fullUrl.startsWith('data:image')) {
       try {
         final commaIndex = fullUrl.indexOf(',');
         if (commaIndex != -1) {
           final bytes = base64Decode(fullUrl.substring(commaIndex + 1));
           return ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             child: Image.memory(
               bytes,
               width: 48,
@@ -649,7 +689,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             snapshot.data != null &&
             snapshot.data!.isNotEmpty) {
           return ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             child: Image.memory(
               snapshot.data!,
               width: 48,
@@ -661,10 +701,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           );
         }
 
-        // Try direct Image.network with tunnel headers as secondary
         if (fullUrl.startsWith('http://') || fullUrl.startsWith('https://')) {
           return ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             child: Image.network(
               fullUrl,
               width: 48,
@@ -704,21 +743,23 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       initials = 'P';
     }
 
+    final avatarColor = AppTheme.getAvatarPalette(rawName);
+
     return Container(
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: AppTheme.secondaryBlue,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.15)),
+        color: avatarColor['bg'],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: avatarColor['border']!),
       ),
       child: Center(
         child: Text(
           initials,
-          style: const TextStyle(
-            color: AppTheme.primaryBlue,
+          style: TextStyle(
+            color: avatarColor['fg'],
             fontWeight: FontWeight.bold,
-            fontSize: 15,
+            fontSize: 16,
             letterSpacing: 0.5,
           ),
         ),
@@ -731,8 +772,15 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -740,16 +788,27 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(Icons.bar_chart, color: AppTheme.primaryBlue, size: 16),
-                  SizedBox(width: 6),
-                  Text(
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.blueBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.bar_chart_rounded,
+                      color: AppTheme.primary,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
                     "Engagement Overview",
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryBlue,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                 ],
@@ -757,18 +816,18 @@ class _PatientDetailViewState extends State<PatientDetailView> {
 
               // PRE-OP OR POST-OP SELECTION BOX
               Container(
-                height: 38,
+                height: 34,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey.shade300),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.borderMedium),
                 ),
                 child: PopupMenuButton<String>(
                   tooltip: "",
-                  offset: const Offset(0, 42),
+                  offset: const Offset(0, 38),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(color: Colors.grey.shade200),
+                    side: const BorderSide(color: AppTheme.border),
                   ),
                   color: Colors.white,
                   elevation: 4,
@@ -781,70 +840,70 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                   itemBuilder: (context) => [
                     PopupMenuItem(
                       value: "Pre-op",
-                      height: 38,
+                      height: 36,
                       child: Text(
                         "Pre-op",
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13.5,
                           fontWeight: _selectedOpStage == "Pre-op"
                               ? FontWeight.bold
                               : FontWeight.w500,
                           color: _selectedOpStage == "Pre-op"
-                              ? AppTheme.primaryBlue
+                              ? AppTheme.primary
                               : AppTheme.textPrimary,
                         ),
                       ),
                     ),
                     PopupMenuItem(
                       value: "Post-op",
-                      height: 38,
+                      height: 36,
                       child: Text(
                         "Post-op",
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13.5,
                           fontWeight: _selectedOpStage == "Post-op"
                               ? FontWeight.bold
                               : FontWeight.w500,
                           color: _selectedOpStage == "Post-op"
-                              ? AppTheme.primaryBlue
+                              ? AppTheme.primary
                               : AppTheme.textPrimary,
                         ),
                       ),
                     ),
                     PopupMenuItem(
                       value: "All",
-                      height: 38,
+                      height: 36,
                       child: Text(
                         "All",
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13.5,
                           fontWeight: _selectedOpStage == "All"
                               ? FontWeight.bold
                               : FontWeight.w500,
                           color: _selectedOpStage == "All"
-                              ? AppTheme.primaryBlue
+                              ? AppTheme.primary
                               : AppTheme.textPrimary,
                         ),
                       ),
                     ),
                   ],
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           _selectedOpStage,
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.textPrimary,
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         const Icon(
-                          Icons.keyboard_arrow_down,
-                          size: 18,
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 16,
                           color: AppTheme.textSecondary,
                         ),
                       ],
@@ -858,53 +917,70 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           Row(
             children: [
               _buildStatBox(
-                "Total Assigned",
-                _viewModel.totalVideos.toString(),
-                Icons.play_circle_outline,
+                label: "Total Assigned",
+                value: _viewModel.totalVideos.toString(),
+                icon: Icons.play_circle_fill_rounded,
+                iconColor: AppTheme.blue,
+                iconBgColor: AppTheme.blueBg,
+                cardBg: AppTheme.blueCardBg,
+                borderColor: AppTheme.blueBorder,
               ),
               const SizedBox(width: 12),
               _buildStatBox(
-                "Total Completed",
-                _viewModel.completedVideos.toString(),
-                Icons.check_circle_outline,
+                label: "Total Completed",
+                value: _viewModel.completedVideos.toString(),
+                icon: Icons.check_circle_rounded,
+                iconColor: AppTheme.purple,
+                iconBgColor: AppTheme.purpleBg,
+                cardBg: AppTheme.purpleCardBg,
+                borderColor: AppTheme.purpleBorder,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
+                    color: AppTheme.emeraldCardBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.emeraldBorder, width: 1.2),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Overall Progress",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            "${_viewModel.progressRate}%",
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                          const Text(
+                            "Overall Progress",
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: AppTheme.emeraldText,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const Spacer(),
-                          Icon(
-                            Icons.trending_up,
-                            color: Colors.green.shade600,
-                            size: 16,
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.emeraldBg,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(
+                              Icons.trending_up_rounded,
+                              color: AppTheme.emerald,
+                              size: 14,
+                            ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "${_viewModel.progressRate}%",
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.emeraldText,
+                          letterSpacing: -0.3,
+                        ),
                       ),
                     ],
                   ),
@@ -917,14 +993,22 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     );
   }
 
-  Widget _buildStatBox(String label, String value, IconData icon) {
+  Widget _buildStatBox({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required Color cardBg,
+    required Color borderColor,
+  }) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200),
+          color: cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor, width: 1.2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -936,23 +1020,32 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                   child: Text(
                     label,
                     style: const TextStyle(
-                      fontSize: 15,
-                      color: AppTheme.textSecondary,
+                      fontSize: 12.5,
+                      color: Color(0xFF475569),
+                      fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(icon, size: 14, color: AppTheme.primaryBlue),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: iconBgColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(icon, size: 14, color: iconColor),
+                ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               value,
               style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryBlue,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+                letterSpacing: -0.3,
               ),
             ),
           ],
@@ -968,31 +1061,57 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.history, color: AppTheme.primaryBlue, size: 16),
-              SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.blueBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.history_rounded,
+                  color: AppTheme.primary,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
               const Text(
                 "Assigned & Watched Video History",
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryBlue,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
                 ),
               ),
               const Spacer(),
-              Text(
-                "${videoHistory.length} ${videoHistory.length == 1 ? 'Video' : 'Videos'}",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppTheme.borderSubtle,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Text(
+                  "${videoHistory.length} ${videoHistory.length == 1 ? 'Video' : 'Videos'}",
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: Color(0xFF475569),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -1000,19 +1119,19 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           const SizedBox(height: 16),
           if (videoHistory.isEmpty)
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 32),
+              padding: const EdgeInsets.symmetric(vertical: 36),
               alignment: Alignment.center,
               child: Column(
-                children: [
+                children: const [
                   Icon(
                     Icons.video_library_outlined,
-                    size: 40,
-                    color: Colors.grey.shade300,
+                    size: 38,
+                    color: AppTheme.textLight,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     "No assigned or watched videos found for this patient.",
-                    style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
                   ),
                 ],
               ),
@@ -1023,7 +1142,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: videoHistory.length,
               separatorBuilder: (context, index) =>
-                  const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                  const Divider(height: 16, color: AppTheme.borderSubtle),
               itemBuilder: (context, index) {
                 final video = videoHistory[index];
                 final title =
@@ -1068,18 +1187,23 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     required String category,
     required bool isCompleted,
   }) {
+    final bool isPostOp = category.toLowerCase().contains('post');
+
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppTheme.primaryBlue,
-            borderRadius: BorderRadius.circular(6),
+            color: isCompleted ? AppTheme.emeraldBg : AppTheme.blueBg,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isCompleted ? AppTheme.emeraldBorder : AppTheme.blueBorder,
+            ),
           ),
-          child: const Icon(
-            Icons.play_circle_outline,
-            color: Colors.white,
-            size: 16,
+          child: Icon(
+            Icons.play_circle_fill_rounded,
+            color: isCompleted ? AppTheme.emerald : AppTheme.primary,
+            size: 18,
           ),
         ),
         const SizedBox(width: 12),
@@ -1090,9 +1214,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               Text(
                 title,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryBlue,
-                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                  fontSize: 13.5,
                 ),
               ),
               const SizedBox(height: 3),
@@ -1102,7 +1226,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                     "$subtitle • $duration",
                     style: const TextStyle(
                       color: AppTheme.textSecondary,
-                      fontSize: 11,
+                      fontSize: 11.5,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1112,14 +1236,18 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                       vertical: 1.5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: isPostOp ? AppTheme.purpleBg : AppTheme.blueBg,
                       borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isPostOp ? AppTheme.purpleBorder : AppTheme.blueBorder,
+                      ),
                     ),
                     child: Text(
                       category,
                       style: TextStyle(
-                        color: Colors.grey.shade700,
+                        color: isPostOp ? AppTheme.purpleText : AppTheme.blueText,
                         fontSize: 10,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -1129,28 +1257,32 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           ),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
           decoration: BoxDecoration(
-            color: isCompleted ? Colors.green.shade100 : Colors.blue.shade50,
+            color: isCompleted ? AppTheme.emeraldBg : AppTheme.blueBg,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isCompleted ? AppTheme.emeraldBorder : AppTheme.blueBorder,
+            ),
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                isCompleted ? Icons.check_circle_outline : Icons.access_time,
+                isCompleted ? Icons.check_circle_rounded : Icons.access_time_rounded,
                 size: 12,
                 color: isCompleted
-                    ? Colors.green.shade700
-                    : AppTheme.primaryBlue,
+                    ? AppTheme.emerald
+                    : AppTheme.primary,
               ),
               const SizedBox(width: 4),
               Text(
                 isCompleted ? "Completed" : "In Progress",
                 style: TextStyle(
                   color: isCompleted
-                      ? Colors.green.shade700
-                      : AppTheme.primaryBlue,
-                  fontSize: 10,
+                      ? AppTheme.emeraldText
+                      : AppTheme.blueText,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w600,
                 ),
               ),

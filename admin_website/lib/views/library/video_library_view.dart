@@ -398,20 +398,25 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppTheme.categorySelectorColor
-                            : AppTheme.secondaryBlue,
+                            ? AppTheme.primary
+                            : AppTheme.blueBg,
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : AppTheme.blueBorder,
+                        ),
                       ),
                       child: Text(
                         category,
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
-                              : AppTheme.textSecondary,
+                              : AppTheme.blueText,
                           fontWeight: isSelected
                               ? FontWeight.bold
-                              : FontWeight.w500,
-                          fontSize: 14,
+                              : FontWeight.w600,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -871,23 +876,32 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryBlue.withAlpha(15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            video["category"] ?? "Pre-Op",
-                            style: const TextStyle(
-                              color: AppTheme.primaryBlue,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        Builder(
+                          builder: (context) {
+                            final cat = video["category"]?.toString() ?? "Pre-Op";
+                            final isPostOp = cat.toLowerCase().contains('post');
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isPostOp ? AppTheme.purpleBg : AppTheme.blueBg,
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(
+                                  color: isPostOp ? AppTheme.purpleBorder : AppTheme.blueBorder,
+                                ),
+                              ),
+                              child: Text(
+                                cat,
+                                style: TextStyle(
+                                  color: isPostOp ? AppTheme.purpleText : AppTheme.blueText,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         InkWell(
                           onTap: () => _playVideoInDialog(video),
@@ -898,13 +912,13 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                                 Icon(
                                   Icons.play_circle_fill,
                                   size: 14,
-                                  color: Colors.red,
+                                  color: AppTheme.red,
                                 ),
                                 SizedBox(width: 3),
                                 Text(
                                   "Play",
                                   style: TextStyle(
-                                    color: Colors.red,
+                                    color: AppTheme.red,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -1016,10 +1030,10 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue.withAlpha(20),
+                          color: AppTheme.blueBg,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppTheme.primaryBlue.withAlpha(60),
+                            color: AppTheme.blueBorder,
                           ),
                         ),
                         child: Text(
@@ -1027,7 +1041,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryBlue,
+                            color: AppTheme.blueText,
                           ),
                         ),
                       ),
@@ -1141,10 +1155,10 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryBlue.withAlpha(20),
+                        color: AppTheme.blueBg,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppTheme.primaryBlue.withAlpha(60),
+                          color: AppTheme.blueBorder,
                         ),
                       ),
                       child: Text(
@@ -1152,7 +1166,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryBlue,
+                          color: AppTheme.blueText,
                         ),
                       ),
                     ),

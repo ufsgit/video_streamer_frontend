@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/notification_service.dart';
+import 'scroll_time_picker_sheet.dart';
 
 class DailyReminderDialog extends StatefulWidget {
   const DailyReminderDialog({super.key});
@@ -52,21 +53,9 @@ class _DailyReminderDialogState extends State<DailyReminderDialog> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
+    final picked = await ScrollTimePickerSheet.show(
+      context,
       initialTime: _selectedTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF0052CC),
-              onPrimary: Colors.white,
-              onSurface: Color(0xFF101828),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null && mounted) {

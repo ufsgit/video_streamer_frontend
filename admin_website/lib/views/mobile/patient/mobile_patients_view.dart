@@ -251,21 +251,26 @@ class _MobilePatientsViewState extends State<MobilePatientsView> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
+                          horizontal: 7,
+                          vertical: 2.5,
                         ),
                         decoration: BoxDecoration(
                           color: isActive
-                              ? AppTheme.successLight
-                              : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
+                              ? AppTheme.emeraldBg
+                              : AppTheme.background,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isActive
+                                ? AppTheme.emeraldBorder
+                                : AppTheme.border,
+                          ),
                         ),
                         child: Text(
                           isActive ? "Active" : patient.status,
                           style: TextStyle(
                             color: isActive
-                                ? Colors.green.shade700
-                                : Colors.grey.shade600,
+                                ? AppTheme.emeraldText
+                                : AppTheme.textSecondary,
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                           ),
@@ -400,6 +405,7 @@ class _MobilePatientsViewState extends State<MobilePatientsView> {
   }
 
   Widget _buildAvatar(UserModel patient) {
+    final palette = AppTheme.getAvatarPalette(patient.name);
     if (patient.imageUrl.isNotEmpty) {
       return FutureBuilder<Uint8List?>(
         future: ApiService().fetchImageBytes(patient.imageUrl),
@@ -414,11 +420,11 @@ class _MobilePatientsViewState extends State<MobilePatientsView> {
           }
           return CircleAvatar(
             radius: 22,
-            backgroundColor: AppTheme.secondaryBlue,
+            backgroundColor: palette['bg'],
             child: Text(
               patient.name.isNotEmpty ? patient.name[0].toUpperCase() : 'P',
-              style: const TextStyle(
-                color: AppTheme.primaryBlue,
+              style: TextStyle(
+                color: palette['fg'],
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -430,11 +436,11 @@ class _MobilePatientsViewState extends State<MobilePatientsView> {
 
     return CircleAvatar(
       radius: 22,
-      backgroundColor: AppTheme.secondaryBlue,
+      backgroundColor: palette['bg'],
       child: Text(
         patient.name.isNotEmpty ? patient.name[0].toUpperCase() : 'P',
-        style: const TextStyle(
-          color: AppTheme.primaryBlue,
+        style: TextStyle(
+          color: palette['fg'],
           fontWeight: FontWeight.bold,
           fontSize: 14,
         ),

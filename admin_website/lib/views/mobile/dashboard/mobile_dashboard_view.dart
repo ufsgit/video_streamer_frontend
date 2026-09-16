@@ -36,6 +36,9 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0.5,
         title: Row(
           children: [
             const AppLogo(
@@ -57,14 +60,14 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, size: 20),
+            icon: const Icon(Icons.refresh_rounded, size: 20, color: AppTheme.primary),
             onPressed: _viewModel.isLoading ? null : _viewModel.refreshData,
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: _viewModel.refreshData,
-        color: AppTheme.primaryBlue,
+        color: AppTheme.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16.0),
@@ -72,13 +75,37 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header description
-              const Text(
-                'Activity & Clinical Overview',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
+              Row(
+                children: [
+                  const Text(
+                    'Activity & Clinical Overview',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.emeraldBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.emeraldBorder),
+                    ),
+                    child: const Text(
+                      "Live",
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.emeraldText,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               const Text(
@@ -90,37 +117,43 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
               ),
               const SizedBox(height: 16),
 
-              // Metric Cards Grid
+              // Metric Cards Grid with subtle colors
               Row(
                 children: [
                   Expanded(
                     child: _buildMetricCard(
-                      "Total Patients",
-                      displayedUsers.toString(),
-                      Icons.people_outline_rounded,
-                      const Color(0xFFEFF6FF),
-                      AppTheme.primaryBlue,
+                      title: "Total Patients",
+                      value: displayedUsers.toString(),
+                      icon: Icons.people_alt_rounded,
+                      iconBgColor: AppTheme.blueBg,
+                      iconColor: AppTheme.blue,
+                      borderColor: AppTheme.blueBorder,
+                      cardBg: AppTheme.blueCardBg,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: _buildMetricCard(
-                      "Avg. Videos",
-                      _viewModel.avgVideosWatched.toStringAsFixed(1),
-                      Icons.play_circle_outline,
-                      const Color(0xFFFDF4FF),
-                      const Color(0xFF9333EA),
+                      title: "Avg. Videos",
+                      value: _viewModel.avgVideosWatched.toStringAsFixed(1),
+                      icon: Icons.play_circle_fill_rounded,
+                      iconBgColor: AppTheme.purpleBg,
+                      iconColor: AppTheme.purple,
+                      borderColor: AppTheme.purpleBorder,
+                      cardBg: AppTheme.purpleCardBg,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
               _buildMetricCard(
-                "Completion Rate",
-                "${_viewModel.completionRate}%",
-                Icons.check_circle_outline,
-                const Color(0xFFF0FDF4),
-                const Color(0xFF16A34A),
+                title: "Completion Rate",
+                value: "${_viewModel.completionRate}%",
+                icon: Icons.check_circle_rounded,
+                iconBgColor: AppTheme.emeraldBg,
+                iconColor: AppTheme.emerald,
+                borderColor: AppTheme.emeraldBorder,
+                cardBg: AppTheme.emeraldCardBg,
                 isFullWidth: true,
               ),
               const SizedBox(height: 20),
@@ -137,11 +170,20 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                       color: AppTheme.textPrimary,
                     ),
                   ),
-                  Text(
-                    "${_viewModel.activityLogs.length} events",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textSecondary,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.blueBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.blueBorder),
+                    ),
+                    child: Text(
+                      "${_viewModel.activityLogs.length} events",
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.blueText,
+                      ),
                     ),
                   ),
                 ],
@@ -181,15 +223,24 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppTheme.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.textPrimary.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _viewModel.activityLogs.length,
                     separatorBuilder: (context, index) =>
-                        Divider(color: Colors.grey.shade100, height: 1),
+                        const Divider(color: AppTheme.borderSubtle, height: 1),
                     itemBuilder: (context, index) {
                       final log = _viewModel.activityLogs[index];
+                      final avatarColor = AppTheme.getAvatarPalette(log.patientName);
+
                       return Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14.0,
@@ -199,14 +250,14 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             CircleAvatar(
-                              backgroundColor: AppTheme.secondaryBlue,
+                              backgroundColor: avatarColor['bg'],
                               radius: 18,
                               child: Text(
                                 log.patientName.isNotEmpty
                                     ? log.patientName[0].toUpperCase()
                                     : 'P',
-                                style: const TextStyle(
-                                  color: AppTheme.primaryBlue,
+                                style: TextStyle(
+                                  color: avatarColor['fg'],
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -240,8 +291,8 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: log.progressPercentage == 100
-                                              ? AppTheme.successLight
-                                              : Colors.blue.shade50,
+                                              ? AppTheme.emeraldBg
+                                              : AppTheme.blueBg,
                                           borderRadius:
                                               BorderRadius.circular(6),
                                         ),
@@ -249,8 +300,8 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                                           "${log.progressPercentage}%",
                                           style: TextStyle(
                                             color: log.progressPercentage == 100
-                                                ? Colors.green.shade700
-                                                : AppTheme.primaryBlue,
+                                                ? AppTheme.emeraldText
+                                                : AppTheme.blueText,
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -274,10 +325,10 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                                       value: (log.progressPercentage / 100)
                                           .clamp(0.0, 1.0),
                                       minHeight: 4,
-                                      backgroundColor: Colors.grey.shade100,
+                                      backgroundColor: AppTheme.border,
                                       color: log.progressPercentage == 100
-                                          ? AppTheme.success
-                                          : AppTheme.primaryBlue,
+                                          ? AppTheme.emerald
+                                          : AppTheme.primary,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -285,7 +336,7 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                                     "${log.videosWatched}/${log.totalVideos} videos watched",
                                     style: const TextStyle(
                                       fontSize: 11,
-                                      color: Color(0xFF64748B),
+                                      color: AppTheme.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -304,12 +355,14 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
     );
   }
 
-  Widget _buildMetricCard(
-    String title,
-    String value,
-    IconData icon,
-    Color bgColor,
-    Color iconColor, {
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color iconBgColor,
+    required Color iconColor,
+    required Color borderColor,
+    required Color cardBg,
     bool isFullWidth = false,
   }) {
     return Container(
@@ -317,14 +370,21 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: borderColor, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: cardBg.withValues(alpha: 0.5),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: bgColor,
+              color: iconBgColor,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: iconColor, size: 22),

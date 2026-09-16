@@ -12,6 +12,7 @@ class UserModel {
   final String streak;
   final String imageUrl;
   final String note;
+  final String language;
 
   UserModel({
     required this.id,
@@ -27,6 +28,7 @@ class UserModel {
     required this.streak,
     required this.imageUrl,
     this.note = '',
+    this.language = '',
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -68,6 +70,10 @@ class UserModel {
           json['imageUrl']?.toString() ??
           '',
       note: json['note']?.toString() ?? '',
+      language: json['language_name']?.toString() ??
+          json['language']?.toString() ??
+          json['languageName']?.toString() ??
+          '',
     );
   }
 
@@ -86,6 +92,7 @@ class UserModel {
       'streak': streak,
       'photo': imageUrl,
       'note': note,
+      'language_name': language,
     };
   }
 }

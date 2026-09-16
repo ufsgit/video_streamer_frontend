@@ -48,7 +48,7 @@ class _PatientsListViewState extends State<PatientsListView> {
             _viewModel.fetchPatients();
           }
         },
-        backgroundColor: const Color(0xFF0D47A1),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.person_add_alt_1),
         label: const Text("Add Patient"),
@@ -318,10 +318,10 @@ class _PatientsListViewState extends State<PatientsListView> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue.withAlpha(20),
+                          color: AppTheme.blueBg,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppTheme.primaryBlue.withAlpha(60),
+                            color: AppTheme.blueBorder,
                           ),
                         ),
                         child: Text(
@@ -329,7 +329,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryBlue,
+                            color: AppTheme.blueText,
                           ),
                         ),
                       ),
@@ -435,10 +435,10 @@ class _PatientsListViewState extends State<PatientsListView> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryBlue.withAlpha(20),
+                        color: AppTheme.blueBg,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: AppTheme.primaryBlue.withAlpha(60),
+                          color: AppTheme.blueBorder,
                         ),
                       ),
                       child: Text(
@@ -446,7 +446,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryBlue,
+                          color: AppTheme.blueText,
                         ),
                       ),
                     ),
@@ -497,11 +497,11 @@ class _PatientsListViewState extends State<PatientsListView> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: AppTheme.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
+            color: AppTheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -546,18 +546,23 @@ class _PatientsListViewState extends State<PatientsListView> {
                           ),
                           decoration: BoxDecoration(
                             color: isActive
-                                ? AppTheme.successLight
-                                : Colors.grey.shade100,
+                                ? AppTheme.emeraldBg
+                                : AppTheme.borderSubtle,
                             borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isActive
+                                  ? AppTheme.emeraldBorder
+                                  : AppTheme.border,
+                            ),
                           ),
                           child: Text(
                             isActive ? "Active" : patient.status,
                             style: TextStyle(
                               color: isActive
-                                  ? Colors.green.shade700
-                                  : Colors.grey.shade600,
+                                  ? AppTheme.emeraldText
+                                  : AppTheme.textSecondary,
                               fontSize: 9.5,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
@@ -565,11 +570,11 @@ class _PatientsListViewState extends State<PatientsListView> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "${patient.age > 0 ? '${patient.age} yrs' : 'Age N/A'} - ${patient.gender}",
+                      "${patient.age > 0 ? '${patient.age} yrs' : 'Age N/A'} • ${patient.gender}${patient.language.isNotEmpty ? ' • ${patient.language}' : ''}",
                       style: const TextStyle(
                         color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 11.5,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -588,7 +593,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                             patient.phone.isNotEmpty ? patient.phone : "N/A",
                             style: const TextStyle(
                               color: AppTheme.textSecondary,
-                              fontSize: 12,
+                              fontSize: 11.5,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -610,7 +615,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                             patient.email.isNotEmpty ? patient.email : "N/A",
                             style: const TextStyle(
                               color: AppTheme.textSecondary,
-                              fontSize: 12,
+                              fontSize: 11.5,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -624,7 +629,7 @@ class _PatientsListViewState extends State<PatientsListView> {
             ],
           ),
 
-          const Divider(height: 15, color: Color(0xFFF1F5F9)),
+          const Divider(height: 15, color: AppTheme.borderSubtle),
 
           // Bottom Metadata Row
           Row(
@@ -650,7 +655,7 @@ class _PatientsListViewState extends State<PatientsListView> {
               const Icon(
                 Icons.local_fire_department_outlined,
                 size: 11,
-                color: AppTheme.textSecondary,
+                color: AppTheme.amber,
               ),
               const SizedBox(width: 3),
               Text(
@@ -658,13 +663,14 @@ class _PatientsListViewState extends State<PatientsListView> {
                 style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 10.5,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(width: 6),
               const Icon(
                 Icons.chevron_right,
                 size: 14,
-                color: AppTheme.textSecondary,
+                color: AppTheme.textMuted,
               ),
             ],
           ),
@@ -774,19 +780,21 @@ class _PatientsListViewState extends State<PatientsListView> {
       initials = 'P';
     }
 
+    final avatarColor = AppTheme.getAvatarPalette(rawName);
+
     return Container(
       width: 46,
       height: 46,
       decoration: BoxDecoration(
-        color: AppTheme.secondaryBlue,
+        color: avatarColor['bg'],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.15)),
+        border: Border.all(color: avatarColor['border']!),
       ),
       child: Center(
         child: Text(
           initials,
-          style: const TextStyle(
-            color: AppTheme.primaryBlue,
+          style: TextStyle(
+            color: avatarColor['fg'],
             fontWeight: FontWeight.bold,
             fontSize: 14,
             letterSpacing: 0.5,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/notification_service.dart';
+import '../../widgets/scroll_time_picker_sheet.dart';
 
 class NotificationSettingsView extends StatefulWidget {
   const NotificationSettingsView({super.key});
@@ -42,23 +43,10 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
       if (value) {
         // If time was not explicitly chosen yet, prompt user with the time picker
         if (!_notificationService.isTimeSet) {
-          final picked = await showTimePicker(
-            context: context,
+          final picked = await ScrollTimePickerSheet.show(
+            context,
             initialTime: _reminderTime,
-            builder: (context, child) {
-              return Theme(
-                data: Theme.of(context).copyWith(
-                  colorScheme: const ColorScheme.light(
-                    primary: Color(0xFF0052CC),
-                    onPrimary: Colors.white,
-                    onSurface: Color(0xFF101828),
-                  ),
-                ),
-                child: child!,
-              );
-            },
           );
-
           if (picked != null) {
             _reminderTime = picked;
           }
@@ -117,21 +105,9 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
+    final picked = await ScrollTimePickerSheet.show(
+      context,
       initialTime: _reminderTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF0052CC),
-              onPrimary: Colors.white,
-              onSurface: Color(0xFF101828),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null && mounted) {

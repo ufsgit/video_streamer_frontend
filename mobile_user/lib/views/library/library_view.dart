@@ -37,9 +37,7 @@ class _LibraryViewState extends State<LibraryView> {
             titleSpacing: 24,
             title: const Row(
               children: [
-                AppLogo(
-                  size: 36,
-                ),
+                AppLogo(size: 36),
                 SizedBox(width: 14),
                 Flexible(
                   child: Text(
@@ -56,31 +54,6 @@ class _LibraryViewState extends State<LibraryView> {
                 ),
               ],
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 24.0),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 12,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.search_rounded,
-                    color: Color(0xFF1E293B),
-                    size: 22,
-                  ),
-                ),
-              ),
-            ],
           ),
           body: SafeArea(
             child: SingleChildScrollView(

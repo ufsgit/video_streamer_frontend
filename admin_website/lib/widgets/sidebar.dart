@@ -15,7 +15,7 @@ class Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 200,
-      color: AppTheme.secondaryBlue,
+      color: AppTheme.blueBg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -57,7 +57,7 @@ class Sidebar extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
-                          color: Color(0xFF0F172A),
+                          color: AppTheme.textPrimary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -90,14 +90,14 @@ class Sidebar extends StatelessWidget {
                 children: const [
                   Icon(
                     Icons.logout_rounded,
-                    color: Color(0xFFEF4444),
+                    color: AppTheme.red,
                     size: 19,
                   ),
                   SizedBox(width: 12),
                   Text(
                     "Sign Out",
                     style: TextStyle(
-                      color: Color(0xFFEF4444),
+                      color: AppTheme.red,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -114,30 +114,46 @@ class Sidebar extends StatelessWidget {
 
   Widget _buildNavItem(int index, String title, IconData icon) {
     final isSelected = selectedIndex == index;
-    return InkWell(
-      onTap: () => onItemSelected(index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: isSelected ? Colors.white.withAlpha(128) : Colors.transparent,
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected
-                    ? AppTheme.primaryBlue
-                    : AppTheme.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 13,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      child: InkWell(
+        onTap: () => onItemSelected(index),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.textPrimary.withValues(alpha: 0.04),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
+                size: 19,
               ),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  color: isSelected
+                      ? AppTheme.primary
+                      : AppTheme.textSecondary,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

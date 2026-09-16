@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -72,6 +73,7 @@ class NotificationService {
   }
 
   Future<bool> requestPermissions() async {
+    if (kIsWeb) return false;
     try {
       if (Platform.isAndroid) {
         final androidImplementation = _notificationsPlugin
@@ -111,6 +113,11 @@ class NotificationService {
       await box.put('reminder_minute', minute);
     }
 
+    if (kIsWeb) {
+      debugPrint('Local notifications/alarms are not supported on Web browsers.');
+      return;
+    }
+
     try {
       await cancelDailyReminder(persist: false);
 
@@ -123,6 +130,8 @@ class NotificationService {
         channelDescription: channelDescription,
         importance: Importance.max,
         priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
         icon: '@mipmap/ic_launcher',
         showWhen: true,
         styleInformation: BigTextStyleInformation(''),

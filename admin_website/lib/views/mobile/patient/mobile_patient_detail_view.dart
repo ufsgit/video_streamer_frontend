@@ -608,21 +608,26 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 8,
-                                            vertical: 2,
+                                            vertical: 2.5,
                                           ),
                                           decoration: BoxDecoration(
                                             color: isActive
-                                                ? AppTheme.successLight
-                                                : Colors.grey.shade100,
+                                                ? AppTheme.emeraldBg
+                                                : AppTheme.background,
                                             borderRadius:
-                                                BorderRadius.circular(10),
+                                                BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: isActive
+                                                  ? AppTheme.emeraldBorder
+                                                  : AppTheme.border,
+                                            ),
                                           ),
                                           child: Text(
                                             isActive ? "Active" : _patient.status,
                                             style: TextStyle(
                                               color: isActive
-                                                  ? Colors.green.shade700
-                                                  : Colors.grey.shade600,
+                                                  ? AppTheme.emeraldText
+                                                  : AppTheme.textSecondary,
                                               fontSize: 10.5,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -659,6 +664,10 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                           _buildInfoRow(Icons.email_outlined, "Email", _patient.email),
                           const SizedBox(height: 8),
                           _buildInfoRow(Icons.cake_outlined, "DOB", _patient.dob.isNotEmpty ? _patient.dob : "N/A"),
+                          if (_patient.language.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            _buildInfoRow(Icons.language_outlined, "Language", _patient.language),
+                          ],
                           if (_patient.note.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             _buildInfoRow(Icons.notes, "Clinical Notes", _patient.note),
@@ -695,7 +704,9 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                   "Assigned",
                                   "$_totalVideos",
                                   Icons.video_library_outlined,
-                                  AppTheme.primaryBlue,
+                                  AppTheme.blue,
+                                  AppTheme.blueBg,
+                                  AppTheme.blueBorder,
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -704,7 +715,9 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                   "Completed",
                                   "$_completedVideos",
                                   Icons.check_circle_outline,
-                                  Colors.green,
+                                  AppTheme.emerald,
+                                  AppTheme.emeraldBg,
+                                  AppTheme.emeraldBorder,
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -713,7 +726,9 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                   "Progress",
                                   "$_progressRate%",
                                   Icons.trending_up,
-                                  Colors.orange,
+                                  AppTheme.purple,
+                                  AppTheme.purpleBg,
+                                  AppTheme.purpleBorder,
                                 ),
                               ),
                             ],
@@ -726,9 +741,9 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                   ? (_completedVideos / _totalVideos).clamp(0.0, 1.0)
                                   : 0.0,
                               minHeight: 6,
-                              backgroundColor: Colors.grey.shade100,
+                              backgroundColor: AppTheme.borderSubtle,
                               color: _progressRate == 100
-                                  ? AppTheme.success
+                                  ? AppTheme.emerald
                                   : AppTheme.primaryBlue,
                             ),
                           ),
@@ -859,17 +874,22 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
                                       color: isCompleted
-                                          ? AppTheme.successLight
-                                          : AppTheme.secondaryBlue,
+                                          ? AppTheme.emeraldBg
+                                          : AppTheme.blueBg,
                                       borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: isCompleted
+                                            ? AppTheme.emeraldBorder
+                                            : AppTheme.blueBorder,
+                                      ),
                                     ),
                                     child: Icon(
                                       isCompleted
                                           ? Icons.check_circle
                                           : Icons.play_circle_outline,
                                       color: isCompleted
-                                          ? Colors.green.shade700
-                                          : AppTheme.primaryBlue,
+                                          ? AppTheme.emeraldText
+                                          : AppTheme.blueText,
                                       size: 20,
                                     ),
                                   ),
@@ -909,16 +929,21 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isCompleted
-                                          ? AppTheme.successLight
-                                          : Colors.grey.shade100,
+                                          ? AppTheme.emeraldBg
+                                          : AppTheme.background,
                                       borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: isCompleted
+                                            ? AppTheme.emeraldBorder
+                                            : AppTheme.border,
+                                      ),
                                     ),
                                     child: Text(
                                       isCompleted ? "Completed" : "Assigned",
                                       style: TextStyle(
                                         color: isCompleted
-                                            ? Colors.green.shade700
-                                            : Colors.grey.shade700,
+                                            ? AppTheme.emeraldText
+                                            : AppTheme.textSecondary,
                                         fontSize: 10,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -940,7 +965,7 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                         value: 'play',
                                         child: Row(
                                           children: [
-                                            Icon(Icons.play_circle_outline, size: 18, color: Colors.red),
+                                            Icon(Icons.play_circle_outline, size: 18, color: AppTheme.blue),
                                             SizedBox(width: 8),
                                             Text('Play Video', style: TextStyle(fontSize: 13)),
                                           ],
@@ -950,9 +975,9 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                                         value: 'unassign',
                                         child: Row(
                                           children: [
-                                            Icon(Icons.remove_circle_outline, size: 18, color: Colors.red),
+                                            Icon(Icons.remove_circle_outline, size: 18, color: AppTheme.red),
                                             SizedBox(width: 8),
-                                            Text('Unassign Video', style: TextStyle(fontSize: 13, color: Colors.red)),
+                                            Text('Unassign Video', style: TextStyle(fontSize: 13, color: AppTheme.red)),
                                           ],
                                         ),
                                       ),
@@ -972,6 +997,7 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
   }
 
   Widget _buildAvatar() {
+    final palette = AppTheme.getAvatarPalette(_patient.name);
     if (_patient.imageUrl.isNotEmpty) {
       return FutureBuilder<Uint8List?>(
         future: _apiService.fetchImageBytes(_patient.imageUrl),
@@ -986,11 +1012,11 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
           }
           return CircleAvatar(
             radius: 26,
-            backgroundColor: AppTheme.secondaryBlue,
+            backgroundColor: palette['bg'],
             child: Text(
               _patient.name.isNotEmpty ? _patient.name[0].toUpperCase() : 'P',
-              style: const TextStyle(
-                color: AppTheme.primaryBlue,
+              style: TextStyle(
+                color: palette['fg'],
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -1002,11 +1028,11 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
 
     return CircleAvatar(
       radius: 26,
-      backgroundColor: AppTheme.secondaryBlue,
+      backgroundColor: palette['bg'],
       child: Text(
         _patient.name.isNotEmpty ? _patient.name[0].toUpperCase() : 'P',
-        style: const TextStyle(
-          color: AppTheme.primaryBlue,
+        style: TextStyle(
+          color: palette['fg'],
           fontWeight: FontWeight.bold,
           fontSize: 18,
         ),
@@ -1046,17 +1072,20 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
     String label,
     String value,
     IconData icon,
-    Color color,
+    Color fg,
+    Color bg,
+    Color border,
   ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
-        color: color.withAlpha(15),
+        color: bg,
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: border),
       ),
       child: Column(
         children: [
-          Icon(icon, size: 18, color: color),
+          Icon(icon, size: 18, color: fg),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -1065,7 +1094,7 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
-                color: color,
+                color: fg,
               ),
             ),
           ),
