@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'color_cards/color_cards_game_view.dart';
+import 'sudoku/sudoku_engine.dart';
+import 'sudoku/sudoku_game_view.dart';
 
 class GamesView extends StatelessWidget {
   const GamesView({super.key});
@@ -55,7 +58,7 @@ class GamesView extends StatelessWidget {
                 tag: 'LOGIC & NUMBERS',
                 title: 'Sudoku',
                 description:
-                    'Sharpen your logical reasoning, memory, and concentration with grid number puzzles.',
+                    'Easy (4x4), Medium (6x6), or Hard (9x9) logic puzzles to train memory and focus.',
                 gradientColors: const [
                   Color.fromARGB(255, 12, 7, 63),
                   Color(0xFF6366F1),
@@ -63,17 +66,9 @@ class GamesView extends StatelessWidget {
                 ],
                 shadowColor: const Color(0xFF4F46E5),
                 icon: Icons.grid_4x4_rounded,
-                badgeText: 'Classic',
+                badgeText: '4x4 · 6x6 · 9x9',
                 onTap: () {
-                  _showGameInfo(
-                    context,
-                    title: 'Sudoku',
-                    subtitle: 'Classic 9x9 / 6x6 Logic Puzzle',
-                    icon: Icons.grid_4x4_rounded,
-                    accentColor: const Color(0xFF6366F1),
-                    description:
-                        'Fill the grid so that every row, column, and subgrid contains the designated numbers without repetition. Excellent for cognitive focus.',
-                  );
+                  _showSudokuLaunchModal(context);
                 },
               ),
 
@@ -112,10 +107,10 @@ class GamesView extends StatelessWidget {
               // 3. Colour Cards Card
               _buildGameCard(
                 context,
-                tag: 'MEMORY & AGILITY',
+                tag: 'MEMORY & SEQUENCE',
                 title: 'Colour Cards',
                 description:
-                    'Match vibrant pairs and test your reaction speed with dynamic memory card decks.',
+                    'Memorize the color sequence and arrange the cards in correct order. Starts under 7 cards and grows +2 each round.',
                 gradientColors: const [
                   Color(0xFFC2410C),
                   Color.fromARGB(255, 234, 34, 12),
@@ -123,17 +118,9 @@ class GamesView extends StatelessWidget {
                 ],
                 shadowColor: const Color(0xFFEA580C),
                 icon: Icons.style_rounded,
-                badgeText: 'Memory',
+                badgeText: '3-6 Cards · +2 Progression',
                 onTap: () {
-                  _showGameInfo(
-                    context,
-                    title: 'Colour Cards',
-                    subtitle: 'Color & Pattern Match',
-                    icon: Icons.style_rounded,
-                    accentColor: const Color(0xFFEA580C),
-                    description:
-                        'Flip cards, recall colors and sequence positions to clear the board in minimum moves.',
-                  );
+                  _showColorCardsLaunchModal(context);
                 },
               ),
 
@@ -434,7 +421,7 @@ class GamesView extends StatelessWidget {
                     Navigator.of(ctx).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('$title is loading...'),
+                        content: Text('$title is coming soon!'),
                         duration: const Duration(seconds: 2),
                         behavior: SnackBarBehavior.floating,
                         backgroundColor: const Color(0xFF1E293B),
@@ -452,6 +439,380 @@ class GamesView extends StatelessWidget {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showSudokuLaunchModal(BuildContext context) {
+    SudokuDifficulty selectedDiff = SudokuDifficulty.easy;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.grid_4x4_rounded,
+                      color: Colors.white,
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Sudoku Challenge',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Select a difficulty mode to begin:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Difficulty cards
+                  ...SudokuDifficulty.values.map((diff) {
+                    final isSelected = diff == selectedDiff;
+                    final subtitle = diff == SudokuDifficulty.easy
+                        ? '4x4 Grid (2x2 Boxes · Numbers 1-4)'
+                        : (diff == SudokuDifficulty.medium
+                            ? '6x6 Grid (2x3 Boxes · Numbers 1-6)'
+                            : '9x9 Grid (3x3 Boxes · Numbers 1-9)');
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: InkWell(
+                        onTap: () {
+                          setModalState(() {
+                            selectedDiff = diff;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFEEF2FF)
+                                : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF6366F1)
+                                  : const Color(0xFFE2E8F0),
+                              width: isSelected ? 1.8 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: isSelected
+                                      ? const Color(0xFF4F46E5)
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF4F46E5)
+                                        : const Color(0xFFCBD5E1),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        size: 14,
+                                        color: Colors.white,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      diff.name,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: isSelected
+                                            ? const Color(0xFF1E1B4B)
+                                            : const Color(0xFF334155),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      subtitle,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SudokuGameView(
+                              initialDifficulty: selectedDiff,
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Play Now',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showColorCardsLaunchModal(BuildContext context) {
+    int selectedCards = 5;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFEA580C), Color(0xFFF59E0B)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFEA580C).withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.style_rounded,
+                      color: Colors.white,
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Colour Cards Challenge',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Memorize and arrange colors in order. Card count increases by +2 each round!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Choose Starting Card Count (under 7):',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [3, 4, 5, 6].map((count) {
+                      final isSelected = count == selectedCards;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: InkWell(
+                            onTap: () {
+                              setModalState(() {
+                                selectedCards = count;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? const Color(0xFFEA580C)
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFFEA580C)
+                                      : const Color(0xFFE2E8F0),
+                                  width: isSelected ? 2 : 1,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '$count Cards',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : const Color(0xFF334155),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEA580C),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ColorCardsGameView(
+                              initialCardCount: selectedCards,
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Play Now',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
