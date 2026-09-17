@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'color_cards/color_cards_game_view.dart';
 import 'sudoku/sudoku_engine.dart';
 import 'sudoku/sudoku_game_view.dart';
+import 'jigsaw_puzzel/jigsaw_puzzle_view.dart';
 
 class GamesView extends StatelessWidget {
   const GamesView({super.key});
@@ -90,15 +91,7 @@ class GamesView extends StatelessWidget {
                 icon: Icons.extension_rounded,
                 badgeText: 'Puzzles',
                 onTap: () {
-                  _showGameInfo(
-                    context,
-                    title: 'Jigsaw Puzzle',
-                    subtitle: 'Relaxing Picture Assembly',
-                    icon: Icons.extension_rounded,
-                    accentColor: const Color(0xFF0D9488),
-                    description:
-                        'Drag and connect puzzle pieces to form complete calming images. Great for fine visual-spatial training.',
-                  );
+                  _showJigsawLaunchModal(context);
                 },
               ),
 
@@ -815,6 +808,260 @@ class GamesView extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  void _showJigsawLaunchModal(BuildContext context) {
+    int selectedGridSize = 3;
+    String selectedImage = 'https://images.unsplash.com/photo-1543373014-cfe4f4bc1cdf?q=80&w=1000&auto=format&fit=crop';
+    
+    final List<Map<String, String>> images = [
+      {
+        'name': 'Mountain Lake',
+        'url': 'https://images.unsplash.com/photo-1543373014-cfe4f4bc1cdf?q=80&w=1000&auto=format&fit=crop'
+      },
+      {
+        'name': 'Autumn Forest',
+        'url': 'https://images.unsplash.com/photo-1505832018823-50331d70d237?q=80&w=1000&auto=format&fit=crop'
+      },
+      {
+        'name': 'Ocean Sunset',
+        'url': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop'
+      },
+      {
+        'name': 'Desert Dunes',
+        'url': 'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?q=80&w=1000&auto=format&fit=crop'
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0D9488), Color(0xFF0F766E)],
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.extension_rounded,
+                          color: Colors.white,
+                          size: 26,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Jigsaw Puzzle',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            Text(
+                              'Select image and difficulty',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  const Text(
+                    'Select Image:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: images.length,
+                      itemBuilder: (context, index) {
+                        final image = images[index];
+                        final isSelected = selectedImage == image['url'];
+                        
+                        return GestureDetector(
+                          onTap: () {
+                            setModalState(() {
+                              selectedImage = image['url']!;
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            width: 140,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? const Color(0xFF0D9488) : Colors.transparent,
+                                width: 3,
+                              ),
+                              image: DecorationImage(
+                                image: NetworkImage(image['url']!),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            child: isSelected ? Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D9488).withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.check_circle, color: Colors.white, size: 32),
+                              ),
+                            ) : null,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  const Text(
+                    'Select Difficulty:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildDiffButton('Easy', 3, selectedGridSize, (val) => setModalState(() => selectedGridSize = val)),
+                      const SizedBox(width: 10),
+                      _buildDiffButton('Medium', 4, selectedGridSize, (val) => setModalState(() => selectedGridSize = val)),
+                      const SizedBox(width: 10),
+                      _buildDiffButton('Hard', 5, selectedGridSize, (val) => setModalState(() => selectedGridSize = val)),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0D9488),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => JigsawPuzzleView(
+                              imageUrl: selectedImage,
+                              gridSize: selectedGridSize,
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Play Now',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDiffButton(String label, int size, int selectedSize, Function(int) onSelect) {
+    bool isSelected = size == selectedSize;
+    return Expanded(
+      child: InkWell(
+        onTap: () => onSelect(size),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFCCFBF1) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? const Color(0xFF14B8A6) : const Color(0xFFE2E8F0),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF334155),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${size}x${size}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: isSelected ? const Color(0xFF0F766E).withOpacity(0.8) : const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
