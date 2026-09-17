@@ -1,46 +1,188 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="Video Streamer User App">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="mobile_user">
+  <meta name="apple-mobile-web-app-title" content="Video Streamer">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>mobile_user</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <title>Video Streamer</title>
   <link rel="manifest" href="manifest.json">
-</head>
-<body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- Cache control headers -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #0f172a;
+      font-family: Arial, sans-serif;
+    }
+
+    #loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loader {
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top: 4px solid #0052cc;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+
+  <script>
+    const APP_VERSION = '1.0.0+1';
+    const serviceWorkerVersion = null;
+  </script>
+
+  <script>
+    async function clearAllStorage() {
+      try {
+        console.log('Starting cache and storage clearing...');
+
+        if (window.localStorage) {
+          localStorage.clear();
+          console.log('✓ localStorage cleared');
+        }
+
+        if (window.sessionStorage) {
+          sessionStorage.clear();
+          console.log('✓ sessionStorage cleared');
+        }
+
+        if ('caches' in window) {
+          try {
+            const cacheNames = await caches.keys();
+            await Promise.all(
+              cacheNames.map(cacheName => {
+                console.log('Deleting cache:', cacheName);
+                return caches.delete(cacheName);
+              })
+            );
+            console.log('✓ All caches cleared');
+          } catch (e) {
+            console.log('Cache clearing error:', e);
+          }
+        }
+
+        if ('serviceWorker' in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(
+              registrations.map(registration => {
+                console.log('Unregistering service worker:', registration.scope);
+                return registration.unregister();
+              })
+            );
+            console.log('✓ All service workers unregistered');
+          } catch (e) {
+            console.log('Service worker unregistration error:', e);
+          }
+        }
+
+        console.log('✓ Storage clearing completed');
+      } catch (error) {
+        console.error('Error during storage clearing:', error);
+      }
+    }
+
+    async function checkVersionAndClearIfNeeded() {
+      let storedVersion = null;
+      try {
+        storedVersion = localStorage.getItem('app_mobile_user_version');
+      } catch (e) {
+        console.log('Could not read stored version:', e);
+      }
+
+      if (storedVersion && storedVersion !== APP_VERSION) {
+        console.log(`🔄 Version changed from ${storedVersion} to ${APP_VERSION} - clearing cache...`);
+        await clearAllStorage();
+        try {
+          localStorage.setItem('app_mobile_user_version', APP_VERSION);
+        } catch (e) { }
+        return true;
+      } else if (!storedVersion) {
+        try {
+          localStorage.setItem('app_mobile_user_version', APP_VERSION);
+        } catch (e) { }
+      }
+      return false;
+    }
+
+    checkVersionAndClearIfNeeded();
+  </script>
+
+  <!-- Cache busting for flutter.js -->
+  <script>
+    window._perfBootStart = new Date().getTime();
+    const timestamp = new Date().getTime();
+    const flutterScript = document.createElement('script');
+    flutterScript.src = 'flutter.js?v=' + APP_VERSION + '&t=' + timestamp;
+    flutterScript.defer = true;
+    document.head.appendChild(flutterScript);
+  </script>
+</head>
+
+<body>
+  <div id="loading-container">
+    <div class="loader"></div>
+  </div>
+  <script>
+    function loadFlutterEngine() {
+      if (window._flutter && window._flutter.loader) {
+        const version = new Date().getTime();
+        _flutter.loader.loadEntrypoint({
+          serviceWorker: {
+            serviceWorkerVersion: serviceWorkerVersion,
+          },
+          entrypointUrl: 'main.dart.js?v=' + APP_VERSION + '&t=' + version,
+          onEntrypointLoaded: function (engineInitializer) {
+            engineInitializer.initializeEngine().then(function (appRunner) {
+              appRunner.runApp();
+              const loaderEl = document.getElementById('loading-container');
+              if (loaderEl) loaderEl.remove();
+            }).catch(function (err) {
+              console.error('[PERF-BOOT] initializeEngine error:', err);
+            });
+          }
+        });
+      } else {
+        setTimeout(loadFlutterEngine, 10);
+      }
+    }
+    loadFlutterEngine();
+  </script>
 </body>
+
 </html>

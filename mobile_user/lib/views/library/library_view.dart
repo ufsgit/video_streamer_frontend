@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import '../../widgets/app_logo.dart';
+import '../games/games_view.dart';
 import 'category_details_view.dart';
 
 class LibraryView extends StatefulWidget {
@@ -133,7 +134,33 @@ class _LibraryViewState extends State<LibraryView> {
                     },
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 22),
+
+                  // Games Colorful Card
+                  _buildColorfulCategoryCard(
+                    context,
+                    tag: 'BRAIN TRAINING · 3 GAMES',
+                    title: 'Games',
+                    gradientColors: const [
+                      Color(0xFF1E1B4B),
+                      Color(0xFF4338CA),
+                      Color(0xFF6366F1),
+                    ],
+                    shadowColor: const Color(0xFF4338CA),
+                    iconWidget: const Icon(
+                      Icons.sports_esports_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const GamesView(),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),

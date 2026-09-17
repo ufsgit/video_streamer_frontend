@@ -53,7 +53,9 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
     // Calculate if completed: total watch time equals or exceeds total full duration
     _isCompleted = _totalDuration > 0 && _currentPosition >= _totalDuration;
 
-    final double resumeSecs = (_savedResumePosition > 0 && !_isCompleted) ? _savedResumePosition : 0.0;
+    final double resumeSecs = (_savedResumePosition > 0 && !_isCompleted)
+        ? _savedResumePosition
+        : 0.0;
     if (resumeSecs <= 0) {
       _resumeEstablished = true;
     }
@@ -99,7 +101,10 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
               value.playerState == PlayerState.buffering ||
               value.playerState == PlayerState.cued) {
             _hasSeekedToResume = true;
-            await _controller!.seekTo(seconds: _savedResumePosition, allowSeekAhead: true);
+            await _controller!.seekTo(
+              seconds: _savedResumePosition,
+              allowSeekAhead: true,
+            );
             _currentPosition = _savedResumePosition;
           }
         }
@@ -118,10 +123,12 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
 
         final PlayerState currentState = value.playerState;
         final bool ended = currentState == PlayerState.ended;
-        final bool isDone = ended || (_totalDuration > 0 && _currentPosition >= _totalDuration);
+        final bool isDone =
+            ended || (_totalDuration > 0 && _currentPosition >= _totalDuration);
 
         // Send to API and update UI/Hive immediately ONLY when user pauses
-        if (currentState == PlayerState.paused && _lastPlayerState != PlayerState.paused) {
+        if (currentState == PlayerState.paused &&
+            _lastPlayerState != PlayerState.paused) {
           if (pos > 0) {
             _currentPosition = pos;
           }
@@ -172,7 +179,8 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
       videoId: widget.videoId,
     );
 
-    final dynamic effectiveId = widget.videoId ??
+    final dynamic effectiveId =
+        widget.videoId ??
         (int.tryParse(widget.videoUrl) ??
             VideoProgressManager.getProgress(widget.videoUrl).videoId ??
             0);
@@ -189,7 +197,9 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
 
   /// Triggered when user goes back or leaves the screen
   void _onExitScreen() {
-    final bool completed = _isCompleted || (_totalDuration > 0 && _currentPosition >= _totalDuration);
+    final bool completed =
+        _isCompleted ||
+        (_totalDuration > 0 && _currentPosition >= _totalDuration);
     _saveToHiveAndApi(
       current: _currentPosition,
       total: _totalDuration,
@@ -238,7 +248,11 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
               color: Colors.black,
               child: AspectRatio(
                 aspectRatio: 16 / 9,
-                child: widget.customPlayerWidget ?? (_controller != null ? YoutubePlayer(controller: _controller!) : const SizedBox.shrink()),
+                child:
+                    widget.customPlayerWidget ??
+                    (_controller != null
+                        ? YoutubePlayer(controller: _controller!)
+                        : const SizedBox.shrink()),
               ),
             ),
 
