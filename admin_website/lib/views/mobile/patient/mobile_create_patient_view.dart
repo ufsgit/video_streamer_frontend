@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:admin_website/core/theme.dart';
 import 'package:admin_website/models/user_model.dart';
@@ -141,6 +141,14 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
     if (!isEditing && _passwordController.text.isEmpty) {
       setState(() => _errorMessage = 'Password is required for new patients.');
       return;
+    }
+
+    if (_phoneController.text.trim().isNotEmpty) {
+      final phone = _phoneController.text.trim();
+      if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+        setState(() => _errorMessage = 'Incorrect phone number.');
+        return;
+      }
     }
 
     if (_passwordController.text.isNotEmpty &&
@@ -374,8 +382,21 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                 _buildFieldLabel("Phone Number"),
                 TextFormField(
                   controller: _phoneController,
-                  keyboardType: TextInputType.phone,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                   decoration: _inputDecoration("(555) 000-0000", Icons.phone_outlined),
+                  validator: (v) {
+                    if (v != null && v.trim().isNotEmpty) {
+                      final phone = v.trim();
+                      if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+                        return "Incorrect phone number.";
+                      }
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
 

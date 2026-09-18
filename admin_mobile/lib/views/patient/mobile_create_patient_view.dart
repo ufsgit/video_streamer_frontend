@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:admin_mobile/core/theme.dart';
 import 'package:admin_mobile/models/user_model.dart';
@@ -128,7 +128,9 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
             (now.month == picked.month && now.day < picked.day)) {
           calculatedAge--;
         }
-        _ageController.text = calculatedAge > 0 ? calculatedAge.toString() : '0';
+        _ageController.text = calculatedAge > 0
+            ? calculatedAge.toString()
+            : '0';
       });
     }
   }
@@ -141,6 +143,14 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
     if (!isEditing && _passwordController.text.isEmpty) {
       setState(() => _errorMessage = 'Password is required for new patients.');
       return;
+    }
+
+    if (_phoneController.text.trim().isNotEmpty) {
+      final phone = _phoneController.text.trim();
+      if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+        setState(() => _errorMessage = 'Incorrect phone number.');
+        return;
+      }
     }
 
     if (_passwordController.text.isNotEmpty &&
@@ -157,7 +167,10 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
     try {
       final String username = _usernameController.text.trim().isNotEmpty
           ? _usernameController.text.trim()
-          : _nameController.text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
+          : _nameController.text.trim().toLowerCase().replaceAll(
+              RegExp(r'\s+'),
+              '',
+            );
 
       final Map<String, dynamic> dataMap = {
         'name': _nameController.text.trim(),
@@ -222,7 +235,8 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
         );
       } else {
         setState(() {
-          _errorMessage = response.data?['message']?.toString() ??
+          _errorMessage =
+              response.data?['message']?.toString() ??
               'Failed to save patient profile.';
         });
       }
@@ -233,7 +247,7 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
           if (e.response?.data is Map && e.response?.data['message'] != null) {
             errorMsg = e.response!.data['message'].toString();
           } else if (e.type == DioExceptionType.connectionError) {
-            errorMsg = 'Cannot reach server. Please check backend connection.';
+            errorMsg = 'Cannot reach server.';
           }
         }
         setState(() => _errorMessage = errorMsg);
@@ -272,7 +286,10 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                     ),
                     child: Text(
                       _errorMessage!,
-                      style: TextStyle(color: Colors.red.shade900, fontSize: 12.5),
+                      style: TextStyle(
+                        color: Colors.red.shade900,
+                        fontSize: 12.5,
+                      ),
                     ),
                   ),
 
@@ -334,7 +351,7 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                 _buildFieldLabel("Full Legal Name *"),
                 TextFormField(
                   controller: _nameController,
-                  decoration: _inputDecoration("e.g. Jane Doe", Icons.person_outline),
+                  decoration: _inputDecoration("", Icons.person_outline),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? "Name is required"
                       : null,
@@ -342,20 +359,28 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                 const SizedBox(height: 16),
 
                 // Username
-                _buildFieldLabel(isEditing ? "Username (Unchangeable)" : "Username (Optional)"),
+                _buildFieldLabel(
+                  isEditing ? "Username (Unchangeable)" : "Username (Optional)",
+                ),
                 TextFormField(
                   controller: _usernameController,
                   readOnly: isEditing,
                   enabled: !isEditing,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isEditing ? const Color(0xFF64748B) : AppTheme.textPrimary,
+                    color: isEditing
+                        ? const Color(0xFF64748B)
+                        : AppTheme.textPrimary,
                   ),
                   decoration: _inputDecoration(
-                    "e.g. janedoe",
+                    "",
                     Icons.alternate_email,
                     suffixIcon: isEditing
-                        ? const Icon(Icons.lock_outline_rounded, color: Color(0xFF94A3B8), size: 18)
+                        ? const Icon(
+                            Icons.lock_outline_rounded,
+                            color: Color(0xFF94A3B8),
+                            size: 18,
+                          )
                         : null,
                     fillColor: isEditing ? const Color(0xFFF1F5F9) : null,
                   ),
@@ -367,15 +392,31 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: _inputDecoration("patient@hospital.org", Icons.email_outlined),
+                  decoration: _inputDecoration(
+                    "patient@hospital.org",
+                    Icons.email_outlined,
+                  ),
                 ),
                 const SizedBox(height: 16),
 
                 _buildFieldLabel("Phone Number"),
                 TextFormField(
                   controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: _inputDecoration("(555) 000-0000", Icons.phone_outlined),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  decoration: _inputDecoration("", Icons.phone_outlined),
+                  validator: (v) {
+                    if (v != null && v.trim().isNotEmpty) {
+                      final phone = v.trim();
+                      if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+                        return "Incorrect phone number.";
+                      }
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -413,7 +454,9 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                               return DropdownMenuItem(value: s, child: Text(s));
                             }).toList(),
                             onChanged: (v) {
-                              if (v != null) setState(() => _selectedStatus = v);
+                              if (v != null) {
+                                setState(() => _selectedStatus = v);
+                              }
                             },
                           ),
                         ],
@@ -464,7 +507,11 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                 const SizedBox(height: 16),
 
                 // Password fields if creating or resetting
-                _buildFieldLabel(isEditing ? "New Password (Leave blank to keep)" : "Password *"),
+                _buildFieldLabel(
+                  isEditing
+                      ? "New Password (Leave blank to keep)"
+                      : "Password *",
+                ),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -472,14 +519,20 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                     hintText: "Enter password",
                     filled: true,
                     fillColor: Colors.grey.shade50,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     prefixIcon: const Icon(Icons.lock_outline, size: 20),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                         size: 20,
                       ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -498,14 +551,22 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                       hintText: "Confirm password",
                       filled: true,
                       fillColor: Colors.grey.shade50,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       prefixIcon: const Icon(Icons.lock_outline, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          _obscureConfirmPassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
                           size: 20,
                         ),
-                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                        onPressed: () => setState(
+                          () => _obscureConfirmPassword =
+                              !_obscureConfirmPassword,
+                        ),
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -521,7 +582,10 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                 TextFormField(
                   controller: _noteController,
                   maxLines: 3,
-                  decoration: _inputDecoration("Primary diagnosis, allergies, mobility notes...", null),
+                  decoration: _inputDecoration(
+                    "Primary diagnosis, allergies, mobility notes...",
+                    null,
+                  ),
                 ),
                 const SizedBox(height: 28),
 
@@ -546,8 +610,13 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                           ),
                         )
                       : Text(
-                          isEditing ? "Save Patient Changes" : "Create Patient Profile",
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                          isEditing
+                              ? "Save Patient Changes"
+                              : "Create Patient Profile",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
                         ),
                 ),
                 const SizedBox(height: 20),
@@ -606,4 +675,3 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
     );
   }
 }
-

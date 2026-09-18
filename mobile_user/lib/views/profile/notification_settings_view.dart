@@ -401,42 +401,42 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             const SizedBox(height: 20),
 
             // Test Notification Button
-            // SizedBox(
-            //   width: double.infinity,
-            //   height: 48,
-            //   child: OutlinedButton.icon(
-            //     onPressed: () async {
-            //       await _notificationService.showTestNotification();
-            //       if (context.mounted) {
-            //         ScaffoldMessenger.of(context).showSnackBar(
-            //           SnackBar(
-            //             behavior: SnackBarBehavior.floating,
-            //             backgroundColor: const Color(0xFF12B76A),
-            //             shape: RoundedRectangleBorder(
-            //               borderRadius: BorderRadius.circular(10),
-            //             ),
-            //             content: const Text(
-            //               'Test notification sent! Check your notification tray.',
-            //               style: TextStyle(fontSize: 13, color: Colors.white),
-            //             ),
-            //           ),
-            //         );
-            //       }
-            //     },
-            //     style: OutlinedButton.styleFrom(
-            //       foregroundColor: const Color(0xFF0052CC),
-            //       side: const BorderSide(color: Color(0xFF0052CC)),
-            //       shape: RoundedRectangleBorder(
-            //         borderRadius: BorderRadius.circular(14),
-            //       ),
-            //     ),
-            //     icon: const Icon(Icons.notifications_active_outlined, size: 18),
-            //     label: const Text(
-            //       'Send Test Notification',
-            //       style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-            //     ),
-            //   ),
-            // ),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await _notificationService.showTestNotification();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: const Color(0xFF12B76A),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        content: const Text(
+                          'Test notification sent! Check your notification tray.',
+                          style: TextStyle(fontSize: 13, color: Colors.white),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF0052CC),
+                  side: const BorderSide(color: Color(0xFF0052CC)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.notifications_active_outlined, size: 18),
+                label: const Text(
+                  'Send Test Notification',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ),
+            ),
           ],
         ),
       ),

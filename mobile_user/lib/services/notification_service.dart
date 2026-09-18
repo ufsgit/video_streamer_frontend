@@ -28,33 +28,7 @@ class NotificationService {
     try {
       // 1. Initialize timezone database
       tz.initializeTimeZones();
-      try {
-        final dynamic rawZone = await FlutterTimezone.getLocalTimezone();
-        String timeZoneName = '';
-        if (rawZone is String) {
-          timeZoneName = rawZone;
-        } else {
-          try {
-            timeZoneName = (rawZone.name ?? rawZone.id ?? rawZone.title ?? '')
-                .toString();
-          } catch (_) {
-            timeZoneName = rawZone.toString();
-          }
-        }
-        timeZoneName = timeZoneName.trim();
-        if (timeZoneName.contains('Calcutta')) {
-          timeZoneName = 'Asia/Kolkata';
-        }
-        try {
-          if (timeZoneName.isNotEmpty) {
-            tz.setLocalLocation(tz.getLocation(timeZoneName));
-          }
-        } catch (_) {
-          tz.setLocalLocation(tz.getLocation('UTC'));
-        }
-      } catch (e) {
-        debugPrint('Timezone location setup note: $e');
-      }
+      await _configureTimezone();
 
       // 2. Initialization settings for Android & iOS
       const AndroidInitializationSettings initializationSettingsAndroid =
@@ -100,7 +74,12 @@ class NotificationService {
 
       _isInitialized = true;
 
-      // 4. If reminder is already enabled in settings, ensure it is scheduled
+      // 4. Request system permissions on real devices if not yet requested
+      if (!kIsWeb) {
+        await requestPermissions();
+      }
+
+      // 5. If reminder is already enabled in settings, ensure it is scheduled
       if (isReminderEnabled) {
         final time = getReminderTime();
         await scheduleDailyReminder(
@@ -111,6 +90,62 @@ class NotificationService {
       }
     } catch (e) {
       debugPrint('NotificationService initialize error: $e');
+    }
+  }
+
+  /// Reliably configures the local timezone matching the device's clock offset
+  Future<void> _configureTimezone() async {
+    try {
+      final dynamic rawZone = await FlutterTimezone.getLocalTimezone();
+      String timeZoneName = '';
+      if (rawZone is String) {
+        timeZoneName = rawZone.trim();
+      } else if (rawZone != null) {
+        try {
+          timeZoneName = (rawZone.name ?? rawZone.id ?? rawZone.title ?? '').toString().trim();
+        } catch (_) {
+          timeZoneName = rawZone.toString().trim();
+        }
+      }
+
+      // Normalization for common aliases
+      if (timeZoneName.contains('Calcutta') || timeZoneName == 'IST' || timeZoneName.contains('India')) {
+        timeZoneName = 'Asia/Kolkata';
+      }
+
+      if (timeZoneName.isNotEmpty) {
+        try {
+          tz.setLocalLocation(tz.getLocation(timeZoneName));
+          debugPrint('Timezone successfully configured as: $timeZoneName');
+          return;
+        } catch (e) {
+          debugPrint('Timezone name "$timeZoneName" not in tz database: $e');
+        }
+      }
+
+      // Fallback based on device system offset
+      final deviceOffset = DateTime.now().timeZoneOffset;
+      if (deviceOffset == const Duration(hours: 5, minutes: 30)) {
+        tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+        debugPrint('Timezone configured as Asia/Kolkata via offset matching');
+        return;
+      }
+
+      // Search tz database for any location matching the exact offset
+      for (final entry in tz.timeZoneDatabase.locations.entries) {
+        final loc = entry.value;
+        final nowInLoc = tz.TZDateTime.now(loc);
+        if (nowInLoc.timeZoneOffset == deviceOffset) {
+          tz.setLocalLocation(loc);
+          debugPrint('Timezone configured as ${entry.key} via offset match');
+          return;
+        }
+      }
+
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    } catch (e) {
+      debugPrint('Error configuring timezone: $e');
+      tz.setLocalLocation(tz.getLocation('UTC'));
     }
   }
 
@@ -312,15 +347,22 @@ class NotificationService {
 
   /// Calculates the next local instance of the requested hour:minute accurately
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
-    final DateTime now = DateTime.now();
-    var scheduled = DateTime(now.year, now.month, now.day, hour, minute);
+    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
 
     // If the scheduled time has already passed today, schedule for tomorrow
     if (scheduled.isBefore(now) || scheduled.isAtSameMomentAs(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
 
-    return tz.TZDateTime.from(scheduled, tz.local);
+    return scheduled;
   }
 
   // --- Storage Helper Getters & Setters ---

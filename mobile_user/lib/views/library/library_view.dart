@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import '../../widgets/app_logo.dart';
-import '../games/games_view.dart';
 import 'category_details_view.dart';
 
 class LibraryView extends StatefulWidget {

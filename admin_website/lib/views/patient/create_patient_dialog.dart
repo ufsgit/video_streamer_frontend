@@ -1,6 +1,6 @@
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
@@ -189,7 +189,12 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       }
 
       if (_phoneController.text.trim().isNotEmpty) {
-        payload['phone_number'] = _phoneController.text.trim();
+        final phone = _phoneController.text.trim();
+        if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+          setState(() => _errorMessage = 'Incorrect phone number.');
+          return;
+        }
+        payload['phone_number'] = phone;
       }
 
       if (_ageController.text.trim().isNotEmpty) {
@@ -619,7 +624,20 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                             _buildTextFormField(
                               controller: _phoneController,
                               hint: "(555) 000-0000",
-                              keyboardType: TextInputType.phone,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(10),
+                              ],
+                              validator: (v) {
+                                if (v != null && v.trim().isNotEmpty) {
+                                  final phone = v.trim();
+                                  if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+                                    return 'Incorrect phone number.';
+                                  }
+                                }
+                                return null;
+                              },
                             ),
                           ],
                         ),
@@ -659,7 +677,20 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                   _buildTextFormField(
                                     controller: _phoneController,
                                     hint: "(555) 000-0000",
-                                    keyboardType: TextInputType.phone,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(10),
+                                    ],
+                                    validator: (v) {
+                                      if (v != null && v.trim().isNotEmpty) {
+                                        final phone = v.trim();
+                                        if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+                                          return 'Incorrect phone number.';
+                                        }
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ],
                               ),
@@ -1408,6 +1439,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
     bool enabled = true,
     Color? fillColor,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
     VoidCallback? onTap,
     String? Function(String?)? validator,
   }) {
@@ -1418,6 +1450,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       readOnly: readOnly,
       enabled: enabled,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       onTap: onTap,
       style: TextStyle(
         fontSize: 14,
