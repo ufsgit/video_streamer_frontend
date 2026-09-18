@@ -15,7 +15,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static const int dailyReminderId = 1001;
-  static const String channelId = 'video_reminders_channel';
+  static const String channelId = 'video_reminders_alarm_channel_v3';
   static const String channelName = 'Daily Video Reminders';
   static const String channelDescription =
       'Notifications reminding you to watch your daily assigned videos.';
@@ -29,11 +29,30 @@ class NotificationService {
       // 1. Initialize timezone database
       tz.initializeTimeZones();
       try {
-        final dynamic currentTimeZone = await FlutterTimezone.getLocalTimezone();
-        final String timeZoneName = currentTimeZone.toString();
-        tz.setLocalLocation(tz.getLocation(timeZoneName));
+        final dynamic rawZone = await FlutterTimezone.getLocalTimezone();
+        String timeZoneName = '';
+        if (rawZone is String) {
+          timeZoneName = rawZone;
+        } else {
+          try {
+            timeZoneName = (rawZone.name ?? rawZone.id ?? rawZone.title ?? '').toString();
+          } catch (_) {
+            timeZoneName = rawZone.toString();
+          }
+        }
+        timeZoneName = timeZoneName.trim();
+        if (timeZoneName.contains('Calcutta')) {
+          timeZoneName = 'Asia/Kolkata';
+        }
+        try {
+          if (timeZoneName.isNotEmpty) {
+            tz.setLocalLocation(tz.getLocation(timeZoneName));
+          }
+        } catch (_) {
+          tz.setLocalLocation(tz.getLocation('UTC'));
+        }
       } catch (e) {
-        debugPrint('Could not set local timezone via flutter_timezone: $e');
+        debugPrint('Timezone location setup note: $e');
       }
 
       // 2. Initialization settings for Android & iOS
@@ -42,9 +61,9 @@ class NotificationService {
 
       const DarwinInitializationSettings initializationSettingsDarwin =
           DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
       );
 
       const InitializationSettings initializationSettings =
@@ -60,9 +79,26 @@ class NotificationService {
         },
       );
 
+      // 3. Create high-importance Android notification channel with sound & vibration
+      if (!kIsWeb && Platform.isAndroid) {
+        final androidImplementation = _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>();
+        const AndroidNotificationChannel channel = AndroidNotificationChannel(
+          channelId,
+          channelName,
+          description: channelDescription,
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          showBadge: true,
+        );
+        await androidImplementation?.createNotificationChannel(channel);
+      }
+
       _isInitialized = true;
 
-      // 3. If reminder is already enabled in settings, ensure it is scheduled
+      // 4. If reminder is already enabled in settings, ensure it is scheduled
       if (isReminderEnabled) {
         final time = getReminderTime();
         await scheduleDailyReminder(hour: time.hour, minute: time.minute, persist: false);
@@ -81,6 +117,7 @@ class NotificationService {
                 AndroidFlutterLocalNotificationsPlugin>();
         final bool? androidGranted =
             await androidImplementation?.requestNotificationsPermission();
+        await androidImplementation?.requestExactAlarmsPermission();
         return androidGranted ?? true;
       } else if (Platform.isIOS) {
         final iosImplementation = _notificationsPlugin
@@ -97,6 +134,47 @@ class NotificationService {
       debugPrint('Error requesting notification permissions: $e');
     }
     return true;
+  }
+
+  /// Sends an immediate test notification to verify sound and display
+  Future<void> showTestNotification() async {
+    if (kIsWeb) return;
+    try {
+      await initialize();
+      await requestPermissions();
+
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: channelDescription,
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        icon: '@mipmap/ic_launcher',
+      );
+
+      const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const NotificationDetails notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+      );
+
+      await _notificationsPlugin.show(
+        999,
+        'Daily Video Reminder 🎬',
+        'Time to watch your assigned video for today!',
+        notificationDetails,
+      );
+    } catch (e) {
+      debugPrint('Error sending test notification: $e');
+    }
   }
 
   Future<void> scheduleDailyReminder({
@@ -119,6 +197,8 @@ class NotificationService {
     }
 
     try {
+      await initialize();
+      await requestPermissions();
       await cancelDailyReminder(persist: false);
 
       final tz.TZDateTime scheduledDate = _nextInstanceOfTime(hour, minute);
@@ -159,7 +239,7 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      debugPrint('Daily reminder scheduled for $hour:${minute.toString().padLeft(2, '0')} ($scheduledDate)');
+      debugPrint('Daily reminder scheduled for $hour:${minute.toString().padLeft(2, '0')} (scheduled epoch: ${scheduledDate.millisecondsSinceEpoch})');
     } catch (e) {
       debugPrint('Error scheduling exact alarm, falling back to inexact: $e');
       try {
@@ -171,6 +251,8 @@ class NotificationService {
           channelDescription: channelDescription,
           importance: Importance.max,
           priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
           icon: '@mipmap/ic_launcher',
         );
 
@@ -215,15 +297,17 @@ class NotificationService {
     }
   }
 
+  /// Calculates the next local instance of the requested hour:minute accurately
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    final DateTime now = DateTime.now();
+    var scheduled = DateTime(now.year, now.month, now.day, hour, minute);
 
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    // If the scheduled time has already passed today, schedule for tomorrow
+    if (scheduled.isBefore(now) || scheduled.isAtSameMomentAs(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
     }
-    return scheduledDate;
+
+    return tz.TZDateTime.from(scheduled, tz.local);
   }
 
   // --- Storage Helper Getters & Setters ---
