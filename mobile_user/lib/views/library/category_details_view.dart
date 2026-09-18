@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import '../../core/theme/app_colors.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/video_progress_bar.dart';
@@ -37,7 +38,8 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_viewModel.isLoadingMore && _viewModel.hasMore) {
         _viewModel.loadMoreCategoryVideos(widget.category);
       }
@@ -53,11 +55,17 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
   @override
   Widget build(BuildContext context) {
     final bool isPreOp = widget.category.toLowerCase().contains('pre');
+    final Color categoryAccent = isPreOp
+        ? AppColors.preOpAccent
+        : AppColors.postOpAccent;
+    final Color categoryBadgeBg = isPreOp
+        ? AppColors.preOpBadgeBg
+        : AppColors.postOpBadgeBg;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
@@ -71,27 +79,20 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.surface,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: AppColors.subtleShadow,
                 ),
                 child: const Icon(
                   Icons.arrow_back_ios_new_rounded,
-                  color: Color(0xFF1E293B),
+                  color: AppColors.textPrimary,
                   size: 16,
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            const AppLogo(
-              size: 36,
-            ),
+            const AppLogo(size: 36),
             const SizedBox(width: 14),
             const Flexible(
               child: Text(
@@ -101,60 +102,43 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF1E293B),
+                  color: AppColors.textPrimary,
                   letterSpacing: -0.5,
                 ),
               ),
             ),
           ],
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 24.0),
-            child: Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.search_rounded,
-                color: Color(0xFF1E293B),
-                size: 22,
-              ),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           controller: _scrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Category Title Badge
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(width: 1, color: const Color(0xFF5B67F6)),
+                  color: categoryBadgeBg,
+                  border: Border.all(
+                    width: 1.2,
+                    color: categoryAccent.withValues(alpha: 0.3),
+                  ),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 5,
+                  ),
                   child: Text(
                     isPreOp ? 'Pre Op' : 'Post Op',
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF5B67F6),
+                      color: categoryAccent,
+                      letterSpacing: -0.2,
                     ),
                   ),
                 ),
@@ -165,18 +149,19 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
               ListenableBuilder(
                 listenable: _viewModel,
                 builder: (context, child) {
-                  if (_viewModel.isLoading && _viewModel.currentCategoryVideos.isEmpty) {
+                  if (_viewModel.isLoading &&
+                      _viewModel.currentCategoryVideos.isEmpty) {
                     return const Padding(
                       padding: EdgeInsets.only(top: 40.0),
                       child: Center(
                         child: CircularProgressIndicator(
-                          color: Color(0xFF0052CC),
+                          color: AppColors.primary,
                         ),
                       ),
                     );
                   }
 
-                  final videos = _viewModel.currentCategoryVideos;
+                  final videos = _viewModel.currentCategoryVideos.reversed.toList();
 
                   if (videos.isEmpty) {
                     return const Padding(
@@ -186,7 +171,7 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                           'No videos found for this category.',
                           style: TextStyle(
                             fontSize: 16,
-                            color: Color(0xFF6C757D),
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ),
@@ -199,26 +184,37 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: videos.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 20),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final video = videos[index];
-                          final bool isDone = video.status == VideoStatus.completed;
-                          final bool inProgress = video.status == VideoStatus.inProgress;
+                          final bool isDone =
+                              video.status == VideoStatus.completed;
+                          final bool inProgress =
+                              video.status == VideoStatus.inProgress;
 
                           String effectiveImageUrl = video.imageUrl;
-                          if (effectiveImageUrl.isEmpty && video.link != null && video.link!.isNotEmpty) {
-                            final videoId = YoutubePlayerController.convertUrlToId(video.link!);
+                          if (effectiveImageUrl.isEmpty &&
+                              video.link != null &&
+                              video.link!.isNotEmpty) {
+                            final videoId =
+                                YoutubePlayerController.convertUrlToId(
+                                  video.link!,
+                                );
                             if (videoId != null && videoId.isNotEmpty) {
-                              effectiveImageUrl = 'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+                              effectiveImageUrl =
+                                  'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
                             }
                           }
                           if (effectiveImageUrl.isEmpty) {
-                            effectiveImageUrl = 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80';
+                            effectiveImageUrl =
+                                'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80';
                           }
 
                           return GestureDetector(
                             onTap: () {
-                              if (video.link != null && video.link!.isNotEmpty) {
+                              if (video.link != null &&
+                                  video.link!.isNotEmpty) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -228,30 +224,42 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                       title: video.title,
                                     ),
                                   ),
-                                );
+                                ).then((_) {
+                                  if (mounted) {
+                                    setState(() {});
+                                  }
+                                });
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Video link is not available')),
+                                  const SnackBar(
+                                    content: Text(
+                                      'Video link is not available',
+                                    ),
+                                  ),
                                 );
                               }
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(18),
                                 border: Border.all(
-                                  color: inProgress ? const Color(0xFF0052CC) : Colors.transparent,
-                                  width: inProgress ? 2.0 : 0.0,
+                                  color: inProgress
+                                      ? AppColors.primary
+                                      : AppColors.border,
+                                  width: inProgress ? 2.0 : 1.0,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: inProgress 
-                                        ? const Color(0xFF0052CC).withValues(alpha: 0.1)
-                                        : Colors.black.withValues(alpha: 0.04),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
+                                boxShadow: inProgress
+                                    ? [
+                                        BoxShadow(
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ]
+                                    : AppColors.subtleShadow,
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,8 +269,8 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                     width: double.infinity,
                                     child: ClipRRect(
                                       borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(18),
-                                        topRight: Radius.circular(18),
+                                        topLeft: Radius.circular(16),
+                                        topRight: Radius.circular(16),
                                       ),
                                       child: Stack(
                                         children: [
@@ -270,10 +278,21 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                             child: Image.network(
                                               effectiveImageUrl,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) => Container(
-                                                color: Colors.grey.shade200,
-                                                child: const Icon(Icons.image, size: 50, color: Colors.grey),
-                                              ),
+                                              errorBuilder:
+                                                  (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) => Container(
+                                                    color: AppColors
+                                                        .surfaceSecondary,
+                                                    child: const Icon(
+                                                      Icons.image,
+                                                      size: 50,
+                                                      color:
+                                                          AppColors.textMuted,
+                                                    ),
+                                                  ),
                                             ),
                                           ),
                                           if (inProgress)
@@ -281,13 +300,15 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                               left: 12,
                                               top: 12,
                                               child: Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 5,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 5,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: const Color(0xFF0052CC),
-                                                  borderRadius: BorderRadius.circular(8),
+                                                  color: AppColors.primary,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
                                                 child: const Text(
                                                   'IN PROGRESS',
@@ -304,7 +325,9 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                             child: Container(
                                               padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
-                                                color: Colors.black.withValues(alpha: 0.35),
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.35,
+                                                ),
                                                 shape: BoxShape.circle,
                                               ),
                                               child: const Icon(
@@ -319,7 +342,9 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                               right: 12,
                                               bottom: 12,
                                               child: Container(
-                                                padding: const EdgeInsets.all(5),
+                                                padding: const EdgeInsets.all(
+                                                  5,
+                                                ),
                                                 decoration: const BoxDecoration(
                                                   color: Colors.white,
                                                   shape: BoxShape.circle,
@@ -327,7 +352,7 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                                 child: const Icon(
                                                   Icons.check,
                                                   size: 16,
-                                                  color: Color(0xFF12B76A),
+                                                  color: AppColors.success,
                                                 ),
                                               ),
                                             ),
@@ -341,21 +366,23 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                       vertical: 14.0,
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           video.title,
                                           style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
-                                            color: Color(0xFF101828),
+                                            color: AppColors.textPrimary,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 10),
                                         VideoProgressBar(
-                                          videoKey: video.link ?? video.id.toString(),
+                                          videoKey:
+                                              video.link ?? video.id.toString(),
                                         ),
                                       ],
                                     ),
@@ -370,7 +397,7 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 20.0),
                           child: CircularProgressIndicator(
-                            color: Color(0xFF0052CC),
+                            color: AppColors.primary,
                           ),
                         ),
                     ],

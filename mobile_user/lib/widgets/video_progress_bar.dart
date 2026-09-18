@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../core/storage/video_progress_manager.dart';
+import '../core/theme/app_colors.dart';
 
 class VideoProgressBar extends StatelessWidget {
   final String? videoKey;
@@ -11,9 +12,9 @@ class VideoProgressBar extends StatelessWidget {
   const VideoProgressBar({
     super.key,
     required this.videoKey,
-    this.activeColor = const Color(0xFF0052CC),
-    this.completedColor = const Color(0xFF12B76A),
-    this.backgroundColor = const Color(0xFFE2E8F0),
+    this.activeColor = AppColors.primary,
+    this.completedColor = AppColors.success,
+    this.backgroundColor = AppColors.border,
   });
 
   @override

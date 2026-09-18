@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import '../../widgets/app_logo.dart';
 import '../games/games_view.dart';
@@ -28,9 +29,9 @@ class _LibraryViewState extends State<LibraryView> {
       listenable: _viewModel,
       builder: (context, _) {
         return Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: const Color(0xFFF8FAFC),
+            backgroundColor: AppColors.background,
             elevation: 0,
             scrolledUnderElevation: 0,
             automaticallyImplyLeading: false,
@@ -48,7 +49,7 @@ class _LibraryViewState extends State<LibraryView> {
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E293B),
+                      color: AppColors.textPrimary,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -72,20 +73,14 @@ class _LibraryViewState extends State<LibraryView> {
                     context,
                     tag: 'PHASE 1 · PREPARATION',
                     title: 'Pre-op',
-                    gradientColors: const [
-                      Color(0xFF4F46E5),
-                      Color(0xFF6366F1),
-                      Color(0xFF7C3AED),
-                    ],
-                    shadowColor: const Color(0xFF4F46E5),
+                    gradientColors: AppColors.preOpGradient,
+                    shadowColor: AppColors.preOpAccent,
                     iconWidget: const SizedBox(
                       width: 26,
                       height: 26,
-                      child: CustomPaint(
-                        painter: StethoscopePainter(
-                          color: Colors.white,
-                          strokeWidth: 2.2,
-                        ),
+                      child: Icon(
+                        Icons.medical_information,
+                        color: Colors.white,
                       ),
                     ),
                     onTap: () {
@@ -109,12 +104,8 @@ class _LibraryViewState extends State<LibraryView> {
                     context,
                     tag: 'PHASE 2 · REHABILITATION',
                     title: 'Post-op',
-                    gradientColors: const [
-                      Color(0xFF0D9488),
-                      Color(0xFF059669),
-                      Color(0xFF10B981),
-                    ],
-                    shadowColor: const Color(0xFF0D9488),
+                    gradientColors: AppColors.postOpGradient,
+                    shadowColor: AppColors.postOpAccent,
                     iconWidget: const Icon(
                       Icons.healing_rounded,
                       color: Colors.white,
@@ -137,30 +128,30 @@ class _LibraryViewState extends State<LibraryView> {
                   const SizedBox(height: 22),
 
                   // Games Colorful Card
-                  _buildColorfulCategoryCard(
-                    context,
-                    tag: 'BRAIN TRAINING · 3 GAMES',
-                    title: 'Games',
-                    gradientColors: const [
-                      Color(0xFF1E1B4B),
-                      Color(0xFF4338CA),
-                      Color(0xFF6366F1),
-                    ],
-                    shadowColor: const Color(0xFF4338CA),
-                    iconWidget: const Icon(
-                      Icons.sports_esports_rounded,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const GamesView(),
-                        ),
-                      );
-                    },
-                  ),
+                  // _buildColorfulCategoryCard(
+                  //   context,
+                  //   tag: 'BRAIN TRAINING · 3 GAMES',
+                  //   title: 'Games',
+                  //   gradientColors: const [
+                  //     Color(0xFF1E1B4B),
+                  //     Color(0xFF4338CA),
+                  //     Color(0xFF6366F1),
+                  //   ],
+                  //   shadowColor: const Color(0xFF4338CA),
+                  //   iconWidget: const Icon(
+                  //     Icons.sports_esports_rounded,
+                  //     color: Colors.white,
+                  //     size: 26,
+                  //   ),
+                  //   onTap: () {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => const GamesView(),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                 ],
               ),
             ),

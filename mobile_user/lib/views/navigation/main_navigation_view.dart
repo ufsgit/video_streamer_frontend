@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 import '../../widgets/daily_reminder_dialog.dart';
 import '../library/library_view.dart';
 import '../profile/profile_view.dart';
@@ -15,11 +16,7 @@ class MainNavigationView extends StatefulWidget {
 class _MainNavigationViewState extends State<MainNavigationView> {
   late int _currentIndex;
 
-  final List<Widget> _screens = const [
-    // HomeView(),
-    LibraryView(),
-    ProfileView(),
-  ];
+  final List<Widget> _screens = const [LibraryView(), ProfileView()];
 
   @override
   void initState() {
@@ -40,32 +37,21 @@ class _MainNavigationViewState extends State<MainNavigationView> {
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border(
+          color: AppColors.surface,
+          border: const Border(
             top: BorderSide(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: AppColors.border,
               width: 1,
             ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+          boxShadow: AppColors.subtleShadow,
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // _buildNavItem(
-                //   index: 0,
-                //   icon: Icons.home_rounded,
-                //   label: 'Home',
-                // ),
                 _buildNavItem(
                   index: 0,
                   icon: Icons.article_outlined,
@@ -90,8 +76,6 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     required String label,
   }) {
     final bool isSelected = _currentIndex == index;
-    const Color activeColor = Color(0xFF5B67F6);
-    const Color inactiveColor = Color(0xFF94A3B8);
 
     return GestureDetector(
       onTap: () {
@@ -101,14 +85,14 @@ class _MainNavigationViewState extends State<MainNavigationView> {
       },
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: isSelected ? activeColor : inactiveColor,
-              size: 26,
+              color: isSelected ? AppColors.primary : AppColors.textMuted,
+              size: 24,
             ),
             const SizedBox(height: 4),
             Text(
@@ -116,7 +100,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? activeColor : inactiveColor,
+                color: isSelected ? AppColors.primary : AppColors.textMuted,
                 letterSpacing: -0.1,
               ),
             ),
