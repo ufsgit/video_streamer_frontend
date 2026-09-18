@@ -1,0 +1,814 @@
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+import '../../services/api_service.dart';
+import 'create_patient_dialog.dart';
+import '../../viewmodels/patients_list_viewmodel.dart';
+import '../../models/user_model.dart';
+import 'patient_detail_view.dart';
+
+class PatientsListView extends StatefulWidget {
+  const PatientsListView({super.key});
+
+  @override
+  State<PatientsListView> createState() => _PatientsListViewState();
+}
+
+class _PatientsListViewState extends State<PatientsListView> {
+  final PatientsListViewModel _viewModel = PatientsListViewModel();
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _viewModel.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _viewModel.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await showDialog<bool>(
+            context: context,
+            builder: (context) => const CreatePatientDialog(),
+          );
+          if (result == true) {
+            _viewModel.fetchPatients();
+          }
+        },
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text("Add Patient"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Patients",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "Manage and view patient information and progress.",
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (val) {
+                      _viewModel.searchPatients(val);
+                      setState(() {});
+                    },
+                    onSubmitted: (val) {
+                      _viewModel.fetchPatients(search: val, page: 1);
+                    },
+                    decoration: InputDecoration(
+                      hintText: "Search patients by name or phonenumber...",
+                      hintStyle: const TextStyle(
+                        fontSize: 13.5,
+                        color: Color(0xFF94A3B8),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        size: 20,
+                        color: Color(0xFF64748B),
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                _viewModel.clearSearch();
+                                setState(() {});
+                              },
+                            )
+                          : null,
+                      filled: true,
+                      fillColor: Colors.white,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppTheme.primaryBlue,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Expanded(child: _buildPatientsContent()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPatientsContent() {
+    if (_viewModel.isLoading && _viewModel.patients.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.primaryBlue),
+      );
+    }
+
+    if (_viewModel.patients.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.people_outline_rounded,
+              size: 56,
+              color: Colors.grey.shade400,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _viewModel.errorMessage ?? "No patients registered yet.",
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _viewModel.fetchPatients(),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text("Refresh List"),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.primaryBlue,
+                side: const BorderSide(color: AppTheme.primaryBlue),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              int crossAxisCount = 3;
+              if (constraints.maxWidth < 750) {
+                crossAxisCount = 1;
+              } else if (constraints.maxWidth < 1100) {
+                crossAxisCount = 2;
+              }
+
+              return GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                  mainAxisExtent: 172,
+                ),
+                itemCount: _viewModel.patients.length,
+                itemBuilder: (context, index) {
+                  final patient = _viewModel.patients[index];
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: InkWell(
+                      onTap: () async {
+                        final result = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                PatientDetailView(patient: patient),
+                          ),
+                        );
+                        if (result == true) {
+                          _viewModel.fetchPatients();
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: _buildPatientCard(patient),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildPaginationBar(),
+      ],
+    );
+  }
+
+  Widget _buildPaginationBar() {
+    if (_viewModel.patients.isEmpty) return const SizedBox.shrink();
+
+    final startIndex =
+        (_viewModel.currentPage - 1) * PatientsListViewModel.pageSize + 1;
+    final endIndex =
+        (_viewModel.currentPage - 1) * PatientsListViewModel.pageSize +
+        _viewModel.patients.length;
+    final total = _viewModel.totalPatients > 0
+        ? _viewModel.totalPatients
+        : endIndex;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 500;
+
+        if (isMobile) {
+          return Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(8),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Showing $startIndex–$endIndex of $total patients",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton(
+                        onPressed: _viewModel.hasPreviousPage && !_viewModel.isLoading
+                            ? () => _viewModel.previousPage()
+                            : null,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          minimumSize: const Size(0, 32),
+                          foregroundColor: AppTheme.primaryBlue,
+                          disabledForegroundColor: Colors.grey.shade400,
+                          side: BorderSide(
+                            color: _viewModel.hasPreviousPage
+                                ? Colors.grey.shade300
+                                : Colors.grey.shade200,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.chevron_left, size: 16),
+                            SizedBox(width: 2),
+                            Text("Prev", style: TextStyle(fontSize: 12, color: Colors.black)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.blueBg,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppTheme.blueBorder,
+                          ),
+                        ),
+                        child: Text(
+                          "P. ${_viewModel.currentPage}${_viewModel.totalPages > 1 ? '/${_viewModel.totalPages}' : ''}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.blueText,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      OutlinedButton(
+                        onPressed: _viewModel.hasNextPage && !_viewModel.isLoading
+                            ? () => _viewModel.nextPage()
+                            : null,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          minimumSize: const Size(0, 32),
+                          foregroundColor: AppTheme.primaryBlue,
+                          disabledForegroundColor: Colors.grey.shade400,
+                          side: BorderSide(
+                            color: _viewModel.hasNextPage
+                                ? Colors.grey.shade300
+                                : Colors.grey.shade200,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text("Next", style: TextStyle(fontSize: 12, color: Colors.black)),
+                            SizedBox(width: 2),
+                            Icon(Icons.chevron_right, size: 16),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(8),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Showing $startIndex–$endIndex of $total patients",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _viewModel.hasPreviousPage && !_viewModel.isLoading
+                          ? () => _viewModel.previousPage()
+                          : null,
+                      icon: const Icon(Icons.chevron_left, size: 18),
+                      label: const Text(
+                        "Previous",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: AppTheme.primaryBlue,
+                        disabledForegroundColor: Colors.grey.shade400,
+                        side: BorderSide(
+                          color: _viewModel.hasPreviousPage
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade200,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.blueBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppTheme.blueBorder,
+                        ),
+                      ),
+                      child: Text(
+                        "Page ${_viewModel.currentPage}${_viewModel.totalPages > 1 ? ' of ${_viewModel.totalPages}' : ''}",
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.blueText,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: _viewModel.hasNextPage && !_viewModel.isLoading
+                          ? () => _viewModel.nextPage()
+                          : null,
+                      icon: const Icon(Icons.chevron_right, size: 18),
+                      iconAlignment: IconAlignment.end,
+                      label: const Text(
+                        "Next",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        foregroundColor: AppTheme.primaryBlue,
+                        disabledForegroundColor: Colors.grey.shade400,
+                        side: BorderSide(
+                          color: _viewModel.hasNextPage
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade200,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPatientCard(UserModel patient) {
+    final isActive =
+        patient.status.toLowerCase() == "active" || patient.status.isEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Top Row: Avatar & Details
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPatientAvatar(patient),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            patient.name.isNotEmpty
+                                ? patient.name
+                                : (patient.username.isNotEmpty
+                                      ? patient.username
+                                      : 'Unnamed'),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.5,
+                              color: AppTheme.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? AppTheme.emeraldBg
+                                : AppTheme.borderSubtle,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isActive
+                                  ? AppTheme.emeraldBorder
+                                  : AppTheme.border,
+                            ),
+                          ),
+                          child: Text(
+                            isActive ? "Active" : patient.status,
+                            style: TextStyle(
+                              color: isActive
+                                  ? AppTheme.emeraldText
+                                  : AppTheme.textSecondary,
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${patient.age > 0 ? '${patient.age} yrs' : 'Age N/A'} • ${patient.gender}${patient.language.isNotEmpty ? ' • ${patient.language}' : ''}",
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 11.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.phone_outlined,
+                          size: 11,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            patient.phone.isNotEmpty ? patient.phone : "N/A",
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.email_outlined,
+                          size: 11,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            patient.email.isNotEmpty ? patient.email : "N/A",
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11.5,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const Divider(height: 15, color: AppTheme.borderSubtle),
+
+          // Bottom Metadata Row
+          Row(
+            children: [
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 11,
+                color: AppTheme.textSecondary,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  _formatDate(patient.date),
+                  style: const TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontSize: 10.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.local_fire_department_outlined,
+                size: 11,
+                color: AppTheme.amber,
+              ),
+              const SizedBox(width: 3),
+              Text(
+                patient.streak.isNotEmpty ? patient.streak : "0 days",
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.chevron_right,
+                size: 14,
+                color: AppTheme.textMuted,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPatientAvatar(UserModel patient) {
+    final photoUrl = patient.imageUrl.trim();
+    final bool hasImage =
+        photoUrl.isNotEmpty &&
+        photoUrl.toLowerCase() != 'null' &&
+        photoUrl.toLowerCase() != 'n/a' &&
+        photoUrl.toLowerCase() != 'undefined' &&
+        photoUrl.toLowerCase() != 'none';
+
+    // If no image is provided, display initial letters directly
+    if (!hasImage) {
+      return _buildInitialsAvatar(patient);
+    }
+
+    final fullUrl = ApiService().getFullImageUrl(photoUrl);
+
+    // If Base64 string, render immediately with initials fallback on error
+    if (fullUrl.startsWith('data:image')) {
+      try {
+        final commaIndex = fullUrl.indexOf(',');
+        if (commaIndex != -1) {
+          final bytes = base64Decode(fullUrl.substring(commaIndex + 1));
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              bytes,
+              width: 46,
+              height: 46,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildInitialsAvatar(patient),
+            ),
+          );
+        }
+      } catch (_) {
+        return _buildInitialsAvatar(patient);
+      }
+    }
+
+    return FutureBuilder<Uint8List?>(
+      future: ApiService().fetchImageBytes(photoUrl),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done &&
+            snapshot.data != null &&
+            snapshot.data!.isNotEmpty) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              snapshot.data!,
+              width: 46,
+              height: 46,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildInitialsAvatar(patient),
+            ),
+          );
+        }
+
+        // Try direct Image.network with tunnel headers as secondary
+        if (fullUrl.startsWith('http://') || fullUrl.startsWith('https://')) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              fullUrl,
+              width: 46,
+              height: 46,
+              headers: const {
+                'bypass-tunnel-reminder': 'true',
+                'X-Tunnel-Bypass': 'true',
+              },
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) =>
+                  _buildInitialsAvatar(patient),
+            ),
+          );
+        }
+
+        return _buildInitialsAvatar(patient);
+      },
+    );
+  }
+
+  Widget _buildInitialsAvatar(UserModel patient) {
+    final rawName = patient.name.trim().isNotEmpty
+        ? patient.name.trim()
+        : (patient.username.trim().isNotEmpty
+              ? patient.username.trim()
+              : 'Patient');
+    final parts = rawName
+        .split(RegExp(r'\s+'))
+        .where((e) => e.isNotEmpty)
+        .toList();
+    String initials = '';
+    if (parts.length >= 2) {
+      initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+      initials = parts[0][0].toUpperCase();
+    } else {
+      initials = 'P';
+    }
+
+    final avatarColor = AppTheme.getAvatarPalette(rawName);
+
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        color: avatarColor['bg'],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: avatarColor['border']!),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: avatarColor['fg'],
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(String rawDate) {
+    if (rawDate.isEmpty) return "Today";
+    if (rawDate.length >= 10) {
+      return rawDate.substring(0, 10);
+    }
+    return rawDate;
+  }
+}
