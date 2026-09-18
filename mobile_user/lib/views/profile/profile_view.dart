@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/constants/api_constants.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/theme/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../auth/login_view.dart';
@@ -85,7 +86,7 @@ class _ProfileViewState extends State<ProfileView> {
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF7F9FC),
+          backgroundColor: AppColors.background,
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(
@@ -96,15 +97,16 @@ class _ProfileViewState extends State<ProfileView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Top Bar (Profile Title + Settings Icon)
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Profile',
                         style: TextStyle(
-                          fontSize: 22,
+                          fontSize: 24,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF152C5B),
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.5,
                         ),
                       ),
                     ],
@@ -116,14 +118,10 @@ class _ProfileViewState extends State<ProfileView> {
                   Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppColors.subtleShadow,
                     ),
                     child: Column(
                       children: [
@@ -136,7 +134,7 @@ class _ProfileViewState extends State<ProfileView> {
                               topRight: Radius.circular(24),
                             ),
                             gradient: LinearGradient(
-                              colors: [Color(0xFF4A80F0), Color(0xFF7A68EE)],
+                              colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -147,7 +145,7 @@ class _ProfileViewState extends State<ProfileView> {
                         Container(
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                           decoration: const BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.only(
                               bottomLeft: Radius.circular(24),
                               bottomRight: Radius.circular(24),
@@ -165,21 +163,13 @@ class _ProfileViewState extends State<ProfileView> {
                                       width: 72,
                                       height: 72,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFEFF4FF),
+                                        color: AppColors.primaryLight,
                                         shape: BoxShape.circle,
                                         border: Border.all(
                                           color: Colors.white,
                                           width: 4,
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.08,
-                                            ),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        ],
+                                        boxShadow: AppColors.subtleShadow,
                                       ),
                                       child: Center(
                                         child: Text(
@@ -190,7 +180,7 @@ class _ProfileViewState extends State<ProfileView> {
                                                           .toUpperCase()
                                                     : 'U'),
                                           style: const TextStyle(
-                                            color: Color(0xFF0052CC),
+                                            color: AppColors.primary,
                                             fontSize: 24,
                                             fontWeight: FontWeight.w800,
                                           ),
@@ -213,7 +203,7 @@ class _ProfileViewState extends State<ProfileView> {
                                       style: const TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w800,
-                                        color: Color(0xFF101828),
+                                        color: AppColors.textPrimary,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -226,10 +216,10 @@ class _ProfileViewState extends State<ProfileView> {
                                                 : 'Member since...',
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w500,
-                                              color: Colors.grey.shade600,
+                                              color: AppColors.textSecondary,
                                             ),
                                           ),
                                         ),
@@ -240,7 +230,7 @@ class _ProfileViewState extends State<ProfileView> {
                                             vertical: 3,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFFECFDF3),
+                                            color: AppColors.successLight,
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
@@ -251,7 +241,7 @@ class _ProfileViewState extends State<ProfileView> {
                                               Icon(
                                                 Icons.check_rounded,
                                                 size: 12,
-                                                color: Color(0xFF027A48),
+                                                color: AppColors.success,
                                               ),
                                               SizedBox(width: 4),
                                               Text(
@@ -259,7 +249,7 @@ class _ProfileViewState extends State<ProfileView> {
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,
-                                                  color: Color(0xFF027A48),
+                                                  color: AppColors.success,
                                                 ),
                                               ),
                                             ],
@@ -286,15 +276,10 @@ class _ProfileViewState extends State<ProfileView> {
                       horizontal: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppColors.subtleShadow,
                     ),
                     child: Row(
                       children: [
@@ -304,13 +289,13 @@ class _ProfileViewState extends State<ProfileView> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFFF0F4FE),
+                                  color: AppColors.primaryLight,
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
                                   Icons.access_time_rounded,
                                   size: 18,
-                                  color: Color(0xFF0052CC),
+                                  color: AppColors.primary,
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -321,7 +306,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF101828),
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
                               ),
@@ -331,7 +316,7 @@ class _ProfileViewState extends State<ProfileView> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF667085),
+                                  color: AppColors.textSecondary,
                                   letterSpacing: 0.4,
                                 ),
                               ),
@@ -341,7 +326,7 @@ class _ProfileViewState extends State<ProfileView> {
                         Container(
                           height: 40,
                           width: 1,
-                          color: const Color(0xFFF2F4F7),
+                          color: AppColors.divider,
                         ),
                         Expanded(
                           child: Column(
@@ -349,13 +334,13 @@ class _ProfileViewState extends State<ProfileView> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFFF4F3FF),
+                                  color: AppColors.primaryLight,
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
                                   Icons.play_arrow_rounded,
                                   size: 18,
-                                  color: Color(0xFF5B61F6),
+                                  color: AppColors.primary,
                                 ),
                               ),
                               const SizedBox(height: 10),
@@ -366,7 +351,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF101828),
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
                               ),
@@ -376,7 +361,7 @@ class _ProfileViewState extends State<ProfileView> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF667085),
+                                  color: AppColors.textSecondary,
                                   letterSpacing: 0.4,
                                 ),
                               ),
@@ -386,7 +371,7 @@ class _ProfileViewState extends State<ProfileView> {
                         Container(
                           height: 40,
                           width: 1,
-                          color: const Color(0xFFF2F4F7),
+                          color: AppColors.divider,
                         ),
                         Expanded(
                           child: Column(
@@ -413,7 +398,7 @@ class _ProfileViewState extends State<ProfileView> {
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF101828),
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
                               ),
@@ -423,7 +408,7 @@ class _ProfileViewState extends State<ProfileView> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF667085),
+                                  color: AppColors.textSecondary,
                                   letterSpacing: 0.4,
                                 ),
                               ),
@@ -442,7 +427,7 @@ class _ProfileViewState extends State<ProfileView> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF667085),
+                      color: AppColors.textSecondary,
                       letterSpacing: 0.6,
                     ),
                   ),
@@ -453,15 +438,10 @@ class _ProfileViewState extends State<ProfileView> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppColors.subtleShadow,
                     ),
                     child: Row(
                       children: [
@@ -493,7 +473,7 @@ class _ProfileViewState extends State<ProfileView> {
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF101828),
+                                  color: AppColors.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -504,7 +484,7 @@ class _ProfileViewState extends State<ProfileView> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF667085),
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -513,7 +493,7 @@ class _ProfileViewState extends State<ProfileView> {
                         const SizedBox(width: 8),
                         const Icon(
                           Icons.chevron_right_rounded,
-                          color: Color(0xFF98A2B3),
+                          color: AppColors.textMuted,
                           size: 24,
                         ),
                       ],
@@ -528,7 +508,7 @@ class _ProfileViewState extends State<ProfileView> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF667085),
+                      color: AppColors.textSecondary,
                       letterSpacing: 0.6,
                     ),
                   ),
@@ -538,15 +518,10 @@ class _ProfileViewState extends State<ProfileView> {
                   // Settings Options Container
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppColors.subtleShadow,
                     ),
                     child: Column(
                       children: [
@@ -574,7 +549,7 @@ class _ProfileViewState extends State<ProfileView> {
                             }
                           },
                         ),
-                        const Divider(height: 1, color: Color(0xFFF2F4F7)),
+                        const Divider(height: 1, color: AppColors.divider),
                         _buildSettingsTile(
                           icon: Icons.notifications_none_rounded,
                           title: 'Notification settings',
@@ -588,7 +563,7 @@ class _ProfileViewState extends State<ProfileView> {
                             );
                           },
                         ),
-                        const Divider(height: 1, color: Color(0xFFF2F4F7)),
+                        const Divider(height: 1, color: AppColors.divider),
                         ValueListenableBuilder(
                           valueListenable: Hive.box('settings').listenable(keys: ['selected_language']),
                           builder: (context, box, _) {
@@ -601,12 +576,12 @@ class _ProfileViewState extends State<ProfileView> {
                             );
                           },
                         ),
-                        const Divider(height: 1, color: Color(0xFFF2F4F7)),
+                        const Divider(height: 1, color: AppColors.divider),
                         _buildSettingsTile(
                           icon: Icons.logout_rounded,
                           title: 'Log out',
-                          iconColor: Colors.redAccent,
-                          textColor: Colors.redAccent,
+                          iconColor: AppColors.error,
+                          textColor: AppColors.error,
                           onTap: _onLogout,
                         ),
                       ],
@@ -641,8 +616,8 @@ class _ProfileViewState extends State<ProfileView> {
     required String title,
     String? subtitle,
     required VoidCallback onTap,
-    Color iconColor = const Color(0xFF0052CC),
-    Color textColor = const Color(0xFF101828),
+    Color iconColor = AppColors.primary,
+    Color textColor = AppColors.textPrimary,
   }) {
     return Material(
       color: Colors.transparent,
@@ -670,13 +645,13 @@ class _ProfileViewState extends State<ProfileView> {
                 subtitle,
                 style: const TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF6C757D),
+                  color: AppColors.textSecondary,
                 ),
               )
             : null,
         trailing: const Icon(
           Icons.chevron_right_rounded,
-          color: Color(0xFF98A2B3),
+          color: AppColors.textMuted,
           size: 22,
         ),
       ),
@@ -896,13 +871,13 @@ class _LanguageSelectionBottomSheetState
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? const Color(0xFF0052CC).withValues(alpha: 0.06)
-                            : const Color(0xFFF8FAFC),
+                            ? AppColors.primaryLight
+                            : AppColors.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isSelected
-                              ? const Color(0xFF0052CC)
-                              : const Color(0xFFE2E8F0),
+                              ? AppColors.primary
+                              : AppColors.border,
                           width: isSelected ? 1.5 : 1,
                         ),
                       ),
@@ -913,8 +888,8 @@ class _LanguageSelectionBottomSheetState
                                 ? Icons.radio_button_checked_rounded
                                 : Icons.radio_button_off_rounded,
                             color: isSelected
-                                ? const Color(0xFF0052CC)
-                                : const Color(0xFF94A3B8),
+                                ? AppColors.primary
+                                : AppColors.textMuted,
                             size: 20,
                           ),
                           const SizedBox(width: 12),
@@ -927,8 +902,8 @@ class _LanguageSelectionBottomSheetState
                                     ? FontWeight.bold
                                     : FontWeight.w500,
                                 color: isSelected
-                                    ? const Color(0xFF0052CC)
-                                    : const Color(0xFF1E293B),
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
                               ),
                             ),
                           ),
@@ -938,7 +913,7 @@ class _LanguageSelectionBottomSheetState
                               height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Color(0xFF0052CC),
+                                color: AppColors.primary,
                               ),
                             ),
                         ],
