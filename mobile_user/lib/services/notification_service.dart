@@ -35,7 +35,8 @@ class NotificationService {
           timeZoneName = rawZone;
         } else {
           try {
-            timeZoneName = (rawZone.name ?? rawZone.id ?? rawZone.title ?? '').toString();
+            timeZoneName = (rawZone.name ?? rawZone.id ?? rawZone.title ?? '')
+                .toString();
           } catch (_) {
             timeZoneName = rawZone.toString();
           }
@@ -61,16 +62,16 @@ class NotificationService {
 
       const DarwinInitializationSettings initializationSettingsDarwin =
           DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
-      );
+            requestAlertPermission: true,
+            requestBadgePermission: true,
+            requestSoundPermission: true,
+          );
 
       const InitializationSettings initializationSettings =
           InitializationSettings(
-        android: initializationSettingsAndroid,
-        iOS: initializationSettingsDarwin,
-      );
+            android: initializationSettingsAndroid,
+            iOS: initializationSettingsDarwin,
+          );
 
       await _notificationsPlugin.initialize(
         initializationSettings,
@@ -83,7 +84,8 @@ class NotificationService {
       if (!kIsWeb && Platform.isAndroid) {
         final androidImplementation = _notificationsPlugin
             .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>();
+              AndroidFlutterLocalNotificationsPlugin
+            >();
         const AndroidNotificationChannel channel = AndroidNotificationChannel(
           channelId,
           channelName,
@@ -101,7 +103,11 @@ class NotificationService {
       // 4. If reminder is already enabled in settings, ensure it is scheduled
       if (isReminderEnabled) {
         final time = getReminderTime();
-        await scheduleDailyReminder(hour: time.hour, minute: time.minute, persist: false);
+        await scheduleDailyReminder(
+          hour: time.hour,
+          minute: time.minute,
+          persist: false,
+        );
       }
     } catch (e) {
       debugPrint('NotificationService initialize error: $e');
@@ -114,15 +120,17 @@ class NotificationService {
       if (Platform.isAndroid) {
         final androidImplementation = _notificationsPlugin
             .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>();
-        final bool? androidGranted =
-            await androidImplementation?.requestNotificationsPermission();
+              AndroidFlutterLocalNotificationsPlugin
+            >();
+        final bool? androidGranted = await androidImplementation
+            ?.requestNotificationsPermission();
         await androidImplementation?.requestExactAlarmsPermission();
         return androidGranted ?? true;
       } else if (Platform.isIOS) {
         final iosImplementation = _notificationsPlugin
             .resolvePlatformSpecificImplementation<
-                IOSFlutterLocalNotificationsPlugin>();
+              IOSFlutterLocalNotificationsPlugin
+            >();
         final bool? iosGranted = await iosImplementation?.requestPermissions(
           alert: true,
           badge: true,
@@ -145,15 +153,15 @@ class NotificationService {
 
       const AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
-        channelId,
-        channelName,
-        channelDescription: channelDescription,
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: true,
-        enableVibration: true,
-        icon: '@mipmap/ic_launcher',
-      );
+            channelId,
+            channelName,
+            channelDescription: channelDescription,
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            icon: '@mipmap/ic_launcher',
+          );
 
       const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
         presentAlert: true,
@@ -168,8 +176,8 @@ class NotificationService {
 
       await _notificationsPlugin.show(
         999,
-        'Daily Video Reminder 🎬',
-        'Time to watch your assigned video for today!',
+        'Daily Video Reminder',
+        'Time to watch your videos',
         notificationDetails,
       );
     } catch (e) {
@@ -192,7 +200,9 @@ class NotificationService {
     }
 
     if (kIsWeb) {
-      debugPrint('Local notifications/alarms are not supported on Web browsers.');
+      debugPrint(
+        'Local notifications/alarms are not supported on Web browsers.',
+      );
       return;
     }
 
@@ -205,17 +215,17 @@ class NotificationService {
 
       const AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
-        channelId,
-        channelName,
-        channelDescription: channelDescription,
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: true,
-        enableVibration: true,
-        icon: '@mipmap/ic_launcher',
-        showWhen: true,
-        styleInformation: BigTextStyleInformation(''),
-      );
+            channelId,
+            channelName,
+            channelDescription: channelDescription,
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            icon: '@mipmap/ic_launcher',
+            showWhen: true,
+            styleInformation: BigTextStyleInformation(''),
+          );
 
       const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
         presentAlert: true,
@@ -230,8 +240,8 @@ class NotificationService {
 
       await _notificationsPlugin.zonedSchedule(
         dailyReminderId,
-        'Time to Watch Your Videos 🎬',
-        'Stay consistent on your health journey! Check out your assigned videos today.',
+        'Daily Video Reminder',
+        'Reminder to watch your videos',
         scheduledDate,
         notificationDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -239,28 +249,31 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
-      debugPrint('Daily reminder scheduled for $hour:${minute.toString().padLeft(2, '0')} (scheduled epoch: ${scheduledDate.millisecondsSinceEpoch})');
+      debugPrint(
+        'Daily reminder scheduled for $hour:${minute.toString().padLeft(2, '0')} (scheduled epoch: ${scheduledDate.millisecondsSinceEpoch})',
+      );
     } catch (e) {
       debugPrint('Error scheduling exact alarm, falling back to inexact: $e');
       try {
         final tz.TZDateTime scheduledDate = _nextInstanceOfTime(hour, minute);
         const AndroidNotificationDetails androidDetails =
             AndroidNotificationDetails(
-          channelId,
-          channelName,
-          channelDescription: channelDescription,
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          icon: '@mipmap/ic_launcher',
-        );
+              channelId,
+              channelName,
+              channelDescription: channelDescription,
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
+              enableVibration: true,
+              icon: '@mipmap/ic_launcher',
+            );
 
-        const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        );
+        const DarwinNotificationDetails darwinDetails =
+            DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            );
 
         const NotificationDetails notificationDetails = NotificationDetails(
           android: androidDetails,
@@ -269,8 +282,8 @@ class NotificationService {
 
         await _notificationsPlugin.zonedSchedule(
           dailyReminderId,
-          'Time to Watch Your Videos 🎬',
-          'Stay consistent on your health journey! Check out your assigned videos today.',
+          'Daily Video Reminder',
+          'Reminder to watch your videos',
           scheduledDate,
           notificationDetails,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
