@@ -220,7 +220,69 @@ class NotificationService {
     }
   }
 
-  Future<void> scheduleDailyReminder({
+  /// Schedules a test reminder that fires in [seconds] from now
+  Future<void> scheduleTestReminderInSeconds({int seconds = 10}) async {
+    if (kIsWeb) return;
+    try {
+      await initialize();
+      await requestPermissions();
+
+      final tz.TZDateTime scheduledDate = tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds));
+
+      const AndroidNotificationDetails androidDetails =
+          AndroidNotificationDetails(
+            channelId,
+            channelName,
+            channelDescription: channelDescription,
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+            icon: '@mipmap/ic_launcher',
+          );
+
+      const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const NotificationDetails notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: darwinDetails,
+      );
+
+      try {
+        await _notificationsPlugin.zonedSchedule(
+          998,
+          'Daily Video Reminder',
+          'Reminder to watch your videos',
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      } catch (e) {
+        debugPrint('exactAllowWhileIdle failed: $e, falling back to inexact');
+        await _notificationsPlugin.zonedSchedule(
+          998,
+          'Daily Video Reminder',
+          'Reminder to watch your videos',
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+      }
+      debugPrint('Test reminder scheduled for $seconds seconds from now ($scheduledDate)');
+    } catch (e) {
+      debugPrint('Error scheduling test reminder: $e');
+    }
+  }
+
+  Future<String> scheduleDailyReminder({
     required int hour,
     required int minute,
     bool persist = true,
@@ -238,7 +300,7 @@ class NotificationService {
       debugPrint(
         'Local notifications/alarms are not supported on Web browsers.',
       );
-      return;
+      return 'Web notifications not supported';
     }
 
     try {
@@ -247,6 +309,14 @@ class NotificationService {
       await cancelDailyReminder(persist: false);
 
       final tz.TZDateTime scheduledDate = _nextInstanceOfTime(hour, minute);
+      final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+      final difference = scheduledDate.difference(now);
+      final isToday = scheduledDate.day == now.day && scheduledDate.month == now.month && scheduledDate.year == now.year;
+      final timeStr = '${(hour % 12 == 0 ? 12 : hour % 12).toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}';
+      
+      final String scheduledSummary = isToday
+          ? 'Today at $timeStr (in ${difference.inHours > 0 ? '${difference.inHours}h ' : ''}${difference.inMinutes % 60}m)'
+          : 'Tomorrow at $timeStr';
 
       const AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
@@ -258,8 +328,6 @@ class NotificationService {
             playSound: true,
             enableVibration: true,
             icon: '@mipmap/ic_launcher',
-            showWhen: true,
-            styleInformation: BigTextStyleInformation(''),
           );
 
       const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
@@ -273,48 +341,22 @@ class NotificationService {
         iOS: darwinDetails,
       );
 
-      await _notificationsPlugin.zonedSchedule(
-        dailyReminderId,
-        'Daily Video Reminder',
-        'Reminder to watch your videos',
-        scheduledDate,
-        notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
-      );
-      debugPrint(
-        'Daily reminder scheduled for $hour:${minute.toString().padLeft(2, '0')} (scheduled epoch: ${scheduledDate.millisecondsSinceEpoch})',
-      );
-    } catch (e) {
-      debugPrint('Error scheduling exact alarm, falling back to inexact: $e');
       try {
-        final tz.TZDateTime scheduledDate = _nextInstanceOfTime(hour, minute);
-        const AndroidNotificationDetails androidDetails =
-            AndroidNotificationDetails(
-              channelId,
-              channelName,
-              channelDescription: channelDescription,
-              importance: Importance.max,
-              priority: Priority.high,
-              playSound: true,
-              enableVibration: true,
-              icon: '@mipmap/ic_launcher',
-            );
-
-        const DarwinNotificationDetails darwinDetails =
-            DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            );
-
-        const NotificationDetails notificationDetails = NotificationDetails(
-          android: androidDetails,
-          iOS: darwinDetails,
+        await _notificationsPlugin.zonedSchedule(
+          dailyReminderId,
+          'Daily Video Reminder',
+          'Reminder to watch your videos',
+          scheduledDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.time,
         );
-
+        debugPrint('Daily reminder scheduled for $scheduledDate (Summary: $scheduledSummary)');
+        return scheduledSummary;
+      } catch (e) {
+        debugPrint('exactAllowWhileIdle mode failed ($e), trying inexact...');
         await _notificationsPlugin.zonedSchedule(
           dailyReminderId,
           'Daily Video Reminder',
@@ -326,9 +368,11 @@ class NotificationService {
               UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time,
         );
-      } catch (inner) {
-        debugPrint('Failed to schedule daily reminder: $inner');
+        return scheduledSummary;
       }
+    } catch (e) {
+      debugPrint('Failed to schedule daily reminder: $e');
+      return 'Failed: $e';
     }
   }
 

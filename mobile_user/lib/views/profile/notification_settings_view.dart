@@ -53,7 +53,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         }
 
         await _notificationService.requestPermissions();
-        await _notificationService.scheduleDailyReminder(
+        final summary = await _notificationService.scheduleDailyReminder(
           hour: _reminderTime.hour,
           minute: _reminderTime.minute,
           persist: true,
@@ -68,7 +68,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                 borderRadius: BorderRadius.circular(10),
               ),
               content: Text(
-                'Daily reminders enabled for ${_formatTime(_reminderTime)}',
+                'Daily reminder scheduled: $summary',
                 style: const TextStyle(fontSize: 13, color: Colors.white),
               ),
             ),
@@ -116,7 +116,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
       });
 
       if (_isReminderEnabled) {
-        await _notificationService.scheduleDailyReminder(
+        final summary = await _notificationService.scheduleDailyReminder(
           hour: picked.hour,
           minute: picked.minute,
           persist: true,
@@ -131,7 +131,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                 borderRadius: BorderRadius.circular(10),
               ),
               content: Text(
-                'Reminder time updated to ${_formatTime(picked)}',
+                'Reminder scheduled: $summary',
                 style: const TextStyle(fontSize: 13, color: Colors.white),
               ),
             ),
@@ -396,45 +396,6 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
                     ),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Test Notification Button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  await _notificationService.showTestNotification();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: const Color(0xFF12B76A),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        content: const Text(
-                          'Test notification sent! Check your notification tray.',
-                          style: TextStyle(fontSize: 13, color: Colors.white),
-                        ),
-                      ),
-                    );
-                  }
-                },
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF0052CC),
-                  side: const BorderSide(color: Color(0xFF0052CC)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(Icons.notifications_active_outlined, size: 18),
-                label: const Text(
-                  'Send Test Notification',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
               ),
             ),
           ],

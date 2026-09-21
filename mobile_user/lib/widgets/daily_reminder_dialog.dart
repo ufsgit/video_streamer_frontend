@@ -69,12 +69,13 @@ class _DailyReminderDialogState extends State<DailyReminderDialog> {
     setState(() => _isLoading = true);
     final service = NotificationService.instance;
 
+    String summary = '';
     try {
       // Request system permission
       await service.requestPermissions();
 
       // Schedule reminder and persist time
-      await service.scheduleDailyReminder(
+      summary = await service.scheduleDailyReminder(
         hour: _selectedTime.hour,
         minute: _selectedTime.minute,
         persist: true,
@@ -98,7 +99,9 @@ class _DailyReminderDialogState extends State<DailyReminderDialog> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Daily reminder set for ${_formatTime(_selectedTime)}! Change anytime in Profile Settings.',
+                    summary.isNotEmpty
+                        ? 'Reminder scheduled: $summary'
+                        : 'Daily reminder set for ${_formatTime(_selectedTime)}!',
                     style: const TextStyle(fontSize: 13, color: Colors.white),
                   ),
                 ),

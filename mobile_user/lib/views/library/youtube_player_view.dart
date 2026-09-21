@@ -26,32 +26,26 @@ class YoutubePlayerView extends StatefulWidget {
   State<YoutubePlayerView> createState() => _YoutubePlayerViewState();
 }
 
-class _YoutubePlayerViewState extends State<YoutubePlayerView> {
+class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindingObserver {
   YoutubePlayerController? _controller;
   StreamSubscription? _subscription;
-  Timer? _fallbackTimer;
 
   // ===========================================================================
   // PLAYBACK & PROGRESS TRACKING STATE
   // ===========================================================================
   String _extractedVideoId = '';
   double _currentPosition = 0.0;
-  double _lastPosition = 0.0;
   double _maxWatchedPosition = 0.0;
   double _videoDuration = 0.0;
-  bool _isSeekingBack = false;
+  Timer? _playbackTicker;
 
   double _savedResumePosition = 0.0;
+  double _lastSavedPositionToHive = 0.0;
   bool _isCompleted = false;
   PlayerState _lastPlayerState = PlayerState.unknown;
   bool _hasSeekedToResume = false;
-  bool _resumeEstablished = false;
 
   bool _isPlaying = false;
-  double _currentPlaybackRate = 1.0;
-
-  // Tolerance threshold (in seconds) for normal playback updates
-  static const double _normalPlaybackToleranceSecs = 3.0;
 
   String get _thumbnailUrl => _extractedVideoId.isNotEmpty
       ? 'https://img.youtube.com/vi/$_extractedVideoId/hqdefault.jpg'
@@ -60,6 +54,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _extractedVideoId =
         YoutubePlayerController.convertUrlToId(widget.videoUrl) ?? '';
 
@@ -67,7 +62,6 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
     final saved = VideoProgressManager.getProgress(widget.videoUrl);
     _savedResumePosition = saved.currentPosition;
     _currentPosition = saved.currentPosition;
-    _lastPosition = saved.currentPosition;
     _maxWatchedPosition = saved.currentPosition;
     _videoDuration = saved.totalDuration;
 
@@ -78,9 +72,6 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
     final double resumeSecs = (_savedResumePosition > 0 && !_isCompleted)
         ? _savedResumePosition
         : 0.0;
-    if (resumeSecs <= 0) {
-      _resumeEstablished = true;
-    }
 
     if (widget.controller != null) {
       _controller = widget.controller;
@@ -99,110 +90,10 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
       );
     }
 
-    // Fallback: unlock position updates after 3 seconds in case player never sends matching timestamp
-    if (resumeSecs > 0 && widget.customPlayerWidget == null) {
-      _fallbackTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted && !_resumeEstablished) {
-          setState(() {
-            _resumeEstablished = true;
-          });
-        }
-      });
-    }
-
     // Track playback stream & player states
     if (_controller != null) {
       _subscription = _controller!.listen((value) async {
         if (!mounted) return;
-
-        final double dur = await _controller!.duration;
-        final double pos = await _controller!.currentTime;
-
-        if (dur > 0 && _videoDuration != dur) {
-          setState(() {
-            _videoDuration = dur;
-          });
-        }
-
-        // When resuming, seek to the saved timestamp once the player starts
-        if (!_hasSeekedToResume && _savedResumePosition > 0 && !_isCompleted) {
-          if (value.playerState == PlayerState.playing ||
-              value.playerState == PlayerState.buffering ||
-              value.playerState == PlayerState.cued) {
-            _hasSeekedToResume = true;
-            _isSeekingBack = true;
-            await _controller!.seekTo(
-              seconds: _savedResumePosition,
-              allowSeekAhead: true,
-            );
-            _currentPosition = _savedResumePosition;
-            _lastPosition = _savedResumePosition;
-            _maxWatchedPosition =
-                _maxWatchedPosition > _savedResumePosition
-                    ? _maxWatchedPosition
-                    : _savedResumePosition;
-            _isSeekingBack = false;
-            return;
-          }
-        }
-
-        // Safeguard: ignore initial 0s ticks before player seeks to saved resume position
-        if (!_resumeEstablished) {
-          if (pos >= (_savedResumePosition - 1.5)) {
-            _resumeEstablished = true;
-            _currentPosition = pos;
-            _lastPosition = pos;
-            _maxWatchedPosition =
-                _maxWatchedPosition > pos ? _maxWatchedPosition : pos;
-          }
-          return;
-        }
-
-        // Forward-seek detection & enforcement
-        if (_isSeekingBack) {
-          if (pos <= _maxWatchedPosition + 0.5) {
-            _isSeekingBack = false;
-            _currentPosition = pos;
-            _lastPosition = pos;
-          }
-          return;
-        }
-
-        if (!_isCompleted && pos > 0) {
-          if (pos <= _maxWatchedPosition) {
-            _currentPosition = pos;
-            _lastPosition = pos;
-          } else {
-            final double forwardJumpFromLast = pos - _lastPosition;
-            final double forwardJumpFromMax = pos - _maxWatchedPosition;
-
-            final bool isNormalProgression =
-                forwardJumpFromLast >= 0 &&
-                forwardJumpFromLast <= _normalPlaybackToleranceSecs &&
-                forwardJumpFromMax <= _normalPlaybackToleranceSecs;
-
-            if (isNormalProgression) {
-              _currentPosition = pos;
-              _lastPosition = pos;
-              _maxWatchedPosition = pos;
-            } else {
-              _isSeekingBack = true;
-              await _controller!.seekTo(
-                seconds: _maxWatchedPosition,
-                allowSeekAhead: true,
-              );
-              _currentPosition = _maxWatchedPosition;
-              _lastPosition = _maxWatchedPosition;
-              _isSeekingBack = false;
-              return;
-            }
-          }
-        } else if (_isCompleted && pos > 0) {
-          _currentPosition = pos;
-          _lastPosition = pos;
-          _maxWatchedPosition =
-              _videoDuration > 0 ? _videoDuration : _maxWatchedPosition;
-        }
 
         final PlayerState currentState = value.playerState;
         final bool isCurrentlyPlaying = currentState == PlayerState.playing;
@@ -211,22 +102,45 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
             (_videoDuration > 0 &&
                 _maxWatchedPosition >= (_videoDuration - 1.0));
 
-        if (_isPlaying != isCurrentlyPlaying || _isCompleted != isDone) {
-          setState(() {
-            _isPlaying = isCurrentlyPlaying;
-            if (isDone) {
-              _isCompleted = true;
-              _maxWatchedPosition =
-                  _videoDuration > 0 ? _videoDuration : _maxWatchedPosition;
-            }
-          });
+        if (isCurrentlyPlaying) {
+          if (!_isPlaying) {
+            _isPlaying = true;
+            _startPlaybackTicker();
+          }
         } else {
-          setState(() {});
+          if (_isPlaying) {
+            _isPlaying = false;
+            _stopPlaybackTicker();
+          }
         }
+
+        // When resuming on initial start, seek once to saved timestamp
+        if (!_hasSeekedToResume && _savedResumePosition > 0 && !_isCompleted) {
+          if (currentState == PlayerState.playing ||
+              currentState == PlayerState.buffering ||
+              currentState == PlayerState.cued) {
+            _hasSeekedToResume = true;
+            try {
+              await _controller!.seekTo(
+                seconds: _savedResumePosition,
+                allowSeekAhead: true,
+              );
+            } catch (_) {}
+          }
+        }
+
+        if (isDone) {
+          _isCompleted = true;
+          _maxWatchedPosition =
+              _videoDuration > 0 ? _videoDuration : _maxWatchedPosition;
+        }
+
+        setState(() {});
 
         // Send to API and update Hive on pause
         if (currentState == PlayerState.paused &&
             _lastPlayerState != PlayerState.paused) {
+          _lastSavedPositionToHive = _maxWatchedPosition;
           _saveToHiveAndApi(
             current: _maxWatchedPosition,
             total: _videoDuration,
@@ -236,8 +150,11 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
 
         // Send to API and update Hive on finish
         if (ended && _lastPlayerState != PlayerState.ended) {
+          _lastSavedPositionToHive =
+              _videoDuration > 0 ? _videoDuration : _maxWatchedPosition;
           _saveToHiveAndApi(
-            current: _videoDuration > 0 ? _videoDuration : _maxWatchedPosition,
+            current:
+                _videoDuration > 0 ? _videoDuration : _maxWatchedPosition,
             total: _videoDuration,
             isCompleted: true,
           );
@@ -248,19 +165,80 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
     }
   }
 
-  void _togglePlayPause() {
-    if (_isPlaying) {
-      _controller?.pauseVideo();
-    } else {
-      _controller?.playVideo();
+  void _startPlaybackTicker() {
+    _playbackTicker?.cancel();
+    _playbackTicker = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
+      if (!mounted || _controller == null || !_isPlaying) return;
+      try {
+        final double pos = await _controller!.currentTime;
+        final double dur = await _controller!.duration;
+
+        if (!mounted) return;
+
+        if (dur > 0 && _videoDuration != dur) {
+          setState(() {
+            _videoDuration = dur;
+          });
+        }
+
+        if (pos > 0) {
+          // Anti-skip protection: If user jumped > 5s ahead of max watched
+          if (!_isCompleted &&
+              _maxWatchedPosition > 0 &&
+              pos > (_maxWatchedPosition + 5.0)) {
+            await _controller!.seekTo(
+              seconds: _maxWatchedPosition,
+              allowSeekAhead: true,
+            );
+          } else {
+            _currentPosition = pos;
+            if (pos > _maxWatchedPosition) {
+              _maxWatchedPosition = pos;
+            }
+
+            // Continuously persist to Hive every ~2 seconds
+            if ((_maxWatchedPosition - _lastSavedPositionToHive).abs() >= 2.0) {
+              _lastSavedPositionToHive = _maxWatchedPosition;
+              VideoProgressManager.saveProgress(
+                idOrUrl: widget.videoUrl,
+                currentPosition: _maxWatchedPosition,
+                totalDuration: _videoDuration,
+                isCompleted: _isCompleted,
+                videoId: widget.videoId,
+              );
+            }
+          }
+          setState(() {});
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _stopPlaybackTicker() {
+    _playbackTicker?.cancel();
+    _playbackTicker = null;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _onExitScreen();
     }
   }
 
-  void _changePlaybackRate(double rate) {
-    _controller?.setPlaybackRate(rate);
-    setState(() {
-      _currentPlaybackRate = rate;
-    });
+  void _togglePlayPause() {
+    if (_isPlaying) {
+      _controller?.pauseVideo();
+      _stopPlaybackTicker();
+      _saveToHiveAndApi(
+        current: _maxWatchedPosition,
+        total: _videoDuration,
+        isCompleted: _isCompleted,
+      );
+    } else {
+      _controller?.playVideo();
+      _startPlaybackTicker();
+    }
   }
 
   /// Saves progress to Hive first, then reads from Hive to send the payload to API
@@ -326,7 +304,8 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
 
   @override
   void dispose() {
-    _fallbackTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _stopPlaybackTicker();
     _onExitScreen();
     _subscription?.cancel();
     _controller?.close();
@@ -453,7 +432,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 2, 8, 2),
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A),
         border: Border(
@@ -463,160 +442,54 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> {
           ),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Row 1: Non-skippable Progress Line and Timestamps
-          Row(
-            children: [
-              Text(
-                _formatDuration(_currentPosition),
-                style: const TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: fraction,
-                    minHeight: 4,
-                    backgroundColor: const Color(0xFF334155),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Color(0xFF2563EB),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                _formatDuration(_videoDuration),
-                style: const TextStyle(
-                  color: Color(0xFF94A3B8),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
-            ],
+          Text(
+            _formatDuration(_currentPosition),
+            style: const TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
           ),
-
-          const SizedBox(height: 8),
-
-          // Row 2: Control Buttons (Play/Pause, Speed, Fullscreen)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Left: Play / Pause Button
-              Material(
-                color: const Color(0xFF2563EB),
-                shape: const CircleBorder(),
-                elevation: 2,
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: _togglePlayPause,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      _isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 26,
-                    ),
-                  ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: fraction,
+                minHeight: 4,
+                backgroundColor: const Color(0xFF334155),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Color(0xFF2563EB),
                 ),
               ),
-
-              // Right Group: Playback Speed & Fullscreen Button
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PopupMenuButton<double>(
-                    tooltip: 'Playback Speed',
-                    initialValue: _currentPlaybackRate,
-                    onSelected: _changePlaybackRate,
-                    color: const Color(0xFF1E293B),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Color(0xFF334155)),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: const Color(0xFF334155),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        '${_currentPlaybackRate == 1.0 ? '1.0' : _currentPlaybackRate}x',
-                        style: const TextStyle(
-                          color: Color(0xFFE2E8F0),
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    itemBuilder: (context) => [
-                      0.75,
-                      1.0,
-                      1.25,
-                      1.5,
-                      2.0,
-                    ].map((rate) {
-                      return PopupMenuItem<double>(
-                        value: rate,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '${rate}x',
-                              style: TextStyle(
-                                color: _currentPlaybackRate == rate
-                                    ? const Color(0xFF38BDF8)
-                                    : Colors.white,
-                                fontWeight: _currentPlaybackRate == rate
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                            if (_currentPlaybackRate == rate)
-                              const Icon(
-                                Icons.check_rounded,
-                                color: Color(0xFF38BDF8),
-                                size: 16,
-                              ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.fullscreen_rounded,
-                      color: Color(0xFFCBD5E1),
-                      size: 26,
-                    ),
-                    tooltip: 'Fullscreen',
-                    splashRadius: 20,
-                    onPressed: () {
-                      _controller?.toggleFullScreen();
-                    },
-                  ),
-                ],
-              ),
-            ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            _formatDuration(_videoDuration),
+            style: const TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(
+              Icons.fullscreen_rounded,
+              color: Color(0xFFCBD5E1),
+              size: 24,
+            ),
+            tooltip: 'Fullscreen',
+            splashRadius: 20,
+            onPressed: () {
+              _controller?.toggleFullScreen();
+            },
           ),
         ],
       ),
