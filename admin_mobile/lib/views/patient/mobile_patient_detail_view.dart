@@ -6,6 +6,7 @@ import 'package:admin_mobile/core/theme.dart';
 import 'package:admin_mobile/models/user_model.dart';
 import 'package:admin_mobile/services/api_service.dart';
 import 'package:admin_mobile/viewmodels/library_viewmodel.dart';
+import 'package:admin_mobile/viewmodels/patient_detail_viewmodel.dart';
 import 'package:admin_mobile/widgets/app_logo.dart';
 import 'mobile_create_patient_view.dart';
 
@@ -31,11 +32,29 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
   late UserModel _patient;
 
   bool _isLoading = true;
+  bool _isStageLoading = false;
+  bool _isHistoryLoading = false;
   String? _errorMessage;
   List<Map<String, dynamic>> _videoHistory = [];
   int _totalVideos = 0;
   int _completedVideos = 0;
   int _progressRate = 0;
+  String _selectedOpStage = "Pre-op";
+  String _selectedHistoryCategory = "All";
+
+  StagePerformanceStats _preOpStats = const StagePerformanceStats(
+    stageName: "Pre-op",
+    totalAssigned: 0,
+    totalCompleted: 0,
+    progressRate: 0,
+  );
+
+  StagePerformanceStats _postOpStats = const StagePerformanceStats(
+    stageName: "Post-op",
+    totalAssigned: 0,
+    totalCompleted: 0,
+    progressRate: 0,
+  );
 
   @override
   void initState() {
@@ -68,24 +87,151 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
     return null;
   }
 
-  Future<void> _fetchPatientDetails() async {
+  Future<void> _onStageChanged(String stage) async {
+    if (_selectedOpStage == stage && !_isStageLoading) return;
+    setState(() {
+      _selectedOpStage = stage;
+      _isStageLoading = true;
+      if (stage == "Pre-op" && _preOpStats.totalAssigned > 0) {
+        _totalVideos = _preOpStats.totalAssigned;
+        _completedVideos = _preOpStats.totalCompleted;
+        _progressRate = _preOpStats.progressRate;
+      } else if (stage == "Post-op" && _postOpStats.totalAssigned > 0) {
+        _totalVideos = _postOpStats.totalAssigned;
+        _completedVideos = _postOpStats.totalCompleted;
+        _progressRate = _postOpStats.progressRate;
+      }
+    });
+
+    try {
+      final progressRes = await _apiService.getUserProgress(
+        _patient.id,
+        category: stage == 'All' ? null : stage.toLowerCase(),
+      );
+      if (progressRes.data != null && mounted) {
+        setState(() {
+          _parseProgressData(progressRes.data);
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching progress for $stage: $e");
+    } finally {
+      if (mounted) setState(() => _isStageLoading = false);
+    }
+  }
+
+  Future<void> _onHistoryCategoryChanged(String category) async {
+    if (_selectedHistoryCategory == category && !_isHistoryLoading) return;
+    setState(() {
+      _selectedHistoryCategory = category;
+      _isHistoryLoading = true;
+    });
+
+    try {
+      final res = await _apiService.getUserHistory(
+        _patient.id,
+        category: category.toLowerCase() == 'all' ? null : category.toLowerCase(),
+      );
+      if (res.data != null && mounted) {
+        setState(() {
+          _parseHistoryData(res.data);
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching history for $category: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isHistoryLoading = false;
+        });
+      }
+    }
+  }
+
+  void _parseHistoryData(dynamic hData, {List<Map<String, dynamic>>? fallbackVideos}) {
+    List<dynamic> rawHistory = [];
+    if (hData is List) {
+      rawHistory = hData;
+    } else if (hData is Map) {
+      if (hData['data'] is List) {
+        rawHistory = hData['data'];
+      } else if (hData['history'] is List) {
+        rawHistory = hData['history'];
+      } else if (hData['logs'] is List) {
+        rawHistory = hData['logs'];
+      } else if (hData['user_history'] is List) {
+        rawHistory = hData['user_history'];
+      }
+    }
+    if (rawHistory.isNotEmpty) {
+      _videoHistory = rawHistory
+          .whereType<Map>()
+          .map((v) => Map<String, dynamic>.from(v))
+          .toList();
+    } else if (fallbackVideos != null && fallbackVideos.isNotEmpty && _selectedHistoryCategory == "All") {
+      _videoHistory = fallbackVideos;
+    } else {
+      _videoHistory = [];
+    }
+  }
+
+  Future<void> _fetchPatientDetails({String? category}) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    try {
-      final results = await Future.wait([
-        _apiService.getUserById(_patient.id),
-        _apiService.getUserProgress(_patient.id).catchError((e) {
-          debugPrint("Error fetching user progress: $e");
-          return Response(requestOptions: RequestOptions(path: ''), data: null);
-        }),
-      ]);
+    final activeCategory = category ?? _selectedOpStage;
 
-      final response = results[0];
-      final engagementRes = results[1];
-      final resData = response.data;
+    try {
+      final userRes = await _apiService.getUserById(_patient.id);
+
+      final preOpFuture = _apiService.getUserProgress(
+        _patient.id,
+        category: 'pre-op',
+      ).catchError((e) {
+        debugPrint("Error fetching pre-op progress: $e");
+        return Response(requestOptions: RequestOptions(path: ''), data: null);
+      });
+
+      final postOpFuture = _apiService.getUserProgress(
+        _patient.id,
+        category: 'post-op',
+      ).catchError((e) {
+        debugPrint("Error fetching post-op progress: $e");
+        return Response(requestOptions: RequestOptions(path: ''), data: null);
+      });
+
+      final historyFuture = _apiService.getUserHistory(
+        _patient.id, 
+        category: _selectedHistoryCategory.toLowerCase() == 'all' ? null : _selectedHistoryCategory.toLowerCase(),
+      ).catchError((e) {
+        debugPrint("Error fetching user history logs: $e");
+        return Response(requestOptions: RequestOptions(path: ''), data: null);
+      });
+
+      final results = await Future.wait([preOpFuture, postOpFuture, historyFuture]);
+
+      final preOpProgressRes = results[0];
+      final postOpProgressRes = results[1];
+      final historyRes = results[2];
+
+      Response? activeProgressRes;
+      final cat = activeCategory.toLowerCase();
+      if (cat == 'pre-op') {
+        activeProgressRes = preOpProgressRes;
+      } else if (cat == 'post-op') {
+        activeProgressRes = postOpProgressRes;
+      } else {
+        activeProgressRes = await _apiService.getUserProgress(
+          _patient.id,
+          category: cat == 'all' ? null : cat,
+        ).catchError((e) {
+          debugPrint("Error fetching user progress for $activeCategory: $e");
+          return Response(requestOptions: RequestOptions(path: ''), data: null);
+        });
+      }
+      final resData = userRes.data;
 
       Map<String, dynamic> userData = {};
       if (resData is Map<String, dynamic>) {
@@ -112,6 +258,14 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
         _videoHistory = rawVideos
             .map((v) => Map<String, dynamic>.from(v as Map))
             .toList();
+
+        // If history API returned data, use or supplement it
+        if (historyRes.data != null) {
+          _parseHistoryData(
+            historyRes.data,
+            fallbackVideos: List<Map<String, dynamic>>.from(_videoHistory),
+          );
+        }
 
         _totalVideos =
             _parseInt(
@@ -147,114 +301,267 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
         }
       }
 
-      // Parse engagement data from admin/users/engagement/{id}
-      if (engagementRes.data != null) {
-        final eRaw = engagementRes.data;
-        Map<String, dynamic> engagementData = {};
-        if (eRaw is Map) {
-          if (eRaw['data'] is Map) {
-            engagementData = Map<String, dynamic>.from(eRaw['data'] as Map);
-            if (engagementData['engagement'] is Map) {
-              engagementData = Map<String, dynamic>.from(
-                engagementData['engagement'] as Map,
-              );
-            } else if (engagementData['overview'] is Map) {
-              engagementData = Map<String, dynamic>.from(
-                engagementData['overview'] as Map,
-              );
-            } else if (engagementData['stats'] is Map) {
-              engagementData = Map<String, dynamic>.from(
-                engagementData['stats'] as Map,
-              );
-            }
-          } else if (eRaw['engagement'] is Map) {
-            engagementData = Map<String, dynamic>.from(
-              eRaw['engagement'] as Map,
-            );
-          } else if (eRaw['stats'] is Map) {
-            engagementData = Map<String, dynamic>.from(eRaw['stats'] as Map);
-          } else if (eRaw['overview'] is Map) {
-            engagementData = Map<String, dynamic>.from(eRaw['overview'] as Map);
-          } else {
-            engagementData = Map<String, dynamic>.from(eRaw);
-          }
-        }
-
-        if (engagementData.isNotEmpty) {
-          final parsedTotal = _parseInt(
-            engagementData['totalAssigned'] ??
-                engagementData['total_assigned'] ??
-                engagementData['totalVideos'] ??
-                engagementData['total_videos'] ??
-                engagementData['assignedVideos'] ??
-                engagementData['assigned_videos'] ??
-                engagementData['assigned'] ??
-                engagementData['total'] ??
-                engagementData['count'],
-          );
-          if (parsedTotal != null) {
-            _totalVideos = parsedTotal;
-          }
-
-          final parsedCompleted = _parseInt(
-            engagementData['totalCompleted'] ??
-                engagementData['total_completed'] ??
-                engagementData['completedVideos'] ??
-                engagementData['completed_videos'] ??
-                engagementData['completedCount'] ??
-                engagementData['completed_count'] ??
-                engagementData['completed'] ??
-                engagementData['watchedVideos'] ??
-                engagementData['watched_videos'] ??
-                engagementData['videosWatched'] ??
-                engagementData['videos_watched'],
-          );
-          if (parsedCompleted != null) {
-            _completedVideos = parsedCompleted;
-          }
-
-          final parsedProgress = _parseInt(
-            engagementData['progressRate'] ??
-                engagementData['progress_rate'] ??
-                engagementData['overallProgress'] ??
-                engagementData['overall_progress'] ??
-                engagementData['completionRate'] ??
-                engagementData['completion_rate'] ??
-                engagementData['progressPercentage'] ??
-                engagementData['progress_percentage'] ??
-                engagementData['progress'] ??
-                engagementData['rate'] ??
-                engagementData['percentage'],
-          );
-          if (parsedProgress != null) {
-            _progressRate = parsedProgress;
-          } else if (_totalVideos > 0) {
-            _progressRate = ((_completedVideos / _totalVideos) * 100).round();
-          }
-
-          // Fallback populate _videoHistory if empty
-          if (_videoHistory.isEmpty) {
-            final dynamic rawHist =
-                engagementData['video_history'] ??
-                engagementData['videoHistory'] ??
-                engagementData['videos'] ??
-                engagementData['history'] ??
-                engagementData['assigned_videos'];
-            if (rawHist is List) {
-              _videoHistory = rawHist
-                  .whereType<Map>()
-                  .map((v) => Map<String, dynamic>.from(v))
-                  .toList();
-            }
-          }
-        }
+      if (activeProgressRes.data != null) {
+        _parseProgressData(activeProgressRes.data);
       }
+
+      _computeStageStats(
+        preOpApiData: preOpProgressRes.data,
+        postOpApiData: postOpProgressRes.data,
+      );
     } catch (e) {
       debugPrint("Error fetching patient details: $e");
       _errorMessage = "Failed to load patient profile.";
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Map<String, dynamic>? _extractStatsMap(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is Map) {
+      if (raw['data'] is Map) {
+        final d = raw['data'] as Map;
+        if (d['engagement'] is Map) {
+          return Map<String, dynamic>.from(d['engagement'] as Map);
+        }
+        if (d['overview'] is Map) {
+          return Map<String, dynamic>.from(d['overview'] as Map);
+        }
+        if (d['stats'] is Map) {
+          return Map<String, dynamic>.from(d['stats'] as Map);
+        }
+        return Map<String, dynamic>.from(d);
+      }
+      if (raw['engagement'] is Map) {
+        return Map<String, dynamic>.from(raw['engagement'] as Map);
+      }
+      if (raw['overview'] is Map) {
+        return Map<String, dynamic>.from(raw['overview'] as Map);
+      }
+      if (raw['stats'] is Map) {
+        return Map<String, dynamic>.from(raw['stats'] as Map);
+      }
+      return Map<String, dynamic>.from(raw);
+    }
+    return null;
+  }
+
+  void _parseProgressData(dynamic raw) {
+    final stats = _extractStatsMap(raw);
+    if (stats == null || stats.isEmpty) return;
+
+    final parsedTotal = _parseInt(
+      stats['totalAssigned'] ??
+          stats['total_assigned'] ??
+          stats['totalVideos'] ??
+          stats['total_videos'] ??
+          stats['assignedVideos'] ??
+          stats['assigned_videos'] ??
+          stats['assigned'] ??
+          stats['total'] ??
+          stats['count'],
+    );
+    if (parsedTotal != null) _totalVideos = parsedTotal;
+
+    final parsedCompleted = _parseInt(
+      stats['totalCompleted'] ??
+          stats['total_completed'] ??
+          stats['completedVideos'] ??
+          stats['completed_videos'] ??
+          stats['completedCount'] ??
+          stats['completed_count'] ??
+          stats['completed'] ??
+          stats['watchedVideos'] ??
+          stats['watched_videos'] ??
+          stats['videosWatched'] ??
+          stats['videos_watched'],
+    );
+    if (parsedCompleted != null) _completedVideos = parsedCompleted;
+
+    final parsedRate = _parseInt(
+      stats['progressRate'] ??
+          stats['progress_rate'] ??
+          stats['overallProgress'] ??
+          stats['overall_progress'] ??
+          stats['completionRate'] ??
+          stats['completion_rate'] ??
+          stats['progressPercentage'] ??
+          stats['progress_percentage'] ??
+          stats['progress'] ??
+          stats['rate'] ??
+          stats['percentage'],
+    );
+    if (parsedRate != null) {
+      _progressRate = parsedRate;
+    } else if (_totalVideos > 0) {
+      _progressRate = ((_completedVideos / _totalVideos) * 100).round();
+    }
+
+    if (stats['video_history'] is List ||
+        stats['videoHistory'] is List ||
+        stats['videos'] is List ||
+        stats['history'] is List ||
+        stats['assigned_videos'] is List) {
+      final List list =
+          (stats['video_history'] ??
+                  stats['videoHistory'] ??
+                  stats['videos'] ??
+                  stats['history'] ??
+                  stats['assigned_videos'])
+              as List;
+      if (list.isNotEmpty) {
+        _videoHistory = list
+            .map((v) => Map<String, dynamic>.from(v as Map))
+            .toList();
+      }
+    }
+  }
+
+  void _computeStageStats({dynamic preOpApiData, dynamic postOpApiData}) {
+    final preOpVideos = _videoHistory.where((v) {
+      final cat = (v['category'] ?? v['stage'] ?? '').toString().toLowerCase();
+      return !cat.contains('post') && (cat.contains('pre') || cat.isEmpty);
+    }).toList();
+
+    final postOpVideos = _videoHistory.where((v) {
+      final cat = (v['category'] ?? v['stage'] ?? '').toString().toLowerCase();
+      return cat.contains('post');
+    }).toList();
+
+    int preAssigned = preOpVideos.length;
+    int preCompleted = preOpVideos
+        .where(
+          (v) =>
+              v['isCompleted'] == true ||
+              v['completed'] == true ||
+              v['status'] == 'completed' ||
+              v['progress'] == 100,
+        )
+        .length;
+    int preInProgress = preOpVideos.where((v) {
+      final prog = _parseInt(v['progress']) ?? 0;
+      final isComp = v['isCompleted'] == true || v['completed'] == true;
+      return !isComp && prog > 0;
+    }).length;
+    int preNotStarted = (preAssigned - preCompleted - preInProgress).clamp(
+      0,
+      preAssigned,
+    );
+    int preRate = preAssigned > 0
+        ? ((preCompleted / preAssigned) * 100).round()
+        : 0;
+
+    int postAssigned = postOpVideos.length;
+    int postCompleted = postOpVideos
+        .where(
+          (v) =>
+              v['isCompleted'] == true ||
+              v['completed'] == true ||
+              v['status'] == 'completed' ||
+              v['progress'] == 100,
+        )
+        .length;
+    int postInProgress = postOpVideos.where((v) {
+      final prog = _parseInt(v['progress']) ?? 0;
+      final isComp = v['isCompleted'] == true || v['completed'] == true;
+      return !isComp && prog > 0;
+    }).length;
+    int postNotStarted = (postAssigned - postCompleted - postInProgress).clamp(
+      0,
+      postAssigned,
+    );
+    int postRate = postAssigned > 0
+        ? ((postCompleted / postAssigned) * 100).round()
+        : 0;
+
+    final preApiParsed = _extractStatsMap(preOpApiData);
+    if (preApiParsed != null) {
+      final apiTotal = _parseInt(
+        preApiParsed['totalAssigned'] ??
+            preApiParsed['totalVideos'] ??
+            preApiParsed['total_assigned'] ??
+            preApiParsed['total_videos'],
+      );
+      final apiComp = _parseInt(
+        preApiParsed['totalCompleted'] ??
+            preApiParsed['completedVideos'] ??
+            preApiParsed['total_completed'] ??
+            preApiParsed['completed_videos'],
+      );
+      final apiRate = _parseInt(
+        preApiParsed['progressRate'] ??
+            preApiParsed['progress_rate'] ??
+            preApiParsed['overallProgress'] ??
+            preApiParsed['completionRate'],
+      );
+
+      if (apiTotal != null && apiTotal > 0) preAssigned = apiTotal;
+      if (apiComp != null) preCompleted = apiComp;
+      if (apiRate != null) {
+        preRate = apiRate;
+      } else if (preAssigned > 0) {
+        preRate = ((preCompleted / preAssigned) * 100).round();
+      }
+      preInProgress = (preAssigned - preCompleted).clamp(0, preAssigned);
+      preNotStarted = (preAssigned - preCompleted - preInProgress).clamp(
+        0,
+        preAssigned,
+      );
+    }
+
+    final postApiParsed = _extractStatsMap(postOpApiData);
+    if (postApiParsed != null) {
+      final apiTotal = _parseInt(
+        postApiParsed['totalAssigned'] ??
+            postApiParsed['totalVideos'] ??
+            postApiParsed['total_assigned'] ??
+            postApiParsed['total_videos'],
+      );
+      final apiComp = _parseInt(
+        postApiParsed['totalCompleted'] ??
+            postApiParsed['completedVideos'] ??
+            postApiParsed['total_completed'] ??
+            postApiParsed['completed_videos'],
+      );
+      final apiRate = _parseInt(
+        postApiParsed['progressRate'] ??
+            postApiParsed['progress_rate'] ??
+            postApiParsed['overallProgress'] ??
+            postApiParsed['completionRate'],
+      );
+
+      if (apiTotal != null && apiTotal > 0) postAssigned = apiTotal;
+      if (apiComp != null) postCompleted = apiComp;
+      if (apiRate != null) {
+        postRate = apiRate;
+      } else if (postAssigned > 0) {
+        postRate = ((postCompleted / postAssigned) * 100).round();
+      }
+      postInProgress = (postAssigned - postCompleted).clamp(0, postAssigned);
+      postNotStarted = (postAssigned - postCompleted - postInProgress).clamp(
+        0,
+        postAssigned,
+      );
+    }
+
+    _preOpStats = StagePerformanceStats(
+      stageName: "Pre-op",
+      totalAssigned: preAssigned,
+      totalCompleted: preCompleted,
+      inProgress: preInProgress,
+      notStarted: preNotStarted,
+      progressRate: preRate,
+    );
+
+    _postOpStats = StagePerformanceStats(
+      stageName: "Post-op",
+      totalAssigned: postAssigned,
+      totalCompleted: postCompleted,
+      inProgress: postInProgress,
+      notStarted: postNotStarted,
+      progressRate: postRate,
+    );
   }
 
   Future<void> _unassignVideo(Map<String, dynamic> video) async {
@@ -702,7 +1009,7 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Engagement Stats Card
+                    // Engagement Stats Card with Stage Switcher
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -713,66 +1020,202 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Educational Engagement",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
-                                child: _buildStatTile(
-                                  "Assigned",
-                                  "$_totalVideos",
-                                  Icons.video_library_outlined,
-                                  AppTheme.blue,
-                                  AppTheme.blueBg,
-                                  AppTheme.blueBorder,
+                              const Text(
+                                "Educational Engagement",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildStatTile(
-                                  "Completed",
-                                  "$_completedVideos",
-                                  Icons.check_circle_outline,
-                                  AppTheme.emerald,
-                                  AppTheme.emeraldBg,
-                                  AppTheme.emeraldBorder,
+
+                              // PRE-OP OR POST-OP SELECTION BOX
+                              Container(
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: AppTheme.borderMedium,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _buildStatTile(
-                                  "Progress",
-                                  "$_progressRate%",
-                                  Icons.trending_up,
-                                  AppTheme.purple,
-                                  AppTheme.purpleBg,
-                                  AppTheme.purpleBorder,
-                                ),
+                                child: _isStageLoading
+                                    ? const Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                        child: SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppTheme.primary,
+                                          ),
+                                        ),
+                                      )
+                                    : PopupMenuButton<String>(
+                                        tooltip: "Select Stage",
+                                        offset: const Offset(0, 36),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          side: const BorderSide(
+                                            color: AppTheme.border,
+                                          ),
+                                        ),
+                                        color: Colors.white,
+                                        elevation: 4,
+                                        onSelected: _onStageChanged,
+                                        itemBuilder: (context) => [
+                                          PopupMenuItem(
+                                            value: "Pre-op",
+                                            height: 36,
+                                            child: Text(
+                                              "Pre-op",
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight:
+                                                    _selectedOpStage == "Pre-op"
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w500,
+                                                color:
+                                                    _selectedOpStage == "Pre-op"
+                                                    ? AppTheme.primary
+                                                    : AppTheme.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                          PopupMenuItem(
+                                            value: "Post-op",
+                                            height: 36,
+                                            child: Text(
+                                              "Post-op",
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight:
+                                                    _selectedOpStage ==
+                                                        "Post-op"
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w500,
+                                                color:
+                                                    _selectedOpStage ==
+                                                        "Post-op"
+                                                    ? AppTheme.primary
+                                                    : AppTheme.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                          PopupMenuItem(
+                                            value: "All",
+                                            height: 36,
+                                            child: Text(
+                                              "All",
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight:
+                                                    _selectedOpStage == "All"
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w500,
+                                                color: _selectedOpStage == "All"
+                                                    ? AppTheme.primary
+                                                    : AppTheme.textPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                _selectedOpStage,
+                                                style: const TextStyle(
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppTheme.textPrimary,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              const Icon(
+                                                Icons
+                                                    .keyboard_arrow_down_rounded,
+                                                size: 16,
+                                                color: AppTheme.textSecondary,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: _totalVideos > 0
-                                  ? (_completedVideos / _totalVideos).clamp(
-                                      0.0,
-                                      1.0,
-                                    )
-                                  : 0.0,
-                              minHeight: 6,
-                              backgroundColor: AppTheme.borderSubtle,
-                              color: _progressRate == 100
-                                  ? AppTheme.emerald
-                                  : AppTheme.primaryBlue,
+                          const SizedBox(height: 12),
+                          AnimatedOpacity(
+                            opacity: _isStageLoading ? 0.6 : 1.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildStatTile(
+                                        "Assigned",
+                                        "$_totalVideos",
+                                        Icons.video_library_outlined,
+                                        AppTheme.blue,
+                                        AppTheme.blueBg,
+                                        AppTheme.blueBorder,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: _buildStatTile(
+                                        "Completed",
+                                        "$_completedVideos",
+                                        Icons.check_circle_outline,
+                                        AppTheme.emerald,
+                                        AppTheme.emeraldBg,
+                                        AppTheme.emeraldBorder,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: _buildStatTile(
+                                        "Progress",
+                                        "$_progressRate%",
+                                        Icons.trending_up,
+                                        AppTheme.purple,
+                                        AppTheme.purpleBg,
+                                        AppTheme.purpleBorder,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: LinearProgressIndicator(
+                                    value: _totalVideos > 0
+                                        ? (_completedVideos / _totalVideos)
+                                              .clamp(0.0, 1.0)
+                                        : 0.0,
+                                    minHeight: 6,
+                                    backgroundColor: AppTheme.borderSubtle,
+                                    color: _progressRate == 100
+                                        ? AppTheme.emerald
+                                        : AppTheme.primaryBlue,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -780,176 +1223,407 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                     ),
                     const SizedBox(height: 16),
 
-                    if (_videoHistory.isNotEmpty)
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _videoHistory.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final v = _videoHistory[index];
-                          final isCompleted =
-                              v['isCompleted'] == true ||
-                              v['completed'] == true ||
-                              v['progress'] == 100;
+                    // Stage Performance Comparison Card (Pre-Op vs Post-Op)
+                    _buildStagePerformanceComparisonCard(),
+                    const SizedBox(height: 16),
 
-                          return InkWell(
-                            onTap: () => _showVideoPreviewDialog(v),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppTheme.border),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: isCompleted
-                                          ? AppTheme.emeraldBg
-                                          : AppTheme.blueBg,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: isCompleted
-                                            ? AppTheme.emeraldBorder
-                                            : AppTheme.blueBorder,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      isCompleted
-                                          ? Icons.check_circle
-                                          : Icons.play_circle_outline,
-                                      color: isCompleted
-                                          ? AppTheme.emeraldText
-                                          : AppTheme.blueText,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          v['title'] ?? 'Educational Video',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 13,
-                                            color: AppTheme.textPrimary,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          "${v['duration'] ?? '10:00'} • ${v['category'] ?? 'General'}",
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            color: AppTheme.textSecondary,
-                                            fontSize: 11.5,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isCompleted
-                                          ? AppTheme.emeraldBg
-                                          : AppTheme.background,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: isCompleted
-                                            ? AppTheme.emeraldBorder
-                                            : AppTheme.border,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      isCompleted ? "Completed" : "Assigned",
-                                      style: TextStyle(
-                                        color: isCompleted
-                                            ? AppTheme.emeraldText
-                                            : AppTheme.textSecondary,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(
-                                      Icons.more_vert,
-                                      size: 18,
-                                      color: Colors.grey,
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                    onSelected: (action) {
-                                      if (action == 'play') {
-                                        _showVideoPreviewDialog(v);
-                                      } else if (action == 'unassign') {
-                                        _unassignVideo(v);
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'play',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.play_circle_outline,
-                                              size: 18,
-                                              color: AppTheme.blue,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Play Video',
-                                              style: TextStyle(fontSize: 13),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'unassign',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.remove_circle_outline,
-                                              size: 18,
-                                              color: AppTheme.red,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Unassign Video',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: AppTheme.red,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                    _buildAssignedAndWatchedCard(),
                   ],
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildAssignedAndWatchedCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.blueBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.history_rounded,
+                  color: AppTheme.primary,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  "Assigned & Watched Video History",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Category filter dropdown
+              Container(
+                height: 30,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.borderMedium),
+                ),
+                child: PopupMenuButton<String>(
+                  tooltip: "Select Category",
+                  offset: const Offset(0, 34),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: AppTheme.border),
+                  ),
+                  color: Colors.white,
+                  elevation: 4,
+                  onSelected: _onHistoryCategoryChanged,
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: "All",
+                      height: 32,
+                      child: Text(
+                        "All",
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: _selectedHistoryCategory == "All"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _selectedHistoryCategory == "All"
+                              ? AppTheme.primary
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: "Pre-op",
+                      height: 32,
+                      child: Text(
+                        "Pre-op",
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: _selectedHistoryCategory == "Pre-op"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _selectedHistoryCategory == "Pre-op"
+                              ? AppTheme.primary
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: "Post-op",
+                      height: 32,
+                      child: Text(
+                        "Post-op",
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: _selectedHistoryCategory == "Post-op"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _selectedHistoryCategory == "Post-op"
+                              ? AppTheme.primary
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _selectedHistoryCategory,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 15,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              // Count Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppTheme.borderSubtle,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Text(
+                  "${_videoHistory.length} ${_videoHistory.length == 1 ? 'Video' : 'Videos'}",
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF475569),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_isHistoryLoading)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              alignment: Alignment.center,
+              child: const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppTheme.primary,
+                ),
+              ),
+            )
+          else if (_videoHistory.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(
+                    Icons.video_library_outlined,
+                    size: 36,
+                    color: AppTheme.textLight,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "No assigned or watched videos found for this patient.",
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppTheme.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _videoHistory.length,
+              separatorBuilder: (context, index) => const Divider(
+                height: 16,
+                color: AppTheme.borderSubtle,
+              ),
+              itemBuilder: (context, index) {
+                final v = _videoHistory[index];
+                final isCompleted =
+                    v['isCompleted'] == true ||
+                    v['completed'] == true ||
+                    v['progress'] == 100;
+                final title = v['title']?.toString() ??
+                    v['name']?.toString() ??
+                    'Video #${index + 1}';
+                final duration = v['duration']?.toString() ?? '10:00';
+                final category = v['category']?.toString() ?? 'General';
+                final isPostOp = category.toLowerCase().contains('post');
+
+                return InkWell(
+                  onTap: () => _showVideoPreviewDialog(v),
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isCompleted
+                                ? AppTheme.emeraldBg
+                                : AppTheme.blueBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isCompleted
+                                  ? AppTheme.emeraldBorder
+                                  : AppTheme.blueBorder,
+                            ),
+                          ),
+                          child: Icon(
+                            isCompleted
+                                ? Icons.check_circle
+                                : Icons.play_circle_outline,
+                            color: isCompleted
+                                ? AppTheme.emeraldText
+                                : AppTheme.blueText,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: AppTheme.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                children: [
+                                  Text(
+                                    duration,
+                                    style: const TextStyle(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isPostOp
+                                          ? AppTheme.purpleBg
+                                          : AppTheme.blueBg,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: isPostOp
+                                            ? AppTheme.purpleBorder
+                                            : AppTheme.blueBorder,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      category,
+                                      style: TextStyle(
+                                        color: isPostOp
+                                            ? AppTheme.purpleText
+                                            : AppTheme.blueText,
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isCompleted
+                                ? AppTheme.emeraldBg
+                                : AppTheme.background,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isCompleted
+                                  ? AppTheme.emeraldBorder
+                                  : AppTheme.border,
+                            ),
+                          ),
+                          child: Text(
+                            isCompleted ? "Completed" : "Assigned",
+                            style: TextStyle(
+                              color: isCompleted
+                                  ? AppTheme.emeraldText
+                                  : AppTheme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        PopupMenuButton<String>(
+                          icon: const Icon(
+                            Icons.more_vert,
+                            size: 18,
+                            color: Colors.grey,
+                          ),
+                          padding: EdgeInsets.zero,
+                          onSelected: (action) {
+                            if (action == 'play') {
+                              _showVideoPreviewDialog(v);
+                            } else if (action == 'unassign') {
+                              _unassignVideo(v);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'play',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.play_circle_outline,
+                                    size: 18,
+                                    color: AppTheme.blue,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Play Video',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'unassign',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.remove_circle_outline,
+                                    size: 18,
+                                    color: AppTheme.red,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Unassign Video',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppTheme.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
 
@@ -993,6 +1667,202 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
           fontWeight: FontWeight.bold,
           fontSize: 18,
         ),
+      ),
+    );
+  }
+
+  Widget _buildStagePerformanceComparisonCard() {
+    final preOp = _preOpStats;
+    final postOp = _postOpStats;
+    final delta = postOp.progressRate - preOp.progressRate;
+
+    String deltaLabel;
+    Color deltaTextColor;
+    Color deltaBg;
+    Color deltaBorder;
+    IconData deltaIcon;
+
+    if (delta > 0) {
+      deltaLabel = "Post-Op +${delta.abs()}%";
+      deltaTextColor = AppTheme.emeraldText;
+      deltaBg = AppTheme.emeraldBg;
+      deltaBorder = AppTheme.emeraldBorder;
+      deltaIcon = Icons.trending_up_rounded;
+    } else if (delta < 0) {
+      deltaLabel = "Pre-Op +${delta.abs()}%";
+      deltaTextColor = AppTheme.blueText;
+      deltaBg = AppTheme.blueBg;
+      deltaBorder = AppTheme.blueBorder;
+      deltaIcon = Icons.trending_up_rounded;
+    } else {
+      deltaLabel = "Compare";
+      deltaTextColor = AppTheme.textSecondary;
+      deltaBg = AppTheme.borderSubtle;
+      deltaBorder = AppTheme.borderMedium;
+      deltaIcon = Icons.horizontal_rule_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.purpleBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.compare_arrows_rounded,
+                      color: AppTheme.purple,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "Pre-Op & Post-Op",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: deltaBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: deltaBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(deltaIcon, size: 12, color: deltaTextColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      deltaLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: deltaTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Pre-Op and Post-Op visual cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildStageDetailBox(
+                  stageTitle: "PRE-OP",
+                  icon: Icons.assignment_outlined,
+                  stats: preOp,
+                  accentColor: AppTheme.blue,
+                  cardBg: AppTheme.blueCardBg,
+                  borderColor: AppTheme.blueBorder,
+                  textColor: AppTheme.blueText,
+                  badgeBg: AppTheme.blueBg,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildStageDetailBox(
+                  stageTitle: "POST-OP",
+                  icon: Icons.healing_outlined,
+                  stats: postOp,
+                  accentColor: AppTheme.emerald,
+                  cardBg: AppTheme.emeraldCardBg,
+                  borderColor: AppTheme.emeraldBorder,
+                  textColor: AppTheme.emeraldText,
+                  badgeBg: AppTheme.emeraldBg,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStageDetailBox({
+    required String stageTitle,
+    required IconData icon,
+    required StagePerformanceStats stats,
+    required Color accentColor,
+    required Color cardBg,
+    required Color borderColor,
+    required Color textColor,
+    required Color badgeBg,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: borderColor, width: 1.1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                stageTitle,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 12, color: accentColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "${stats.progressRate}%",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            "${stats.totalCompleted} / ${stats.totalAssigned} done",
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

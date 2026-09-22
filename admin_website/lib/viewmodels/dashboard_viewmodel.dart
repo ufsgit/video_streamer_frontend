@@ -7,41 +7,118 @@ class UserActivity {
   final String patientName;
   final String ward;
   final String lastLogin;
+  final String lastLoginDate;
+  final String lastLoginTime;
   final int progressPercentage;
   final int videosWatched;
   final int totalVideos;
+  final String preWatched;
+  final String postWatched;
+  final String progressText;
 
   UserActivity({
     required this.id,
     required this.patientName,
     required this.ward,
     required this.lastLogin,
+    this.lastLoginDate = '',
+    this.lastLoginTime = '',
     required this.progressPercentage,
     required this.videosWatched,
     required this.totalVideos,
+    this.preWatched = '',
+    this.postWatched = '',
+    this.progressText = '',
   });
 
   factory UserActivity.fromJson(Map<String, dynamic> json) {
+    int parsedVideosWatched = 0;
+    int parsedTotalVideos = 0;
+    final String vwStr = json['videos_watched']?.toString() ?? '';
+    if (vwStr.contains('/')) {
+      final parts = vwStr.split('/');
+      parsedVideosWatched = int.tryParse(parts[0]) ?? 0;
+      if (parts.length > 1) {
+        parsedTotalVideos = int.tryParse(parts[1]) ?? 0;
+      }
+    } else {
+      parsedVideosWatched = (json['videosWatched'] is num)
+          ? (json['videosWatched'] as num).toInt()
+          : (int.tryParse(json['videosWatched']?.toString() ?? '') ?? 0);
+      parsedTotalVideos = (json['totalVideos'] is num)
+          ? (json['totalVideos'] as num).toInt()
+          : (int.tryParse(json['totalVideos']?.toString() ?? '') ?? 0);
+    }
+
+    final dtParts = _formatDateTimeParts(
+      json['last_login']?.toString() ??
+          json['lastLogin']?.toString() ??
+          json['createdAt']?.toString(),
+    );
+
+    final rawProg = json['raw_progress_percent'] ?? json['progressPercentage'];
+    int parsedProgress = 0;
+    if (rawProg is num) {
+      parsedProgress = rawProg.toInt();
+    } else if (rawProg != null) {
+      parsedProgress = int.tryParse(rawProg.toString()) ?? 0;
+    }
+
     return UserActivity(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
-      patientName: json['patientName']?.toString() ??
+      patientName: json['patient_name']?.toString() ??
+          json['patientName']?.toString() ??
           json['name']?.toString() ??
           json['username']?.toString() ??
           'Patient',
-      ward: json['ward']?.toString() ?? 'General Ward',
-      lastLogin: json['lastLogin']?.toString() ??
-          json['createdAt']?.toString() ??
-          'Recently',
-      progressPercentage: (json['progressPercentage'] is num)
-          ? (json['progressPercentage'] as num).toInt()
-          : 0,
-      videosWatched: (json['videosWatched'] is num)
-          ? (json['videosWatched'] as num).toInt()
-          : 0,
-      totalVideos: (json['totalVideos'] is num)
-          ? (json['totalVideos'] as num).toInt()
-          : 0,
+      ward: (json['ward'] == null ||
+              json['ward'].toString().trim().isEmpty ||
+              json['ward'].toString().toLowerCase() == 'null' ||
+              json['ward'].toString().trim().toLowerCase() == 'general ward')
+          ? ''
+          : json['ward'].toString(),
+      lastLogin: dtParts['full'] ?? 'Recently',
+      lastLoginDate: dtParts['date'] ?? '',
+      lastLoginTime: dtParts['time'] ?? '',
+      progressPercentage: parsedProgress,
+      videosWatched: parsedVideosWatched,
+      totalVideos: parsedTotalVideos,
+      preWatched: json['pre_watched']?.toString() ??
+          json['preWatched']?.toString() ??
+          '',
+      postWatched: json['post_watched']?.toString() ??
+          json['postWatched']?.toString() ??
+          '',
+      progressText: json['progress']?.toString() ?? '',
     );
+  }
+
+  static Map<String, String> _formatDateTimeParts(String? rawDate) {
+    if (rawDate == null ||
+        rawDate.trim().isEmpty ||
+        rawDate.trim().toLowerCase() == 'null') {
+      return {'date': 'Recently', 'time': '', 'full': 'Recently'};
+    }
+    final parsed = DateTime.tryParse(rawDate.trim());
+    if (parsed != null) {
+      final local = parsed.toLocal();
+      final day = local.day.toString().padLeft(2, '0');
+      final month = local.month.toString().padLeft(2, '0');
+      final year = local.year.toString();
+      final hour = local.hour;
+      final minute = local.minute.toString().padLeft(2, '0');
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final hourStr = displayHour.toString().padLeft(2, '0');
+      final dateStr = "$day/$month/$year";
+      final timeStr = "$hourStr:$minute $period";
+      return {
+        'date': dateStr,
+        'time': timeStr,
+        'full': "$dateStr, $timeStr",
+      };
+    }
+    return {'date': rawDate, 'time': '', 'full': rawDate};
   }
 }
 

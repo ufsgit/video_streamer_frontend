@@ -311,7 +311,11 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    "${log.ward} • ${log.lastLogin}",
+                                    log.ward.isNotEmpty &&
+                                            log.ward.toLowerCase() !=
+                                                'general ward'
+                                        ? "${log.ward} • ${log.lastLogin}"
+                                        : log.lastLogin,
                                     style: const TextStyle(
                                       color: AppTheme.textSecondary,
                                       fontSize: 11.5,
@@ -333,7 +337,10 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    "${log.videosWatched}/${log.totalVideos} videos watched",
+                                    (log.preWatched.isNotEmpty ||
+                                            log.postWatched.isNotEmpty)
+                                        ? "Pre: ${log.preWatched} • Post: ${log.postWatched}"
+                                        : "${log.videosWatched}/${log.totalVideos} videos watched",
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: AppTheme.textSecondary,

@@ -304,17 +304,6 @@ class _DashboardViewState extends State<DashboardView> {
                         color: AppTheme.background,
                         child: Row(
                           children: const [
-                            SizedBox(
-                              width: 38,
-                              child: Text(
-                                "#",
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textSecondary,
-                                ),
-                              ),
-                            ),
                             Expanded(
                               flex: 3,
                               child: Text(
@@ -351,7 +340,7 @@ class _DashboardViewState extends State<DashboardView> {
                             Expanded(
                               flex: 2,
                               child: Text(
-                                "VIDEOS WATCHED",
+                                "PRE-OP",
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -359,11 +348,10 @@ class _DashboardViewState extends State<DashboardView> {
                                 ),
                               ),
                             ),
-                            SizedBox(
-                              width: 90,
+                            Expanded(
+                              flex: 2,
                               child: Text(
-                                "STATUS",
-                                textAlign: TextAlign.center,
+                                "POST-OP",
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -442,7 +430,11 @@ class _DashboardViewState extends State<DashboardView> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                "${log.ward} • ${log.lastLogin}",
+                                                log.ward.isNotEmpty &&
+                                                        log.ward.toLowerCase() !=
+                                                            'general ward'
+                                                    ? "${log.ward} • ${log.lastLogin}"
+                                                    : log.lastLogin,
                                                 style: const TextStyle(
                                                   color: AppTheme.textSecondary,
                                                   fontSize: 11.5,
@@ -456,7 +448,11 @@ class _DashboardViewState extends State<DashboardView> {
                                                   ),
                                                   const SizedBox(width: 8),
                                                   Text(
-                                                    "${log.videosWatched}/${log.totalVideos} videos",
+                                                    (log.preWatched.isNotEmpty ||
+                                                            log.postWatched
+                                                                .isNotEmpty)
+                                                        ? "Pre: ${log.preWatched} • Post: ${log.postWatched}"
+                                                        : "${log.videosWatched}/${log.totalVideos} videos",
                                                     style: const TextStyle(
                                                       fontSize: 11.5,
                                                       color: AppTheme.textSecondary,
@@ -482,17 +478,6 @@ class _DashboardViewState extends State<DashboardView> {
                                       : AppTheme.cardHover,
                                   child: Row(
                                     children: [
-                                      SizedBox(
-                                        width: 38,
-                                        child: Text(
-                                          log.id,
-                                          style: const TextStyle(
-                                            color: AppTheme.textMuted,
-                                            fontSize: 11.5,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
                                       Expanded(
                                         flex: 3,
                                         child: Row(
@@ -517,6 +502,8 @@ class _DashboardViewState extends State<DashboardView> {
                                               child: Column(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
                                                   Text(
                                                     log.patientName,
@@ -527,7 +514,10 @@ class _DashboardViewState extends State<DashboardView> {
                                                     ),
                                                     overflow: TextOverflow.ellipsis,
                                                   ),
-                                                  if (log.ward.isNotEmpty)
+                                                  if (log.ward.isNotEmpty &&
+                                                      log.ward.toLowerCase() !=
+                                                          'general ward') ...[
+                                                    const SizedBox(height: 2),
                                                     Text(
                                                       log.ward,
                                                       style: const TextStyle(
@@ -537,6 +527,7 @@ class _DashboardViewState extends State<DashboardView> {
                                                       overflow:
                                                           TextOverflow.ellipsis,
                                                     ),
+                                                  ],
                                                 ],
                                               ),
                                             ),
@@ -545,12 +536,33 @@ class _DashboardViewState extends State<DashboardView> {
                                       ),
                                       Expanded(
                                         flex: 2,
-                                        child: Text(
-                                          log.lastLogin,
-                                          style: const TextStyle(
-                                            color: AppTheme.textSecondary,
-                                            fontSize: 12,
-                                          ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              log.lastLoginDate.isNotEmpty
+                                                  ? log.lastLoginDate
+                                                  : log.lastLogin,
+                                              style: const TextStyle(
+                                                color: AppTheme.textPrimary,
+                                                fontSize: 12.5,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            if (log.lastLoginTime.isNotEmpty) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                log.lastLoginTime,
+                                                style: const TextStyle(
+                                                  color: AppTheme.textSecondary,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ),
                                       Expanded(
@@ -594,18 +606,26 @@ class _DashboardViewState extends State<DashboardView> {
                                       Expanded(
                                         flex: 2,
                                         child: Text(
-                                          "${log.videosWatched} / ${log.totalVideos} videos",
+                                          log.preWatched.isNotEmpty
+                                              ? log.preWatched
+                                              : "${log.videosWatched} videos",
                                           style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppTheme.textSecondary,
+                                            fontSize: 12.5,
+                                            color: AppTheme.textPrimary,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ),
-                                      SizedBox(
-                                        width: 90,
-                                        child: Center(
-                                          child: _buildProgressBadge(
-                                            log.progressPercentage,
+                                      Expanded(
+                                        flex: 2,
+                                        child: Text(
+                                          log.postWatched.isNotEmpty
+                                              ? log.postWatched
+                                              : "0 videos",
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            color: AppTheme.textPrimary,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ),

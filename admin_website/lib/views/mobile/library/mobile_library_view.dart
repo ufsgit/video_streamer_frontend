@@ -37,25 +37,25 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        // actions: [
-        //   TextButton.icon(
-        //     onPressed: _viewModel.toggleSelectionMode,
-        //     icon: Icon(
-        //       _viewModel.isSelectionMode ? Icons.close : Icons.checklist,
-        //       size: 18,
-        //       color: AppTheme.primaryBlue,
-        //     ),
-        //     label: Text(
-        //       _viewModel.isSelectionMode ? "Cancel" : "Select",
-        //       style: const TextStyle(
-        //         color: AppTheme.primaryBlue,
-        //         fontWeight: FontWeight.w600,
-        //         fontSize: 13,
-        //       ),
-        //     ),
-        //   ),
-        //   const SizedBox(width: 8),
-        // ],
+        actions: [
+          TextButton.icon(
+            onPressed: _viewModel.toggleSelectionMode,
+            icon: Icon(
+              _viewModel.isSelectionMode ? Icons.close : Icons.checklist,
+              size: 18,
+              color: AppTheme.primaryBlue,
+            ),
+            label: Text(
+              _viewModel.isSelectionMode ? "Cancel" : "Select",
+              style: const TextStyle(
+                color: AppTheme.primaryBlue,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       floatingActionButton: _viewModel.isSelectionMode
           ? null
@@ -252,10 +252,7 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
   Widget _buildVideoContent() {
     if (_viewModel.isLoading && _viewModel.videos.isEmpty) {
       return const Center(
-        child: AppLogoLoader(
-          size: 52,
-          message: "Loading video library...",
-        ),
+        child: AppLogoLoader(size: 52, message: "Loading video library..."),
       );
     }
 

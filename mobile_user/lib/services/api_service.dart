@@ -49,10 +49,16 @@ class ApiService {
     required double currentTimestampSeconds,
     required double totalWatchTimeSeconds,
     required bool isCompleted,
+    String? firstOpenedAt,
+    String? lastWatchedAt,
+    String? completedAt,
   }) => videoRepository.updateVideoProgress(
     videoId: videoId,
     currentTimestampSeconds: currentTimestampSeconds,
     totalWatchTimeSeconds: totalWatchTimeSeconds,
     isCompleted: isCompleted,
+    firstOpenedAt: firstOpenedAt,
+    lastWatchedAt: lastWatchedAt,
+    completedAt: completedAt,
   );
 }

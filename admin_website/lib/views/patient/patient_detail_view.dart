@@ -51,7 +51,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel", style: TextStyle(color: AppTheme.textSecondary)),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -59,7 +62,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               backgroundColor: AppTheme.red,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text("Delete"),
           ),
@@ -102,28 +107,35 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 56,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12.0),
-          child: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_rounded,
-              color: AppTheme.primary,
-              size: 20,
-            ),
-            onPressed: () => Navigator.pop(context),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            tooltip: "Back",
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: AppTheme.border),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        leading: Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16.0),
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: AppTheme.primary,
+                  size: 18,
+                ),
+                onPressed: () => Navigator.pop(context),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                tooltip: "Back",
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: const BorderSide(color: AppTheme.border),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ),
           ),
         ),
-        leadingWidth: 46,
+        leadingWidth: 48,
         title: Text(
           patient.name.isNotEmpty ? patient.name : 'Unnamed Patient',
           style: const TextStyle(
@@ -155,7 +167,11 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               },
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: AppTheme.red, size: 20),
+              icon: const Icon(
+                Icons.delete_outline,
+                color: AppTheme.red,
+                size: 20,
+              ),
               tooltip: "Delete",
               onPressed: _confirmDelete,
             ),
@@ -172,13 +188,21 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                 }
               },
               icon: const Icon(Icons.edit_outlined, size: 15),
-              label: const Text("Edit Patient", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              label: const Text(
+                "Edit Patient",
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 minimumSize: const Size(0, 34),
               ),
             ),
@@ -186,13 +210,21 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             OutlinedButton.icon(
               onPressed: _confirmDelete,
               icon: const Icon(Icons.delete_outline, size: 15),
-              label: const Text("Delete", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              label: const Text(
+                "Delete",
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.red,
                 backgroundColor: AppTheme.redBg,
                 side: const BorderSide(color: AppTheme.redBorder),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 minimumSize: const Size(0, 34),
               ),
             ),
@@ -240,7 +272,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                           ),
                           TextButton(
                             onPressed: _viewModel.fetchPatientDetails,
-                            child: const Text("Retry", style: TextStyle(color: AppTheme.amberText)),
+                            child: const Text(
+                              "Retry",
+                              style: TextStyle(color: AppTheme.amberText),
+                            ),
                           ),
                         ],
                       ),
@@ -252,6 +287,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         _buildAccountInfoCard(),
                         const SizedBox(height: 16),
                         _buildEngagementOverviewCard(),
+                        const SizedBox(height: 16),
+                        _buildStagePerformanceComparisonCard(),
                         const SizedBox(height: 16),
                         _buildVideoHistoryCard(),
                       ],
@@ -268,7 +305,13 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                               const SizedBox(width: 16),
                               Expanded(
                                 flex: 2,
-                                child: _buildEngagementOverviewCard(),
+                                child: Column(
+                                  children: [
+                                    _buildEngagementOverviewCard(),
+                                    const SizedBox(height: 16),
+                                    _buildStagePerformanceComparisonCard(),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -278,25 +321,31 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                       ],
                     )
                   else
-                    IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(flex: 1, child: _buildAccountInfoCard()),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            flex: 2,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildEngagementOverviewCard(),
-                                const SizedBox(height: 16),
-                                _buildVideoHistoryCard(),
-                              ],
-                            ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(flex: 1, child: _buildAccountInfoCard()),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: Column(
+                                  children: [
+                                    _buildEngagementOverviewCard(),
+                                    const SizedBox(height: 16),
+                                    _buildStagePerformanceComparisonCard(),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildVideoHistoryCard(),
+                      ],
                     ),
                 ],
               ),
@@ -322,161 +371,74 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppTheme.blueBg,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.person_outline_rounded,
-                  color: AppTheme.primary,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                "Account Info",
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: isActive ? AppTheme.emeraldBg : AppTheme.borderSubtle,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isActive ? AppTheme.emeraldBorder : AppTheme.border,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+          Positioned.fill(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
                     Container(
-                      width: 6,
-                      height: 6,
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: isActive ? AppTheme.emerald : AppTheme.textMuted,
-                        shape: BoxShape.circle,
+                        color: AppTheme.blueBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.person_outline_rounded,
+                        color: AppTheme.primary,
+                        size: 16,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      isActive ? "Active Member" : "Inactive",
+                    const SizedBox(width: 8),
+                    const Text(
+                      "Account Info",
                       style: TextStyle(
-                        color: isActive ? AppTheme.emeraldText : AppTheme.textSecondary,
-                        fontSize: 10.5,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Tooltip(
-                message: _viewModel.isAccountInfoCollapsed
-                    ? "Expand Account Info"
-                    : "Collapse vertically",
-                child: InkWell(
-                  onTap: _viewModel.toggleAccountInfoCollapsed,
-                  borderRadius: BorderRadius.circular(6),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.blueBg,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppTheme.blueBorder),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _viewModel.isAccountInfoCollapsed
-                              ? Icons.arrow_downward_rounded
-                              : Icons.arrow_upward_rounded,
-                          size: 13,
-                          color: AppTheme.primary,
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? AppTheme.emeraldBg
+                            : AppTheme.borderSubtle,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isActive
+                              ? AppTheme.emeraldBorder
+                              : AppTheme.border,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _viewModel.isAccountInfoCollapsed
-                              ? "Expand"
-                              : "Collapse",
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          if (_viewModel.isAccountInfoCollapsed) ...[
-            // Collapsed Compact Profile Header
-            const SizedBox(height: 12),
-            Expanded(
-              child: Center(
-                child: Row(
-                  children: [
-                    _buildPatientAvatar(patient),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            patient.name.isNotEmpty
-                                ? patient.name
-                                : (patient.username.isNotEmpty
-                                      ? patient.username
-                                      : 'Unnamed'),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary,
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? AppTheme.emerald
+                                  : AppTheme.textMuted,
+                              shape: BoxShape.circle,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(width: 4),
                           Text(
-                            patient.email.isNotEmpty
-                                ? patient.email
-                                : (patient.phone.isNotEmpty
-                                      ? patient.phone
-                                      : "ID: ${patient.id.length > 8 ? patient.id.substring(0, 8) : patient.id}"),
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "${patient.age > 0 ? '${patient.age} yrs' : 'N/A'} • ${patient.gender.isNotEmpty ? patient.gender : 'N/A'}${patient.language.isNotEmpty ? ' • ${patient.language}' : ''}",
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              color: Color(0xFF475569),
-                              fontWeight: FontWeight.w500,
+                            isActive ? "Active Member" : "Inactive",
+                            style: TextStyle(
+                              color: isActive
+                                  ? AppTheme.emeraldText
+                                  : AppTheme.textSecondary,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
@@ -484,98 +446,111 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                     ),
                   ],
                 ),
-              ),
-            ),
-          ] else ...[
-            const SizedBox(height: 16),
-
-            // Avatar and Profile Header
-            Row(
-              children: [
-                _buildPatientAvatar(patient),
-                const SizedBox(width: 12),
+                const SizedBox(height: 16),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        patient.name.isNotEmpty
-                            ? patient.name
-                            : (patient.username.isNotEmpty
-                                  ? patient.username
-                                  : 'Unnamed'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Avatar and Profile Header
+                        Row(
+                          children: [
+                            _buildPatientAvatar(patient),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    patient.name.isNotEmpty
+                                        ? patient.name
+                                        : (patient.username.isNotEmpty
+                                              ? patient.username
+                                              : 'Unnamed'),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                  if (patient.username.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      "@${patient.username}",
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    "ID: ${patient.id.length > 8 ? patient.id.substring(0, 8) : patient.id}",
+                                    style: const TextStyle(
+                                      fontSize: 11.5,
+                                      color: AppTheme.textMuted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      if (patient.username.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          "@${patient.username}",
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            color: AppTheme.textSecondary,
+                        const SizedBox(height: 14),
+                        const Divider(height: 1, color: AppTheme.borderSubtle),
+                        const SizedBox(height: 14),
+                        _buildInfoRow(
+                          "AGE",
+                          patient.age > 0 ? '${patient.age} yrs' : 'N/A',
+                        ),
+                        const SizedBox(height: 10),
+                        _buildInfoRow("GENDER", patient.gender),
+                        if (patient.dob.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          _buildInfoRow(
+                            "DATE OF BIRTH",
+                            _formatDateOnly(patient.dob),
                           ),
+                        ],
+                        const SizedBox(height: 10),
+                        _buildInfoRow(
+                          "LANGUAGE",
+                          patient.language.isNotEmpty
+                              ? patient.language
+                              : "N/A",
                         ),
+                        const SizedBox(height: 10),
+                        _buildInfoRow(
+                          "PHONE NUMBER",
+                          patient.phone.isNotEmpty ? patient.phone : "N/A",
+                        ),
+                        const SizedBox(height: 10),
+                        _buildInfoRow(
+                          "EMAIL ADDRESS",
+                          patient.email.isNotEmpty ? patient.email : "N/A",
+                        ),
+                        const SizedBox(height: 10),
+                        _buildInfoRow(
+                          "REGISTRATION DATE",
+                          _formatDateTime(patient.date),
+                        ),
+                        const SizedBox(height: 10),
+                        _buildInfoRow(
+                          "ACTIVITY STREAK",
+                          patient.streak.isNotEmpty ? patient.streak : "0 days",
+                        ),
+                        if (patient.note.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          _buildInfoRow("CLINICAL NOTE", patient.note),
+                        ],
                       ],
-                      const SizedBox(height: 2),
-                      Text(
-                        "ID: ${patient.id.length > 8 ? patient.id.substring(0, 8) : patient.id}",
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: AppTheme.textMuted,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 14),
-            const Divider(height: 1, color: AppTheme.borderSubtle),
-            const SizedBox(height: 14),
-
-            _buildInfoRow("AGE", patient.age > 0 ? '${patient.age} yrs' : 'N/A'),
-            const SizedBox(height: 10),
-            _buildInfoRow("GENDER", patient.gender),
-            if (patient.dob.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              _buildInfoRow("DATE OF BIRTH", _formatDateOnly(patient.dob)),
-            ],
-            const SizedBox(height: 10),
-            _buildInfoRow(
-              "LANGUAGE",
-              patient.language.isNotEmpty ? patient.language : "N/A",
-            ),
-            const SizedBox(height: 10),
-            _buildInfoRow(
-              "PHONE NUMBER",
-              patient.phone.isNotEmpty ? patient.phone : "N/A",
-            ),
-            const SizedBox(height: 10),
-            _buildInfoRow(
-              "EMAIL ADDRESS",
-              patient.email.isNotEmpty ? patient.email : "N/A",
-            ),
-            const SizedBox(height: 10),
-            _buildInfoRow(
-              "REGISTRATION DATE",
-              _formatDateTime(patient.date),
-            ),
-            const SizedBox(height: 10),
-            _buildInfoRow(
-              "ACTIVITY STREAK",
-              patient.streak.isNotEmpty ? patient.streak : "0 days",
-            ),
-            if (patient.note.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              _buildInfoRow("CLINICAL NOTE", patient.note),
-            ],
-          ],
+          ),
         ],
       ),
     );
@@ -942,7 +917,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                   decoration: BoxDecoration(
                     color: AppTheme.emeraldCardBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.emeraldBorder, width: 1.2),
+                    border: Border.all(
+                      color: AppTheme.emeraldBorder,
+                      width: 1.2,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -988,6 +966,205 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStagePerformanceComparisonCard() {
+    final preOp = _viewModel.preOpStats;
+    final postOp = _viewModel.postOpStats;
+    final delta = _viewModel.stageDeltaRate;
+
+    String deltaLabel;
+    Color deltaTextColor;
+    Color deltaBg;
+    Color deltaBorder;
+    IconData deltaIcon;
+
+    if (delta > 0) {
+      deltaLabel = "Post-Op +${delta.abs()}%";
+      deltaTextColor = AppTheme.emeraldText;
+      deltaBg = AppTheme.emeraldBg;
+      deltaBorder = AppTheme.emeraldBorder;
+      deltaIcon = Icons.trending_up_rounded;
+    } else if (delta < 0) {
+      deltaLabel = "Pre-Op +${delta.abs()}%";
+      deltaTextColor = AppTheme.blueText;
+      deltaBg = AppTheme.blueBg;
+      deltaBorder = AppTheme.blueBorder;
+      deltaIcon = Icons.trending_up_rounded;
+    } else {
+      deltaLabel = "Equal Completion";
+      deltaTextColor = AppTheme.textSecondary;
+      deltaBg = AppTheme.borderSubtle;
+      deltaBorder = AppTheme.borderMedium;
+      deltaIcon = Icons.horizontal_rule_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.purpleBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.compare_arrows_rounded,
+                      color: AppTheme.purple,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "Pre-Op & Post-Op Comparison",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: deltaBg,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: deltaBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(deltaIcon, size: 14, color: deltaTextColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      deltaLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: deltaTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Pre-Op and Post-Op visual cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildStageDetailBox(
+                  stageTitle: "PRE-OP",
+                  icon: Icons.assignment_outlined,
+                  stats: preOp,
+                  accentColor: AppTheme.blue,
+                  cardBg: AppTheme.blueCardBg,
+                  borderColor: AppTheme.blueBorder,
+                  textColor: AppTheme.blueText,
+                  badgeBg: AppTheme.blueBg,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStageDetailBox(
+                  stageTitle: "POST-OP",
+                  icon: Icons.healing_outlined,
+                  stats: postOp,
+                  accentColor: AppTheme.emerald,
+                  cardBg: AppTheme.emeraldCardBg,
+                  borderColor: AppTheme.emeraldBorder,
+                  textColor: AppTheme.emeraldText,
+                  badgeBg: AppTheme.emeraldBg,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStageDetailBox({
+    required String stageTitle,
+    required IconData icon,
+    required StagePerformanceStats stats,
+    required Color accentColor,
+    required Color cardBg,
+    required Color borderColor,
+    required Color textColor,
+    required Color badgeBg,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                stageTitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 14, color: accentColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "${stats.progressRate}%",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 4),
         ],
       ),
     );
@@ -1098,6 +1275,104 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                 ),
               ),
               const Spacer(),
+              // CATEGORY DROPDOWN: All, Pre-op, Post-op
+              Container(
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.borderMedium),
+                ),
+                child: PopupMenuButton<String>(
+                  tooltip: "",
+                  offset: const Offset(0, 36),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: AppTheme.border),
+                  ),
+                  color: Colors.white,
+                  elevation: 4,
+                  onSelected: (String newValue) {
+                    _viewModel.setHistoryCategory(newValue);
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: "All",
+                      height: 34,
+                      child: Text(
+                        "All",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              _viewModel.selectedHistoryCategory == "All"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _viewModel.selectedHistoryCategory == "All"
+                              ? AppTheme.primary
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: "Pre-op",
+                      height: 34,
+                      child: Text(
+                        "Pre-op",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              _viewModel.selectedHistoryCategory == "Pre-op"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _viewModel.selectedHistoryCategory == "Pre-op"
+                              ? AppTheme.primary
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: "Post-op",
+                      height: 34,
+                      child: Text(
+                        "Post-op",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight:
+                              _viewModel.selectedHistoryCategory == "Post-op"
+                              ? FontWeight.bold
+                              : FontWeight.w500,
+                          color: _viewModel.selectedHistoryCategory == "Post-op"
+                              ? AppTheme.primary
+                              : AppTheme.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _viewModel.selectedHistoryCategory,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 16,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
                 decoration: BoxDecoration(
@@ -1117,7 +1392,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             ],
           ),
           const SizedBox(height: 16),
-          if (videoHistory.isEmpty)
+          if (_viewModel.isHistoryLoading)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 36),
+              alignment: Alignment.center,
+              child: const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            )
+          else if (videoHistory.isEmpty)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 36),
               alignment: Alignment.center,
@@ -1131,7 +1416,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                   SizedBox(height: 8),
                   Text(
                     "No assigned or watched videos found for this patient.",
-                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -1239,13 +1527,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                       color: isPostOp ? AppTheme.purpleBg : AppTheme.blueBg,
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: isPostOp ? AppTheme.purpleBorder : AppTheme.blueBorder,
+                        color: isPostOp
+                            ? AppTheme.purpleBorder
+                            : AppTheme.blueBorder,
                       ),
                     ),
                     child: Text(
                       category,
                       style: TextStyle(
-                        color: isPostOp ? AppTheme.purpleText : AppTheme.blueText,
+                        color: isPostOp
+                            ? AppTheme.purpleText
+                            : AppTheme.blueText,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1269,19 +1561,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                isCompleted ? Icons.check_circle_rounded : Icons.access_time_rounded,
+                isCompleted
+                    ? Icons.check_circle_rounded
+                    : Icons.access_time_rounded,
                 size: 12,
-                color: isCompleted
-                    ? AppTheme.emerald
-                    : AppTheme.primary,
+                color: isCompleted ? AppTheme.emerald : AppTheme.primary,
               ),
               const SizedBox(width: 4),
               Text(
                 isCompleted ? "Completed" : "In Progress",
                 style: TextStyle(
-                  color: isCompleted
-                      ? AppTheme.emeraldText
-                      : AppTheme.blueText,
+                  color: isCompleted ? AppTheme.emeraldText : AppTheme.blueText,
                   fontSize: 10.5,
                   fontWeight: FontWeight.w600,
                 ),

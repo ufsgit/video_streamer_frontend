@@ -69,6 +69,21 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
     _isCompleted = saved.isCompleted ||
         (_videoDuration > 0 && _currentPosition >= (_videoDuration - 1.0));
 
+    // Ensure first_opened_at is set on first open in IST
+    final nowIst = VideoProgressManager.nowInIstIso();
+    if (saved.firstOpenedAt == null || saved.firstOpenedAt!.isEmpty) {
+      VideoProgressManager.saveProgress(
+        idOrUrl: widget.videoUrl,
+        currentPosition: saved.currentPosition,
+        totalDuration: saved.totalDuration,
+        isCompleted: _isCompleted,
+        videoId: widget.videoId,
+        firstOpenedAt: nowIst,
+        lastWatchedAt: nowIst,
+        completedAt: saved.completedAt,
+      );
+    }
+
     final double resumeSecs = (_savedResumePosition > 0 && !_isCompleted)
         ? _savedResumePosition
         : 0.0;
@@ -249,6 +264,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
   }) async {
     final bool completed =
         isCompleted || (total > 0 && current >= (total - 1.0));
+    final nowIst = VideoProgressManager.nowInIstIso();
 
     // 1. Persist to Hive storage
     await VideoProgressManager.saveProgress(
@@ -257,6 +273,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
       totalDuration: total,
       isCompleted: completed,
       videoId: widget.videoId,
+      lastWatchedAt: nowIst,
     );
 
     // 2. Read the authoritative values directly from Hive
@@ -274,6 +291,9 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
         currentTimestampSeconds: saved.currentPosition,
         totalWatchTimeSeconds: saved.totalDuration,
         isCompleted: saved.isCompleted,
+        firstOpenedAt: saved.firstOpenedAt,
+        lastWatchedAt: saved.lastWatchedAt ?? nowIst,
+        completedAt: saved.completedAt,
       );
     }
   }

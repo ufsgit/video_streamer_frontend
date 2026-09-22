@@ -3,6 +3,7 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:admin_mobile/core/theme.dart';
 import 'package:admin_mobile/viewmodels/library_viewmodel.dart';
 import 'package:admin_mobile/widgets/app_logo.dart';
+import 'mobile_assign_videos_sheet.dart';
 import 'mobile_add_video_sheet.dart';
 
 class MobileLibraryView extends StatefulWidget {
@@ -36,22 +37,110 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        actions: [
+          TextButton.icon(
+            onPressed: _viewModel.toggleSelectionMode,
+            icon: Icon(
+              _viewModel.isSelectionMode ? Icons.close : Icons.checklist,
+              size: 18,
+              color: AppTheme.primaryBlue,
+            ),
+            label: Text(
+              _viewModel.isSelectionMode ? "Cancel" : "Select",
+              style: const TextStyle(
+                color: AppTheme.primaryBlue,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await showModalBottomSheet<Map<String, dynamic>>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => const MobileAddVideoSheet(),
-          );
-          if (result != null) {
-            _viewModel.fetchVideos(page: 1, refresh: true);
-          }
-        },
-        backgroundColor: AppTheme.primaryBlue,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: _viewModel.isSelectionMode
+          ? null
+          : FloatingActionButton(
+              onPressed: () async {
+                final result = await showModalBottomSheet<Map<String, dynamic>>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => const MobileAddVideoSheet(),
+                );
+                if (result != null) {
+                  _viewModel.fetchVideos(page: 1, refresh: true);
+                }
+              },
+              backgroundColor: AppTheme.primaryBlue,
+              child: const Icon(Icons.add, color: Colors.white),
+            ),
+      bottomNavigationBar:
+          _viewModel.isSelectionMode && _viewModel.selectedVideos.isNotEmpty
+          ? Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(20),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: AppTheme.primaryBlue,
+                      child: Text(
+                        "${_viewModel.selectedVideos.length}",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      "Videos Selected",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Spacer(),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => MobileAssignVideosSheet(
+                            selectedVideos: _viewModel.selectedVideos.toList(),
+                            onAssigned: () {
+                              _viewModel.exitSelectionMode();
+                            },
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.send_rounded, size: 16),
+                      label: const Text("Assign to Patient"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
       body: ListenableBuilder(
         listenable: _viewModel,
         builder: (context, _) {
@@ -122,7 +211,7 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
                               label: Text(_viewModel.categories[index]),
                               selected: isSelected,
                               onSelected: (selected) =>
-                                  _viewModel.selectCategory(index),
+                                   _viewModel.selectCategory(index),
                               selectedColor: AppTheme.categorySelectorColor,
                               labelStyle: TextStyle(
                                 color: isSelected
@@ -163,10 +252,7 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
   Widget _buildVideoContent() {
     if (_viewModel.isLoading && _viewModel.videos.isEmpty) {
       return const Center(
-        child: AppLogoLoader(
-          size: 52,
-          message: "Loading video library...",
-        ),
+        child: AppLogoLoader(size: 52, message: "Loading video library..."),
       );
     }
 
@@ -697,4 +783,3 @@ class _MobileLibraryViewState extends State<MobileLibraryView> {
     );
   }
 }
-

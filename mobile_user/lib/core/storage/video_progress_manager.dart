@@ -7,12 +7,18 @@ class VideoProgress {
   final double currentPosition; // in seconds
   final bool isCompleted;
   final dynamic videoId;
+  final String? firstOpenedAt;
+  final String? lastWatchedAt;
+  final String? completedAt;
 
   const VideoProgress({
     this.totalDuration = 0.0,
     this.currentPosition = 0.0,
     this.isCompleted = false,
     this.videoId,
+    this.firstOpenedAt,
+    this.lastWatchedAt,
+    this.completedAt,
   });
 
   /// Returns progress value from 0.0 to 1.0
@@ -37,6 +43,9 @@ class VideoProgress {
       'currentPosition': currentPosition,
       'isCompleted': isActuallyCompleted,
       'videoId': videoId,
+      'firstOpenedAt': firstOpenedAt,
+      'lastWatchedAt': lastWatchedAt,
+      'completedAt': completedAt,
     };
   }
 
@@ -51,6 +60,12 @@ class VideoProgress {
       currentPosition: pos,
       isCompleted: comp,
       videoId: map['videoId'],
+      firstOpenedAt: map['firstOpenedAt']?.toString() ??
+          map['first_opened_at']?.toString(),
+      lastWatchedAt: map['lastWatchedAt']?.toString() ??
+          map['last_watched_at']?.toString(),
+      completedAt: map['completedAt']?.toString() ??
+          map['completed_at']?.toString(),
     );
   }
 }
@@ -84,13 +99,23 @@ class VideoProgressManager {
     return const VideoProgress();
   }
 
-  /// Saves the total duration, current position, and completion state in Hive.
+  /// Returns the current time in Indian Standard Time (IST, UTC+5:30) as an ISO-8601 string.
+  static String nowInIstIso() {
+    final nowUtc = DateTime.now().toUtc();
+    final ist = nowUtc.add(const Duration(hours: 5, minutes: 30));
+    return ist.toIso8601String();
+  }
+
+  /// Saves the total duration, current position, completion state, and tracking timestamps in Hive.
   static Future<void> saveProgress({
     required String? idOrUrl,
     required double currentPosition,
     required double totalDuration,
     bool? isCompleted,
     dynamic videoId,
+    String? firstOpenedAt,
+    String? lastWatchedAt,
+    String? completedAt,
   }) async {
     try {
       final key = normalizeKey(idOrUrl);
@@ -105,11 +130,30 @@ class VideoProgressManager {
       final bool completed =
           isCompleted ?? (effectiveDur > 0 && currentPosition >= effectiveDur);
 
+      final nowIst = nowInIstIso();
+
+      // first_opened_at: set once in IST when first started/opened, never overwritten
+      final String effectiveFirstOpenedAt = firstOpenedAt ??
+          existing.firstOpenedAt ??
+          nowIst;
+
+      // last_watched_at: updated whenever video progress is saved / resumed / watched in IST
+      final String effectiveLastWatchedAt = lastWatchedAt ?? nowIst;
+
+      // completed_at: set once in IST when video is completed, never overwritten once completed
+      String? effectiveCompletedAt = completedAt ?? existing.completedAt;
+      if (completed && (effectiveCompletedAt == null || effectiveCompletedAt.isEmpty)) {
+        effectiveCompletedAt = nowIst;
+      }
+
       final progress = VideoProgress(
         currentPosition: currentPosition,
         totalDuration: effectiveDur,
         isCompleted: completed,
         videoId: videoId ?? existing.videoId,
+        firstOpenedAt: effectiveFirstOpenedAt,
+        lastWatchedAt: effectiveLastWatchedAt,
+        completedAt: effectiveCompletedAt,
       );
 
       await _box.put(key, progress.toMap());

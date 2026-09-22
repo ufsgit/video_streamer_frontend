@@ -1,6 +1,5 @@
 import 'dart:developer';
 
-import 'package:hive/hive.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
 import '../models/video_model.dart';
@@ -25,6 +24,9 @@ abstract class VideoRepository {
     required double currentTimestampSeconds,
     required double totalWatchTimeSeconds,
     required bool isCompleted,
+    String? firstOpenedAt,
+    String? lastWatchedAt,
+    String? completedAt,
   });
 }
 
@@ -39,11 +41,13 @@ class VideoRepositoryImpl implements VideoRepository {
       final response = await _client.dio.get(ApiConstants.continueWatchingPath);
       if (response.statusCode == 200) {
         final data = response.data;
-        if (data is Map<String, dynamic> && data['video'] != null) {
-          return VideoModel.fromJson(data['video']);
+        if (data is Map<String, dynamic> && data['data'] != null) {
+          return VideoModel.fromJson(data['data']);
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      log('Error fetching continue watching video: $e');
+    }
     return null;
   }
 
@@ -53,11 +57,17 @@ class VideoRepositoryImpl implements VideoRepository {
       final response = await _client.dio.get(ApiConstants.completedVideosPath);
       if (response.statusCode == 200) {
         final data = response.data;
-        if (data is List) {
+        if (data is Map<String, dynamic> && data['data'] is List) {
+          return (data['data'] as List)
+              .map((json) => VideoModel.fromJson(json))
+              .toList();
+        } else if (data is List) {
           return data.map((json) => VideoModel.fromJson(json)).toList();
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      log('Error fetching completed videos: $e');
+    }
     return [];
   }
 
@@ -70,11 +80,17 @@ class VideoRepositoryImpl implements VideoRepository {
       );
       if (response.statusCode == 200) {
         final data = response.data;
-        if (data is List) {
+        if (data is Map<String, dynamic> && data['data'] is List) {
+          return (data['data'] as List)
+              .map((json) => VideoModel.fromJson(json))
+              .toList();
+        } else if (data is List) {
           return data.map((json) => VideoModel.fromJson(json)).toList();
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      log('Error searching videos: $e');
+    }
     return [];
   }
 
@@ -86,25 +102,14 @@ class VideoRepositoryImpl implements VideoRepository {
     int limit = 10,
   }) async {
     try {
-      int? effectiveLanguageId = languageId;
-      if (effectiveLanguageId == null) {
-        final box = Hive.box('settings');
-        effectiveLanguageId = box.get('selected_language_id');
-      }
-
       final Map<String, dynamic> queryParams = {
         'category': category,
         'page': page,
         'limit': limit,
       };
-
-      if (effectiveLanguageId != null) {
-        queryParams['language_id'] = effectiveLanguageId;
+      if (languageId != null) {
+        queryParams['language_id'] = languageId;
       }
-
-      log(
-        'DEBUG: Calling ${ApiConstants.videosListPath} with params: $queryParams',
-      );
 
       final response = await _client.dio.get(
         ApiConstants.videosListPath,
@@ -113,7 +118,6 @@ class VideoRepositoryImpl implements VideoRepository {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        // The API might return { "success": true, "data": [...] }
         if (data is Map<String, dynamic> && data['data'] is List) {
           return (data['data'] as List)
               .map((json) => VideoModel.fromJson(json))
@@ -134,6 +138,9 @@ class VideoRepositoryImpl implements VideoRepository {
     required double currentTimestampSeconds,
     required double totalWatchTimeSeconds,
     required bool isCompleted,
+    String? firstOpenedAt,
+    String? lastWatchedAt,
+    String? completedAt,
   }) async {
     try {
       final dynamic formattedVideoId =
@@ -143,6 +150,9 @@ class VideoRepositoryImpl implements VideoRepository {
         'current_timestamp_seconds': currentTimestampSeconds.round(),
         'total_watch_time_seconds': totalWatchTimeSeconds.round(),
         'is_completed': isCompleted,
+        'first_opened_at': ?firstOpenedAt,
+        'last_watched_at': ?lastWatchedAt,
+        'completed_at': ?completedAt,
       };
 
       log('DEBUG: Updating video progress with payload: $data');
