@@ -233,119 +233,119 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         ],
       ),
       body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_viewModel.errorMessage != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.amberBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.amberBorder),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: AppTheme.amber,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _viewModel.errorMessage!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.amberText,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _viewModel.fetchPatientDetails,
+                      child: const Text(
+                        "Retry",
+                        style: TextStyle(color: AppTheme.amberText),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (MediaQuery.of(context).size.width < 800)
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_viewModel.errorMessage != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.amberBg,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.amberBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline_rounded,
-                            color: AppTheme.amber,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _viewModel.errorMessage!,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppTheme.amberText,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: _viewModel.fetchPatientDetails,
-                            child: const Text(
-                              "Retry",
-                              style: TextStyle(color: AppTheme.amberText),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (MediaQuery.of(context).size.width < 800)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  _buildAccountInfoCard(),
+                  const SizedBox(height: 16),
+                  _buildEngagementOverviewCard(),
+                  const SizedBox(height: 16),
+                  _buildStagePerformanceComparisonCard(),
+                  const SizedBox(height: 16),
+                  _buildVideoHistoryCard(),
+                ],
+              )
+            else if (_viewModel.isAccountInfoCollapsed)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildAccountInfoCard(),
-                        const SizedBox(height: 16),
-                        _buildEngagementOverviewCard(),
-                        const SizedBox(height: 16),
-                        _buildStagePerformanceComparisonCard(),
-                        const SizedBox(height: 16),
-                        _buildVideoHistoryCard(),
-                      ],
-                    )
-                  else if (_viewModel.isAccountInfoCollapsed)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                        Expanded(flex: 1, child: _buildAccountInfoCard()),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
                             children: [
-                              Expanded(flex: 1, child: _buildAccountInfoCard()),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  children: [
-                                    _buildEngagementOverviewCard(),
-                                    const SizedBox(height: 16),
-                                    _buildStagePerformanceComparisonCard(),
-                                  ],
-                                ),
-                              ),
+                              _buildEngagementOverviewCard(),
+                              const SizedBox(height: 16),
+                              _buildStagePerformanceComparisonCard(),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _buildVideoHistoryCard(),
                       ],
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildVideoHistoryCard(),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                        Expanded(flex: 1, child: _buildAccountInfoCard()),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
                             children: [
-                              Expanded(flex: 1, child: _buildAccountInfoCard()),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  children: [
-                                    _buildEngagementOverviewCard(),
-                                    const SizedBox(height: 16),
-                                    _buildStagePerformanceComparisonCard(),
-                                  ],
-                                ),
-                              ),
+                              _buildEngagementOverviewCard(),
+                              const SizedBox(height: 16),
+                              _buildStagePerformanceComparisonCard(),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _buildVideoHistoryCard(),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildVideoHistoryCard(),
                 ],
               ),
-            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1530,8 +1530,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: videoHistory.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: 10),
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final video = videoHistory[index];
                 return _buildHistoryItem(video, index);
@@ -1570,7 +1569,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
   String? _formatDateTimeOrNull(dynamic rawDate) {
     if (rawDate == null) return null;
     final str = rawDate.toString().trim();
-    if (str.isEmpty || str.toLowerCase() == 'null' || str.toLowerCase() == 'n/a') return null;
+    if (str.isEmpty ||
+        str.toLowerCase() == 'null' ||
+        str.toLowerCase() == 'n/a')
+      return null;
     final parsed = DateTime.tryParse(str);
     if (parsed != null) {
       final local = parsed.toLocal();
@@ -1593,7 +1595,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     bool isPostOp,
     int? totalDuration,
   ) {
-    final hasThumbnail = thumbnailUrl != null &&
+    final hasThumbnail =
+        thumbnailUrl != null &&
         thumbnailUrl.trim().isNotEmpty &&
         thumbnailUrl.toLowerCase() != 'null';
 
@@ -1649,7 +1652,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                 bottom: 3,
                 right: 3,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.72),
                     borderRadius: BorderRadius.circular(3),
@@ -1711,7 +1717,11 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.access_time_rounded, size: 12, color: AppTheme.primary),
+            const Icon(
+              Icons.access_time_rounded,
+              size: 12,
+              color: AppTheme.primary,
+            ),
             const SizedBox(width: 4),
             Text(
               "In Progress • $progressPercent%",
@@ -1735,7 +1745,11 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.radio_button_unchecked, size: 12, color: Color(0xFF64748B)),
+            Icon(
+              Icons.radio_button_unchecked,
+              size: 12,
+              color: Color(0xFF64748B),
+            ),
             SizedBox(width: 4),
             Text(
               "Not Started",
@@ -1797,13 +1811,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
   }
 
   Widget _buildHistoryItem(Map<String, dynamic> video, int index) {
-    final videoId = _parseInt(video['video_id'] ?? video['videoId'] ?? video['id']);
-    final title = video['title']?.toString() ??
+    final videoId = _parseInt(
+      video['video_id'] ?? video['videoId'] ?? video['id'],
+    );
+    final title =
+        video['title']?.toString() ??
         video['name']?.toString() ??
         (videoId != null ? 'Video #$videoId' : 'Video #${index + 1}');
 
     final description = video['description']?.toString().trim();
-    final bool hasDescription = description != null &&
+    final bool hasDescription =
+        description != null &&
         description.isNotEmpty &&
         description.toLowerCase() != 'null';
 
@@ -1814,16 +1832,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     final thumbnailUrl =
         video['thumbnail_url']?.toString() ?? video['thumbnailUrl']?.toString();
 
-    final rawCompleted = video['is_completed'] ??
-        video['isCompleted'] ??
-        video['completed'];
-    final bool isCompleted = rawCompleted == 1 ||
+    final rawCompleted =
+        video['is_completed'] ?? video['isCompleted'] ?? video['completed'];
+    final bool isCompleted =
+        rawCompleted == 1 ||
         rawCompleted == true ||
         rawCompleted == '1' ||
         rawCompleted == 'true' ||
         video['status'] == 'completed';
 
-    final int currentSeconds = _parseInt(
+    final int currentSeconds =
+        _parseInt(
           video['current_timestamp_seconds'] ??
               video['currentTimestampSeconds'] ??
               video['current_timestamp'] ??
@@ -1853,8 +1872,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
 
     int progressPercent;
     if (totalDuration != null && totalDuration > 0) {
-      progressPercent =
-          ((currentSeconds / totalDuration) * 100).clamp(0, 100).round();
+      progressPercent = ((currentSeconds / totalDuration) * 100)
+          .clamp(0, 100)
+          .round();
     } else if (isCompleted) {
       progressPercent = 100;
     } else {
@@ -1996,8 +2016,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                               totalDuration != null && totalDuration > 0
                                   ? "Watched: ${_formatSeconds(currentSeconds)} / ${_formatSeconds(totalDuration)}"
                                   : (currentSeconds > 0
-                                      ? "Watched: ${_formatSeconds(currentSeconds)}"
-                                      : "Not watched yet"),
+                                        ? "Watched: ${_formatSeconds(currentSeconds)}"
+                                        : "Not watched yet"),
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -2014,8 +2034,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                             color: isCompleted
                                 ? AppTheme.emeraldText
                                 : (progressPercent > 0
-                                    ? AppTheme.primary
-                                    : AppTheme.textSecondary),
+                                      ? AppTheme.primary
+                                      : AppTheme.textSecondary),
                           ),
                         ),
                       ],
@@ -2090,10 +2110,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         decoration: BoxDecoration(
           color: AppTheme.emeraldCardBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppTheme.emeraldBorder,
-            width: 1.2,
-          ),
+          border: Border.all(color: AppTheme.emeraldBorder, width: 1.2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2277,9 +2294,10 @@ class _FlashingWidgetState extends State<FlashingWidget>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.35, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.35,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -2291,10 +2309,7 @@ class _FlashingWidgetState extends State<FlashingWidget>
   @override
   Widget build(BuildContext context) {
     if (!widget.isFlashing) return widget.child;
-    return FadeTransition(
-      opacity: _animation,
-      child: widget.child,
-    );
+    return FadeTransition(opacity: _animation, child: widget.child);
   }
 }
 
