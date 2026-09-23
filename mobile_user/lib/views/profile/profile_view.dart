@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../viewmodels/profile_viewmodel.dart';
 import '../auth/login_view.dart';
+import '../../widgets/app_tutorial_dialog.dart';
 import 'notification_settings_view.dart';
 import 'personal_info_view.dart';
 
@@ -575,6 +576,13 @@ class _ProfileViewState extends State<ProfileView> {
                               onTap: () => _showLanguageSelectionModal(context),
                             );
                           },
+                        ),
+                        const Divider(height: 1, color: AppColors.divider),
+                        _buildSettingsTile(
+                          icon: Icons.help_outline_rounded,
+                          title: 'App tutorial & guide',
+                          subtitle: 'Learn how to use Meridian Health',
+                          onTap: () => AppTutorialDialog.show(context, isManual: true),
                         ),
                         const Divider(height: 1, color: AppColors.divider),
                         _buildSettingsTile(

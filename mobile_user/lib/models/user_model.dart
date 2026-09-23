@@ -16,6 +16,8 @@ class UserModel {
   final int? age;
   final String? sex;
   final String? phoneNumber;
+  final int? languageId;
+  final String? languageName;
 
   UserModel({
     required this.id,
@@ -32,9 +34,34 @@ class UserModel {
     this.age,
     this.sex,
     this.phoneNumber,
+    this.languageId,
+    this.languageName,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final rawLangId = json['language_id'] ?? json['languageId'];
+    final int? parsedLangId = rawLangId != null ? int.tryParse(rawLangId.toString()) : null;
+
+    String? parsedLangName;
+    if (json['language_name'] != null) {
+      parsedLangName = json['language_name'].toString();
+    } else if (json['languageName'] != null) {
+      parsedLangName = json['languageName'].toString();
+    } else if (json['language'] is String) {
+      parsedLangName = json['language'];
+    } else if (json['language'] is Map) {
+      parsedLangName = (json['language']['name'] ??
+              json['language']['language_name'] ??
+              json['language']['title'])
+          ?.toString();
+    }
+    if (parsedLangName != null) {
+      final s = parsedLangName.trim();
+      if (s.isEmpty || s.toLowerCase() == 'null' || s.toLowerCase() == 'none') {
+        parsedLangName = null;
+      }
+    }
+
     return UserModel(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
@@ -49,6 +76,8 @@ class UserModel {
       age: json['age'],
       sex: json['sex'],
       phoneNumber: json['phone_number'],
+      languageId: parsedLangId,
+      languageName: parsedLangName,
     );
   }
 
@@ -68,6 +97,8 @@ class UserModel {
       'age': age,
       'sex': sex,
       'phone_number': phoneNumber,
+      'language_id': languageId,
+      'language_name': languageName,
     };
   }
 }

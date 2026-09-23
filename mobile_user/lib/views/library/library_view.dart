@@ -3,6 +3,8 @@ import '../../core/theme/app_colors.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import '../../widgets/app_logo.dart';
 import 'category_details_view.dart';
+import '../../core/tutorial/app_tour_controller.dart';
+import '../../widgets/tour_guide_overlay.dart';
 
 class LibraryView extends StatefulWidget {
   final LibraryViewModel? viewModel;
@@ -68,30 +70,66 @@ class _LibraryViewState extends State<LibraryView> {
                   const SizedBox(height: 8),
 
                   // Pre-op Colorful Card
-                  _buildColorfulCategoryCard(
-                    context,
-                    tag: 'PHASE 1 · PREPARATION',
-                    title: 'Pre-op',
-                    gradientColors: AppColors.preOpGradient,
-                    shadowColor: AppColors.preOpAccent,
-                    iconWidget: const SizedBox(
-                      width: 26,
-                      height: 26,
-                      child: Icon(
-                        Icons.medical_information,
-                        color: Colors.white,
-                      ),
-                    ),
-                    onTap: () {
-                      _viewModel.selectCategory('Pre-op');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CategoryDetailsView(
-                            category: 'Pre-op',
-                            viewModel: _viewModel,
+                  ListenableBuilder(
+                    listenable: AppTourController.instance,
+                    builder: (context, _) {
+                      final bool isTourStep =
+                          AppTourController.instance.currentStep ==
+                              AppTourStep.clickPreOp;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (isTourStep) ...[
+                            TourGuideCard(
+                              stepText: 'Step 1 of 4',
+                              title: 'Tap on Pre-op',
+                              description:
+                                  'Tap the Pre-op button below to view your videos.',
+                              icon: Icons.touch_app_rounded,
+                              accentColor: AppColors.preOpAccent,
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                          TourHighlightTarget(
+                            isHighlighted: isTourStep,
+                            highlightColor: AppColors.preOpAccent,
+                            borderRadius: 24,
+                            child: _buildColorfulCategoryCard(
+                              context,
+                              tag: 'PHASE 1 · PREPARATION',
+                              title: 'Pre-op',
+                              gradientColors: AppColors.preOpGradient,
+                              shadowColor: AppColors.preOpAccent,
+                              iconWidget: const SizedBox(
+                                width: 26,
+                                height: 26,
+                                child: Icon(
+                                  Icons.medical_information,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              onTap: () {
+                                if (AppTourController.instance.currentStep ==
+                                    AppTourStep.clickPreOp) {
+                                  AppTourController.instance.setStep(
+                                    AppTourStep.clickFirstVideo,
+                                  );
+                                }
+                                _viewModel.selectCategory('Pre-op');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CategoryDetailsView(
+                                      category: 'Pre-op',
+                                      viewModel: _viewModel,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
+                        ],
                       );
                     },
                   ),

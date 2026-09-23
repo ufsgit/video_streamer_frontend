@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/tutorial/app_tour_controller.dart';
+import '../../widgets/app_tutorial_dialog.dart';
 import '../../widgets/daily_reminder_dialog.dart';
 import '../library/library_view.dart';
 import '../profile/profile_view.dart';
@@ -23,12 +25,28 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     super.initState();
     _currentIndex = widget.initialIndex;
 
-    // Check & prompt for daily video reminders on login/launch if time is not set
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+    AppTourController.instance.addListener(_onTourStateChanged);
+
+    // One-time tutorial for first time logins, followed by daily video reminder
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final bool startedTour = await AppTutorialDialog.showIfNeeded(context);
+      if (!startedTour && mounted) {
         DailyReminderDialog.showIfNeeded(context);
       }
     });
+  }
+
+  void _onTourStateChanged() {
+    if (!AppTourController.instance.isActive && mounted) {
+      DailyReminderDialog.showIfNeeded(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    AppTourController.instance.removeListener(_onTourStateChanged);
+    super.dispose();
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import '../../services/api_service.dart';
 
 class VideoProgress {
   final double totalDuration; // in seconds
@@ -28,10 +29,11 @@ class VideoProgress {
     return (currentPosition / totalDuration).clamp(0.0, 1.0);
   }
 
-  /// Returns true ONLY when the current position equals or exceeds the total duration, or explicitly completed
+  /// Returns true when marked completed by the backend or watched to the end
   bool get isActuallyCompleted {
-    if (totalDuration > 0 && currentPosition >= totalDuration) return true;
-    return isCompleted;
+    if (isCompleted) return true;
+    if (totalDuration > 0 && currentPosition >= (totalDuration - 1.0)) return true;
+    return false;
   }
 
   /// Returns percentage integer (0 to 100)
@@ -53,7 +55,12 @@ class VideoProgress {
     if (map == null) return const VideoProgress();
     final double dur = (map['totalDuration'] as num?)?.toDouble() ?? 0.0;
     final double pos = (map['currentPosition'] as num?)?.toDouble() ?? 0.0;
-    final bool comp = map['isCompleted'] == true && (dur <= 0 || pos >= dur);
+    final dynamic compRaw = map['isCompleted'] ?? map['is_completed'];
+    final bool comp = compRaw == true ||
+        compRaw == 1 ||
+        compRaw == '1' ||
+        compRaw == 'true' ||
+        (dur > 0 && pos >= (dur - 1.0));
 
     return VideoProgress(
       totalDuration: dur,
@@ -157,7 +164,114 @@ class VideoProgressManager {
       );
 
       await _box.put(key, progress.toMap());
-    } catch (_) {}
+      if (progress.videoId != null) {
+        final idKey = progress.videoId.toString();
+        if (idKey != key) {
+          await _box.put(idKey, progress.toMap());
+        }
+      }
+    } catch (e) {
+      debugPrint('[VideoProgressManager] Error saving progress: $e');
+    }
+  }
+
+  /// Saves progress data received from the backend API into Hive storage.
+  static Future<void> saveFromApiData({
+    required String? idOrUrl,
+    required Map<String, dynamic> apiData,
+    dynamic videoId,
+  }) async {
+    try {
+      num? parseNum(dynamic val) {
+        if (val == null) return null;
+        if (val is num) return val;
+        return num.tryParse(val.toString());
+      }
+
+      final num? posNum = parseNum(
+        apiData['current_timestamp_seconds'] ??
+            apiData['current_position'] ??
+            apiData['currentPosition'] ??
+            apiData['position'] ??
+            apiData['timestamp'] ??
+            apiData['progress_seconds'],
+      );
+      final double currentPosition = posNum?.toDouble() ?? 0.0;
+
+      final num? durNum = parseNum(
+        apiData['total_watch_time_seconds'] ??
+            apiData['total_duration'] ??
+            apiData['totalDuration'] ??
+            apiData['duration'] ??
+            apiData['duration_seconds'],
+      );
+      final double totalDuration = durNum?.toDouble() ?? 0.0;
+
+      final dynamic isCompVal = apiData['is_completed'] ??
+          apiData['isCompleted'] ??
+          apiData['completed'];
+      final String? statusVal = apiData['status']?.toString().toLowerCase();
+      final bool isCompleted = isCompVal == true ||
+          isCompVal == 1 ||
+          isCompVal == '1' ||
+          isCompVal == 'true' ||
+          statusVal == 'completed' ||
+          (totalDuration > 0 && currentPosition >= (totalDuration - 1.0));
+
+      final String? firstOpenedAt = apiData['first_opened_at']?.toString() ??
+          apiData['firstOpenedAt']?.toString();
+      final String? lastWatchedAt = apiData['last_watched_at']?.toString() ??
+          apiData['lastWatchedAt']?.toString();
+      final String? completedAt = apiData['completed_at']?.toString() ??
+          apiData['completedAt']?.toString();
+      final dynamic effectiveVideoId =
+          apiData['video_id'] ?? apiData['videoId'] ?? apiData['id'] ?? videoId;
+
+      final String effectiveKey = (idOrUrl != null && idOrUrl.isNotEmpty)
+          ? idOrUrl
+          : (apiData['link'] ?? apiData['url'] ?? effectiveVideoId?.toString() ?? 'unknown');
+
+      await saveProgress(
+        idOrUrl: effectiveKey,
+        currentPosition: currentPosition,
+        totalDuration: totalDuration,
+        isCompleted: isCompleted,
+        videoId: effectiveVideoId,
+        firstOpenedAt: firstOpenedAt,
+        lastWatchedAt: lastWatchedAt,
+        completedAt: completedAt,
+      );
+
+      debugPrint(
+        '[VideoProgressManager] Saved API progress into Hive for videoId=$effectiveVideoId: '
+        'pos=${currentPosition}s, dur=${totalDuration}s, completed=$isCompleted',
+      );
+    } catch (e) {
+      debugPrint('[VideoProgressManager] Error saving API progress data to Hive: $e');
+    }
+  }
+
+  /// Fetches video progress from the backend endpoint (/api/user/videos/progress/{videoId}),
+  /// parses it, and stores it in Hive. Returns the saved VideoProgress object.
+  static Future<VideoProgress?> fetchAndSyncProgressFromApi({
+    required dynamic videoId,
+    required String? idOrUrl,
+  }) async {
+    if (videoId == null) return null;
+    try {
+      final apiData = await ApiService().getVideoProgress(videoId);
+      if (apiData != null && apiData.isNotEmpty) {
+        await saveFromApiData(
+          idOrUrl: idOrUrl,
+          apiData: apiData,
+          videoId: videoId,
+        );
+        return getProgress(idOrUrl ?? videoId.toString());
+      }
+    } catch (e) {
+      debugPrint('[VideoProgressManager] Error fetching and syncing video progress from API: $e');
+    }
+    return null;
   }
 
   /// Returns a listenable for Hive progress changes to auto-update UI.

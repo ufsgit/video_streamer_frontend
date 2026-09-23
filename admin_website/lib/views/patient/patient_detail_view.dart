@@ -232,11 +232,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           const SizedBox(width: 12),
         ],
       ),
-      body: _viewModel.isLoading && _viewModel.videoHistory.isEmpty
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primary),
-            )
-          : SingleChildScrollView(
+      body: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,7 +448,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Avatar and Profile Header
+                        // Avatar, Profile Header, and Notification in the same Row
                         Row(
                           children: [
                             _buildPatientAvatar(patient),
@@ -467,6 +463,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                                         : (patient.username.isNotEmpty
                                               ? patient.username
                                               : 'Unnamed'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -477,6 +475,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                                     const SizedBox(height: 2),
                                     Text(
                                       "@${patient.username}",
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         fontSize: 12.5,
                                         color: AppTheme.textSecondary,
@@ -486,6 +486,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                                   const SizedBox(height: 2),
                                   Text(
                                     "ID: ${patient.id.length > 8 ? patient.id.substring(0, 8) : patient.id}",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontSize: 11.5,
                                       color: AppTheme.textMuted,
@@ -495,6 +497,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 12),
+                            _buildNotificationReminderCard(patient),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -550,6 +554,145 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationReminderCard(UserModel patient) {
+    if (_viewModel.isAccountLoading) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: const FlashingWidget(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ShimmerBox(width: 24, height: 24, borderRadius: 12),
+              SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ShimmerBox(width: 75, height: 10),
+                  SizedBox(height: 4),
+                  ShimmerBox(width: 55, height: 12),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final bool isEnabled = patient.isNotificationActive;
+    final String statusText = patient.notificationStatus.isNotEmpty
+        ? patient.notificationStatus.toUpperCase()
+        : (isEnabled ? "ON" : "OFF");
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: isEnabled
+            ? AppTheme.emeraldBg.withValues(alpha: 0.5)
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isEnabled ? AppTheme.emeraldBorder : AppTheme.border,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: isEnabled
+                  ? AppTheme.emerald.withValues(alpha: 0.12)
+                  : Colors.grey.shade200,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isEnabled
+                  ? Icons.notifications_active_rounded
+                  : Icons.notifications_off_outlined,
+              size: 16,
+              color: isEnabled ? AppTheme.emeraldText : AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Daily Reminder",
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isEnabled
+                          ? AppTheme.emeraldBg
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: isEnabled
+                            ? AppTheme.emeraldBorder
+                            : AppTheme.border,
+                      ),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: isEnabled
+                            ? AppTheme.emeraldText
+                            : AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isEnabled && patient.notificationTime.isNotEmpty
+                        ? patient.formattedNotificationTime
+                        : (isEnabled ? "Time not set" : "Disabled"),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isEnabled
+                          ? AppTheme.textPrimary
+                          : AppTheme.textSecondary,
+                    ),
+                  ),
+                  if (isEnabled && patient.notificationTime.isNotEmpty) ...[
+                    const SizedBox(width: 4),
+                  ],
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -891,79 +1034,33 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _buildStatBox(
-                label: "Total Assigned",
-                value: _viewModel.totalVideos.toString(),
-                icon: Icons.play_circle_fill_rounded,
-                iconColor: AppTheme.blue,
-                iconBgColor: AppTheme.blueBg,
-                cardBg: AppTheme.blueCardBg,
-                borderColor: AppTheme.blueBorder,
-              ),
-              const SizedBox(width: 12),
-              _buildStatBox(
-                label: "Total Completed",
-                value: _viewModel.completedVideos.toString(),
-                icon: Icons.check_circle_rounded,
-                iconColor: AppTheme.purple,
-                iconBgColor: AppTheme.purpleBg,
-                cardBg: AppTheme.purpleCardBg,
-                borderColor: AppTheme.purpleBorder,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.emeraldCardBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppTheme.emeraldBorder,
-                      width: 1.2,
+              _viewModel.isEngagementLoading
+                  ? _buildSkeletonStatBox()
+                  : _buildStatBox(
+                      label: "Total Assigned",
+                      value: _viewModel.totalVideos.toString(),
+                      icon: Icons.play_circle_fill_rounded,
+                      iconColor: AppTheme.blue,
+                      iconBgColor: AppTheme.blueBg,
+                      cardBg: AppTheme.blueCardBg,
+                      borderColor: AppTheme.blueBorder,
                     ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "Overall Progress",
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: AppTheme.emeraldText,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppTheme.emeraldBg,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Icon(
-                              Icons.trending_up_rounded,
-                              color: AppTheme.emerald,
-                              size: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "${_viewModel.progressRate}%",
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.emeraldText,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(width: 12),
+              _viewModel.isEngagementLoading
+                  ? _buildSkeletonStatBox()
+                  : _buildStatBox(
+                      label: "Total Completed",
+                      value: _viewModel.completedVideos.toString(),
+                      icon: Icons.check_circle_rounded,
+                      iconColor: AppTheme.purple,
+                      iconBgColor: AppTheme.purpleBg,
+                      cardBg: AppTheme.purpleCardBg,
+                      borderColor: AppTheme.purpleBorder,
+                    ),
+              const SizedBox(width: 12),
+              _viewModel.isEngagementLoading
+                  ? _buildSkeletonProgressBox()
+                  : _buildProgressBox(),
             ],
           ),
         ],
@@ -1081,29 +1178,33 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           Row(
             children: [
               Expanded(
-                child: _buildStageDetailBox(
-                  stageTitle: "PRE-OP",
-                  icon: Icons.assignment_outlined,
-                  stats: preOp,
-                  accentColor: AppTheme.blue,
-                  cardBg: AppTheme.blueCardBg,
-                  borderColor: AppTheme.blueBorder,
-                  textColor: AppTheme.blueText,
-                  badgeBg: AppTheme.blueBg,
-                ),
+                child: _viewModel.isComparisonLoading
+                    ? _buildSkeletonStageBox()
+                    : _buildStageDetailBox(
+                        stageTitle: "PRE-OP",
+                        icon: Icons.assignment_outlined,
+                        stats: preOp,
+                        accentColor: AppTheme.blue,
+                        cardBg: AppTheme.blueCardBg,
+                        borderColor: AppTheme.blueBorder,
+                        textColor: AppTheme.blueText,
+                        badgeBg: AppTheme.blueBg,
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildStageDetailBox(
-                  stageTitle: "POST-OP",
-                  icon: Icons.healing_outlined,
-                  stats: postOp,
-                  accentColor: AppTheme.emerald,
-                  cardBg: AppTheme.emeraldCardBg,
-                  borderColor: AppTheme.emeraldBorder,
-                  textColor: AppTheme.emeraldText,
-                  badgeBg: AppTheme.emeraldBg,
-                ),
+                child: _viewModel.isComparisonLoading
+                    ? _buildSkeletonStageBox()
+                    : _buildStageDetailBox(
+                        stageTitle: "POST-OP",
+                        icon: Icons.healing_outlined,
+                        stats: postOp,
+                        accentColor: AppTheme.emerald,
+                        cardBg: AppTheme.emeraldCardBg,
+                        borderColor: AppTheme.emeraldBorder,
+                        textColor: AppTheme.emeraldText,
+                        badgeBg: AppTheme.emeraldBg,
+                      ),
               ),
             ],
           ),
@@ -1393,13 +1494,13 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           ),
           const SizedBox(height: 16),
           if (_viewModel.isHistoryLoading)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 36),
-              alignment: Alignment.center,
-              child: const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+            const FlashingWidget(
+              child: Column(
+                children: [
+                  _SkeletonHistoryItem(),
+                  Divider(height: 16, color: AppTheme.borderSubtle),
+                  _SkeletonHistoryItem(),
+                ],
               ),
             )
           else if (videoHistory.isEmpty)
@@ -1580,6 +1681,245 @@ class _PatientDetailViewState extends State<PatientDetailView> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildProgressBox() {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.emeraldCardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppTheme.emeraldBorder,
+            width: 1.2,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Overall Progress",
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppTheme.emeraldText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.emeraldBg,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    Icons.trending_up_rounded,
+                    color: AppTheme.emerald,
+                    size: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "${_viewModel.progressRate}%",
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.emeraldText,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonStatBox() {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: const FlashingWidget(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerBox(width: 80, height: 13),
+                  ShimmerBox(width: 22, height: 22, borderRadius: 6),
+                ],
+              ),
+              SizedBox(height: 12),
+              ShimmerBox(width: 45, height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonProgressBox() {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: const FlashingWidget(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ShimmerBox(width: 80, height: 13),
+                  ShimmerBox(width: 22, height: 22, borderRadius: 6),
+                ],
+              ),
+              SizedBox(height: 12),
+              ShimmerBox(width: 50, height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonStageBox() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: const FlashingWidget(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ShimmerBox(width: 55, height: 13),
+                ShimmerBox(width: 22, height: 22, borderRadius: 11),
+              ],
+            ),
+            SizedBox(height: 12),
+            ShimmerBox(width: 48, height: 24),
+            SizedBox(height: 4),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SkeletonHistoryItem extends StatelessWidget {
+  const _SkeletonHistoryItem();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const ShimmerBox(width: 36, height: 36, borderRadius: 8),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              ShimmerBox(width: 160, height: 14),
+              SizedBox(height: 6),
+              ShimmerBox(width: 110, height: 11),
+            ],
+          ),
+        ),
+        const ShimmerBox(width: 75, height: 22, borderRadius: 12),
+      ],
+    );
+  }
+}
+
+class FlashingWidget extends StatefulWidget {
+  final Widget child;
+  final bool isFlashing;
+
+  const FlashingWidget({
+    super.key,
+    required this.child,
+    this.isFlashing = true,
+  });
+
+  @override
+  State<FlashingWidget> createState() => _FlashingWidgetState();
+}
+
+class _FlashingWidgetState extends State<FlashingWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0.35, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isFlashing) return widget.child;
+    return FadeTransition(
+      opacity: _animation,
+      child: widget.child,
+    );
+  }
+}
+
+class ShimmerBox extends StatelessWidget {
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  const ShimmerBox({
+    super.key,
+    required this.width,
+    required this.height,
+    this.borderRadius = 8,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
     );
   }
 }

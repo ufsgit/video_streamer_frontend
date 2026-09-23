@@ -86,13 +86,16 @@ class PatientDetailViewModel extends ChangeNotifier {
     try {
       final res = await _apiService.getUserHistory(
         patient.id,
-        category: category.toLowerCase(),
+        category: category.toLowerCase() == 'all' ? null : category.toLowerCase(),
       );
       if (res.data != null) {
         _parseHistoryData(res.data);
+      } else {
+        videoHistory = [];
       }
     } catch (e) {
       debugPrint("Error fetching history for category $category: $e");
+      videoHistory = [];
     } finally {
       isHistoryLoading = false;
       notifyListeners();
@@ -112,14 +115,14 @@ class PatientDetailViewModel extends ChangeNotifier {
         rawHistory = hData['logs'];
       } else if (hData['user_history'] is List) {
         rawHistory = hData['user_history'];
+      } else if (hData['videos'] is List) {
+        rawHistory = hData['videos'];
       }
     }
-    if (rawHistory.isNotEmpty) {
-      videoHistory = rawHistory
-          .whereType<Map>()
-          .map((v) => Map<String, dynamic>.from(v))
-          .toList();
-    }
+    videoHistory = rawHistory
+        .whereType<Map>()
+        .map((v) => Map<String, dynamic>.from(v))
+        .toList();
   }
 
   Future<void> fetchProgress(String category) async {
@@ -213,18 +216,26 @@ class PatientDetailViewModel extends ChangeNotifier {
             userData['history'] ??
             userData['watched_videos'];
 
+        List<Map<String, dynamic>> fallbackVideos = [];
         if (rawVideosData is List) {
-          videoHistory = rawVideosData
+          fallbackVideos = rawVideosData
               .whereType<Map>()
               .map((v) => Map<String, dynamic>.from(v))
               .toList();
-        } else {
-          videoHistory = [];
         }
 
-        // If history API returned data, use or supplement it
+        // If history API returned data, use it
         if (historyRes.data != null) {
           _parseHistoryData(historyRes.data);
+          if (videoHistory.isEmpty &&
+              selectedHistoryCategory.toLowerCase() == 'all' &&
+              fallbackVideos.isNotEmpty) {
+            videoHistory = fallbackVideos;
+          }
+        } else if (selectedHistoryCategory.toLowerCase() == 'all') {
+          videoHistory = fallbackVideos;
+        } else {
+          videoHistory = [];
         }
 
         // Calculate / extract statistics default
@@ -453,21 +464,6 @@ class PatientDetailViewModel extends ChangeNotifier {
         progressRate = parsedProgress;
       } else if (totalVideos > 0) {
         progressRate = ((completedVideos / totalVideos) * 100).round();
-      }
-
-      // Fallback populate videoHistory if empty or if stage-specific videos returned
-      final dynamic rawHist =
-          progressData['video_history'] ??
-          progressData['videoHistory'] ??
-          progressData['videos'] ??
-          progressData['history'] ??
-          progressData['assigned_videos'] ??
-          progressData['assignedVideos'];
-      if (rawHist is List && rawHist.isNotEmpty) {
-        videoHistory = rawHist
-            .whereType<Map>()
-            .map((v) => Map<String, dynamic>.from(v))
-            .toList();
       }
     }
   }

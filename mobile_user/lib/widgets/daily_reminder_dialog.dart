@@ -9,6 +9,11 @@ class DailyReminderDialog extends StatefulWidget {
     final service = NotificationService.instance;
 
     // Check if time has not been set yet
+    if (!service.isTimeSet) {
+      // Check if server already has user's saved reminder
+      await service.fetchAndApplyServerReminder();
+    }
+
     final bool needsTime = !service.isTimeSet;
     if (!needsTime) {
       return;
@@ -74,11 +79,12 @@ class _DailyReminderDialogState extends State<DailyReminderDialog> {
       // Request system permission
       await service.requestPermissions();
 
-      // Schedule reminder and persist time
+      // Schedule reminder, persist time, and sync to server once
       summary = await service.scheduleDailyReminder(
         hour: _selectedTime.hour,
         minute: _selectedTime.minute,
         persist: true,
+        syncToServer: true,
       );
       await service.markTimeAsSet();
     } catch (e) {

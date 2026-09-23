@@ -28,6 +28,9 @@ abstract class VideoRepository {
     String? lastWatchedAt,
     String? completedAt,
   });
+
+  /// Fetches video watch progress from the backend by video ID.
+  Future<Map<String, dynamic>?> getVideoProgress(dynamic videoId);
 }
 
 class VideoRepositoryImpl implements VideoRepository {
@@ -172,5 +175,40 @@ class VideoRepositoryImpl implements VideoRepository {
       log('Error updating video progress on server: $e');
     }
     return false;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getVideoProgress(dynamic videoId) async {
+    try {
+      final dynamic formattedVideoId =
+          int.tryParse(videoId.toString()) ?? videoId;
+      final response = await _client.dio.get(
+        ApiConstants.videoProgressByIdPath(formattedVideoId),
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          if (data['data'] is Map<String, dynamic>) {
+            return Map<String, dynamic>.from(data['data']);
+          } else if (data['data'] is List &&
+              (data['data'] as List).isNotEmpty) {
+            final first = (data['data'] as List).first;
+            if (first is Map<String, dynamic>) {
+              return Map<String, dynamic>.from(first);
+            }
+          }
+          return data;
+        } else if (data is List && data.isNotEmpty) {
+          final first = data.first;
+          if (first is Map<String, dynamic>) {
+            return Map<String, dynamic>.from(first);
+          }
+        }
+      }
+    } catch (e) {
+      log('Error fetching video progress for video $videoId: $e');
+    }
+    return null;
   }
 }

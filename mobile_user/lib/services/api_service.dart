@@ -61,4 +61,21 @@ class ApiService {
     lastWatchedAt: lastWatchedAt,
     completedAt: completedAt,
   );
+
+  Future<Map<String, dynamic>?> getVideoProgress(dynamic videoId) =>
+      videoRepository.getVideoProgress(videoId);
+
+  Future<bool> saveUserReminder({
+    required int userId,
+    required String reminderTime,
+    required int isEnabled,
+  }) =>
+      userRepository.saveUserReminder(
+        userId: userId,
+        reminderTime: reminderTime,
+        isEnabled: isEnabled,
+      );
+
+  Future<Map<String, dynamic>?> getUserReminder(int userId) =>
+      userRepository.getUserReminder(userId);
 }

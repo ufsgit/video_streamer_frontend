@@ -28,7 +28,11 @@ class PatientDetailViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
   UserModel patient;
 
-  bool isLoading = true;
+  bool isLoading = false;
+  bool isAccountLoading = true;
+  bool isEngagementLoading = true;
+  bool isComparisonLoading = true;
+  bool isHistoryLoading = true;
   String? errorMessage;
 
   List<Map<String, dynamic>> videoHistory = [];
@@ -39,7 +43,6 @@ class PatientDetailViewModel extends ChangeNotifier {
 
   String selectedOpStage = "Pre-op";
   String selectedHistoryCategory = "All";
-  bool isHistoryLoading = false;
 
   // Detailed stage performance comparison data
   StagePerformanceStats preOpStats = const StagePerformanceStats(
@@ -83,13 +86,16 @@ class PatientDetailViewModel extends ChangeNotifier {
     try {
       final res = await _apiService.getUserHistory(
         patient.id,
-        category: category.toLowerCase(),
+        category: category.toLowerCase() == 'all' ? null : category.toLowerCase(),
       );
       if (res.data != null) {
         _parseHistoryData(res.data);
+      } else {
+        videoHistory = [];
       }
     } catch (e) {
       debugPrint("Error fetching history for category $category: $e");
+      videoHistory = [];
     } finally {
       isHistoryLoading = false;
       notifyListeners();
@@ -109,85 +115,50 @@ class PatientDetailViewModel extends ChangeNotifier {
         rawHistory = hData['logs'];
       } else if (hData['user_history'] is List) {
         rawHistory = hData['user_history'];
+      } else if (hData['videos'] is List) {
+        rawHistory = hData['videos'];
       }
     }
-    if (rawHistory.isNotEmpty) {
-      videoHistory = rawHistory
-          .whereType<Map>()
-          .map((v) => Map<String, dynamic>.from(v))
-          .toList();
-    }
+    videoHistory = rawHistory
+        .whereType<Map>()
+        .map((v) => Map<String, dynamic>.from(v))
+        .toList();
   }
 
   Future<void> fetchProgress(String category) async {
+    isEngagementLoading = true;
+    notifyListeners();
     try {
+      final cat = category.toLowerCase() == 'all' ? null : category.toLowerCase();
       final progressRes = await _apiService.getUserProgress(
         patient.id,
-        category: category,
+        category: cat,
       );
-      _parseProgressData(progressRes.data);
-      notifyListeners();
+      if (progressRes.data != null) {
+        _parseProgressData(progressRes.data);
+      }
     } catch (e) {
       debugPrint("Error fetching user progress for category $category: $e");
+    } finally {
+      isEngagementLoading = false;
+      notifyListeners();
     }
   }
 
   Future<void> fetchPatientDetails({String? category}) async {
-    isLoading = true;
+    isAccountLoading = true;
+    isEngagementLoading = true;
+    isComparisonLoading = true;
+    isHistoryLoading = true;
+    isLoading = false;
     errorMessage = null;
     notifyListeners();
 
     final activeCategory = category ?? selectedOpStage;
 
-    try {
-      final userRes = await _apiService.getUserById(patient.id);
-
-      final preOpFuture = _apiService.getUserProgress(
-        patient.id,
-        category: 'pre-op',
-      ).catchError((e) {
-        debugPrint("Error fetching pre-op progress: $e");
-        return Response(requestOptions: RequestOptions(path: ''), data: null);
-      });
-
-      final postOpFuture = _apiService.getUserProgress(
-        patient.id,
-        category: 'post-op',
-      ).catchError((e) {
-        debugPrint("Error fetching post-op progress: $e");
-        return Response(requestOptions: RequestOptions(path: ''), data: null);
-      });
-
-      final historyFuture = _apiService.getUserHistory(
-        patient.id, 
-        category: selectedHistoryCategory.toLowerCase()
-      ).catchError((e) {
-        debugPrint("Error fetching user history logs: $e");
-        return Response(requestOptions: RequestOptions(path: ''), data: null);
-      });
-
-      final results = await Future.wait([preOpFuture, postOpFuture, historyFuture]);
-
-      final preOpProgressRes = results[0];
-      final postOpProgressRes = results[1];
-      final historyRes = results[2];
-
-      Response? activeProgressRes;
-      if (activeCategory == 'pre-op') {
-        activeProgressRes = preOpProgressRes;
-      } else if (activeCategory == 'post-op') {
-        activeProgressRes = postOpProgressRes;
-      } else {
-        activeProgressRes = await _apiService.getUserProgress(
-          patient.id,
-          category: activeCategory,
-        ).catchError((e) {
-          debugPrint("Error fetching user progress for $activeCategory: $e");
-          return Response(requestOptions: RequestOptions(path: ''), data: null);
-        });
-      }
+    // 1. Fetch User Profile independently (Account Info card)
+    _apiService.getUserById(patient.id).then((userRes) {
       final resData = userRes.data;
-
       Map<String, dynamic> userData = {};
       if (resData is Map) {
         if (resData['data'] is Map) {
@@ -198,84 +169,83 @@ class PatientDetailViewModel extends ChangeNotifier {
           userData = Map<String, dynamic>.from(resData);
         }
       }
-
       if (userData.isNotEmpty) {
         patient = UserModel.fromJson(userData);
-
-        // Parse assigned or watched videos safely
-        final dynamic rawVideosData =
-            userData['assigned_videos'] ??
-            userData['assignedVideos'] ??
-            userData['videos'] ??
-            userData['history'] ??
-            userData['watched_videos'];
-
-        if (rawVideosData is List) {
-          videoHistory = rawVideosData
-              .whereType<Map>()
-              .map((v) => Map<String, dynamic>.from(v))
-              .toList();
-        } else {
-          videoHistory = [];
-        }
-
-        // If history API returned data, use or supplement it
-        if (historyRes.data != null) {
-          _parseHistoryData(historyRes.data);
-        }
-
-        // Calculate / extract statistics default
-        totalVideos =
-            _parseInt(
-              userData['total_videos'] ??
-                  userData['totalVideos'] ??
-                  userData['total_assigned'] ??
-                  userData['total_watched'],
-            ) ??
-            videoHistory.length;
-
-        completedVideos =
-            _parseInt(
-              userData['total_completed'] ??
-                  userData['completed_videos'] ??
-                  userData['completedCount'],
-            ) ??
-            videoHistory
-                .where(
-                  (v) =>
-                      v['isCompleted'] == true ||
-                      v['completed'] == true ||
-                      v['status'] == 'completed' ||
-                      v['progress'] == 100,
-                )
-                .length;
-
-        if (totalVideos > 0) {
-          progressRate = ((completedVideos / totalVideos) * 100).round();
-        } else if (userData['progress'] != null) {
-          progressRate = _parseInt(userData['progress']) ?? 0;
-        } else {
-          progressRate = 0;
-        }
       }
-
-      // Parse active stage progress
-      if (activeProgressRes.data != null) {
-        _parseProgressData(activeProgressRes.data);
-      }
-
-      // Compute & parse Pre-Op vs Post-Op comparisons
-      _computeStageStats(
-        preOpApiData: preOpProgressRes.data,
-        postOpApiData: postOpProgressRes.data,
-      );
-    } catch (e, stackTrace) {
-      debugPrint("Error fetching patient details: $e\n$stackTrace");
-      errorMessage = "Failed to fetch latest details from server.";
-    } finally {
-      isLoading = false;
+      isAccountLoading = false;
       notifyListeners();
-    }
+    }).catchError((e) {
+      debugPrint("Error fetching user profile: $e");
+      isAccountLoading = false;
+      notifyListeners();
+    });
+
+    // 2. Fetch Active Stage Engagement Progress independently (Engagement Overview card)
+    final cat = activeCategory.toLowerCase();
+    _apiService.getUserProgress(
+      patient.id,
+      category: cat == 'all' ? null : cat,
+    ).then((progressRes) {
+      if (progressRes.data != null) {
+        _parseProgressData(progressRes.data);
+      }
+      isEngagementLoading = false;
+      notifyListeners();
+    }).catchError((e) {
+      debugPrint("Error fetching active stage progress: $e");
+      isEngagementLoading = false;
+      notifyListeners();
+    });
+
+    // 3. Fetch Pre-Op and Post-Op Progress in parallel for Comparison Card
+    final preOpFuture = _apiService.getUserProgress(
+      patient.id,
+      category: 'pre-op',
+    ).catchError((e) {
+      debugPrint("Error fetching pre-op progress: $e");
+      return Response(requestOptions: RequestOptions(path: ''), data: null);
+    });
+
+    final postOpFuture = _apiService.getUserProgress(
+      patient.id,
+      category: 'post-op',
+    ).catchError((e) {
+      debugPrint("Error fetching post-op progress: $e");
+      return Response(requestOptions: RequestOptions(path: ''), data: null);
+    });
+
+    Future.wait([preOpFuture, postOpFuture]).then((results) {
+      _computeStageStats(
+        preOpApiData: results[0].data,
+        postOpApiData: results[1].data,
+      );
+      isComparisonLoading = false;
+      notifyListeners();
+    }).catchError((e) {
+      debugPrint("Error computing stage stats: $e");
+      isComparisonLoading = false;
+      notifyListeners();
+    });
+
+    // 4. Fetch History independently (Assigned & Watched Video History card)
+    final histCat = selectedHistoryCategory.toLowerCase();
+    _apiService.getUserHistory(
+      patient.id,
+      category: histCat == 'all' ? null : histCat,
+    ).then((historyRes) {
+      if (historyRes.data != null) {
+        _parseHistoryData(historyRes.data);
+      } else {
+        videoHistory = [];
+      }
+      isHistoryLoading = false;
+      notifyListeners();
+    }).catchError((e) {
+      debugPrint("Error fetching user history: $e");
+      videoHistory = [];
+      isHistoryLoading = false;
+      notifyListeners();
+    });
   }
 
   void _computeStageStats({
@@ -450,21 +420,6 @@ class PatientDetailViewModel extends ChangeNotifier {
         progressRate = parsedProgress;
       } else if (totalVideos > 0) {
         progressRate = ((completedVideos / totalVideos) * 100).round();
-      }
-
-      // Fallback populate videoHistory if empty or if stage-specific videos returned
-      final dynamic rawHist =
-          progressData['video_history'] ??
-          progressData['videoHistory'] ??
-          progressData['videos'] ??
-          progressData['history'] ??
-          progressData['assigned_videos'] ??
-          progressData['assignedVideos'];
-      if (rawHist is List && rawHist.isNotEmpty) {
-        videoHistory = rawHist
-            .whereType<Map>()
-            .map((v) => Map<String, dynamic>.from(v))
-            .toList();
       }
     }
   }

@@ -241,10 +241,13 @@ class _AuthGateState extends State<AuthGate> {
           final selectedLanguage = box.get('selected_language');
           final selectedLanguageId = box.get('selected_language_id');
 
-          final bool hasValidLanguage = selectedLanguage != null &&
-              selectedLanguage.toString().trim().isNotEmpty &&
-              selectedLanguage.toString().trim().toLowerCase() != 'none' &&
-              selectedLanguageId != null;
+          final bool hasValidLanguage = (selectedLanguage != null &&
+                  selectedLanguage.toString().trim().isNotEmpty &&
+                  selectedLanguage.toString().trim().toLowerCase() != 'none' &&
+                  selectedLanguage.toString().trim().toLowerCase() != 'null') ||
+              (selectedLanguageId != null &&
+                  selectedLanguageId.toString().trim().isNotEmpty &&
+                  selectedLanguageId.toString() != '0');
 
           if (hasValidLanguage) {
             return const MainNavigationView();

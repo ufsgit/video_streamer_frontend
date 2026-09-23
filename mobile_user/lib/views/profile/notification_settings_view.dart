@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/scroll_time_picker_sheet.dart';
 
@@ -22,6 +23,17 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
     super.initState();
     _isReminderEnabled = _notificationService.isReminderEnabled;
     _reminderTime = _notificationService.getReminderTime();
+    _loadServerReminder();
+  }
+
+  Future<void> _loadServerReminder() async {
+    final updated = await _notificationService.fetchAndApplyServerReminder();
+    if (updated && mounted) {
+      setState(() {
+        _isReminderEnabled = _notificationService.isReminderEnabled;
+        _reminderTime = _notificationService.getReminderTime();
+      });
+    }
   }
 
   String _formatTime(TimeOfDay time) {
@@ -57,6 +69,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
           hour: _reminderTime.hour,
           minute: _reminderTime.minute,
           persist: true,
+          syncToServer: true,
         );
 
         if (mounted) {
@@ -75,7 +88,10 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
           );
         }
       } else {
-        await _notificationService.cancelDailyReminder(persist: true);
+        await _notificationService.cancelDailyReminder(
+          persist: true,
+          syncToServer: true,
+        );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -120,6 +136,7 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
           hour: picked.hour,
           minute: picked.minute,
           persist: true,
+          syncToServer: true,
         );
 
         if (mounted) {
@@ -137,6 +154,18 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
             ),
           );
         }
+      } else {
+        // Even when reminders are disabled, save the new time and sync to server with is_enabled = 0
+        final box = Hive.box('settings');
+        await box.put('reminder_hour', picked.hour);
+        await box.put('reminder_minute', picked.minute);
+        await box.put('reminder_time_set', true);
+
+        await _notificationService.syncReminderToServer(
+          hour: picked.hour,
+          minute: picked.minute,
+          isEnabled: false,
+        );
       }
     }
   }

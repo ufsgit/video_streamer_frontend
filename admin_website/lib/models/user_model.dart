@@ -13,6 +13,9 @@ class UserModel {
   final String imageUrl;
   final String note;
   final String language;
+  final int isNotificationEnabled;
+  final String notificationStatus;
+  final String notificationTime;
 
   UserModel({
     required this.id,
@@ -29,7 +32,31 @@ class UserModel {
     required this.imageUrl,
     this.note = '',
     this.language = '',
+    this.isNotificationEnabled = 0,
+    this.notificationStatus = 'OFF',
+    this.notificationTime = '',
   });
+
+  bool get isNotificationActive =>
+      isNotificationEnabled == 1 || notificationStatus.trim().toUpperCase() == 'ON';
+
+  String get formattedNotificationTime {
+    if (notificationTime.trim().isEmpty) return 'Not set';
+    try {
+      final parts = notificationTime.trim().split(':');
+      if (parts.isNotEmpty) {
+        int hour = int.tryParse(parts[0]) ?? 0;
+        int minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+        final period = hour >= 12 ? 'PM' : 'AM';
+        int displayHour = hour % 12;
+        if (displayHour == 0) displayHour = 12;
+        final minuteStr = minute.toString().padLeft(2, '0');
+        final hourStr = displayHour.toString().padLeft(2, '0');
+        return '$hourStr:$minuteStr $period';
+      }
+    } catch (_) {}
+    return notificationTime;
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     // Parse age safely whether int or string
@@ -39,6 +66,31 @@ class UserModel {
     } else if (json['age'] != null) {
       parsedAge = int.tryParse(json['age'].toString()) ?? 0;
     }
+
+    // Parse notification fields safely
+    int parsedNotificationEnabled = 0;
+    if (json['is_notification_enabled'] is int) {
+      parsedNotificationEnabled = json['is_notification_enabled'];
+    } else if (json['is_notification_enabled'] is bool) {
+      parsedNotificationEnabled =
+          json['is_notification_enabled'] == true ? 1 : 0;
+    } else if (json['is_notification_enabled'] != null) {
+      parsedNotificationEnabled =
+          int.tryParse(json['is_notification_enabled'].toString()) ?? 0;
+    }
+
+    String parsedNotificationStatus =
+        json['notification_status']?.toString().trim() ??
+            (parsedNotificationEnabled == 1 ? 'ON' : 'OFF');
+    if (parsedNotificationStatus.isEmpty) {
+      parsedNotificationStatus =
+          parsedNotificationEnabled == 1 ? 'ON' : 'OFF';
+    }
+
+    String parsedNotificationTime =
+        json['notification_time']?.toString().trim() ??
+            json['reminder_time']?.toString().trim() ??
+            '';
 
     return UserModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
@@ -74,6 +126,9 @@ class UserModel {
           json['language']?.toString() ??
           json['languageName']?.toString() ??
           '',
+      isNotificationEnabled: parsedNotificationEnabled,
+      notificationStatus: parsedNotificationStatus,
+      notificationTime: parsedNotificationTime,
     );
   }
 
@@ -93,6 +148,9 @@ class UserModel {
       'photo': imageUrl,
       'note': note,
       'language_name': language,
+      'is_notification_enabled': isNotificationEnabled,
+      'notification_status': notificationStatus,
+      'notification_time': notificationTime,
     };
   }
 }

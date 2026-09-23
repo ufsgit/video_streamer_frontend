@@ -7,7 +7,6 @@ import 'package:admin_website/models/user_model.dart';
 import 'package:admin_website/services/api_service.dart';
 import 'package:admin_website/viewmodels/library_viewmodel.dart';
 import 'package:admin_website/viewmodels/patient_detail_viewmodel.dart';
-import 'package:admin_website/widgets/app_logo.dart';
 import 'mobile_create_patient_view.dart';
 
 class MobilePatientDetailView extends StatefulWidget {
@@ -31,9 +30,12 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
   final ApiService _apiService = ApiService();
   late UserModel _patient;
 
-  bool _isLoading = true;
+  bool _isLoading = false;
+  bool _isAccountLoading = true;
+  bool _isEngagementLoading = true;
+  bool _isComparisonLoading = true;
   bool _isStageLoading = false;
-  bool _isHistoryLoading = false;
+  bool _isHistoryLoading = true;
   String? _errorMessage;
   List<Map<String, dynamic>> _videoHistory = [];
   int _totalVideos = 0;
@@ -130,7 +132,9 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
     try {
       final res = await _apiService.getUserHistory(
         _patient.id,
-        category: category.toLowerCase() == 'all' ? null : category.toLowerCase(),
+        category: category.toLowerCase() == 'all'
+            ? null
+            : category.toLowerCase(),
       );
       if (res.data != null && mounted) {
         setState(() {
@@ -148,7 +152,10 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
     }
   }
 
-  void _parseHistoryData(dynamic hData, {List<Map<String, dynamic>>? fallbackVideos}) {
+  void _parseHistoryData(
+    dynamic hData, {
+    List<Map<String, dynamic>>? fallbackVideos,
+  }) {
     List<dynamic> rawHistory = [];
     if (hData is List) {
       rawHistory = hData;
@@ -161,6 +168,8 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
         rawHistory = hData['logs'];
       } else if (hData['user_history'] is List) {
         rawHistory = hData['user_history'];
+      } else if (hData['videos'] is List) {
+        rawHistory = hData['videos'];
       }
     }
     if (rawHistory.isNotEmpty) {
@@ -168,7 +177,9 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
           .whereType<Map>()
           .map((v) => Map<String, dynamic>.from(v))
           .toList();
-    } else if (fallbackVideos != null && fallbackVideos.isNotEmpty && _selectedHistoryCategory == "All") {
+    } else if (fallbackVideos != null &&
+        fallbackVideos.isNotEmpty &&
+        _selectedHistoryCategory == "All") {
       _videoHistory = fallbackVideos;
     } else {
       _videoHistory = [];
@@ -177,144 +188,118 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
 
   Future<void> _fetchPatientDetails({String? category}) async {
     setState(() {
-      _isLoading = true;
+      _isLoading = false;
+      _isAccountLoading = true;
+      _isEngagementLoading = true;
+      _isComparisonLoading = true;
+      _isHistoryLoading = true;
       _errorMessage = null;
     });
 
     final activeCategory = category ?? _selectedOpStage;
 
-    try {
-      final userRes = await _apiService.getUserById(_patient.id);
+    // 1. Fetch User Info independently
+    _apiService
+        .getUserById(_patient.id)
+        .then((userRes) {
+          if (!mounted) return;
+          final resData = userRes.data;
+          Map<String, dynamic> userData = {};
+          if (resData is Map<String, dynamic>) {
+            if (resData['data'] is Map<String, dynamic>) {
+              userData = Map<String, dynamic>.from(resData['data']);
+            } else if (resData['user'] is Map<String, dynamic>) {
+              userData = Map<String, dynamic>.from(resData['user']);
+            } else {
+              userData = resData;
+            }
+          }
+          if (userData.isNotEmpty) {
+            setState(() {
+              _patient = UserModel.fromJson(userData);
+              _isAccountLoading = false;
+            });
+          } else {
+            setState(() => _isAccountLoading = false);
+          }
+        })
+        .catchError((e) {
+          debugPrint("Error fetching user details: $e");
+          if (mounted) setState(() => _isAccountLoading = false);
+        });
 
-      final preOpFuture = _apiService.getUserProgress(
-        _patient.id,
-        category: 'pre-op',
-      ).catchError((e) {
-        debugPrint("Error fetching pre-op progress: $e");
-        return Response(requestOptions: RequestOptions(path: ''), data: null);
-      });
+    // 2. Fetch Active Stage Engagement Progress independently
+    final cat = activeCategory.toLowerCase();
+    _apiService
+        .getUserProgress(_patient.id, category: cat == 'all' ? null : cat)
+        .then((progressRes) {
+          if (!mounted) return;
+          if (progressRes.data != null) {
+            setState(() {
+              _parseProgressData(progressRes.data);
+              _isEngagementLoading = false;
+            });
+          } else {
+            setState(() => _isEngagementLoading = false);
+          }
+        })
+        .catchError((e) {
+          debugPrint("Error fetching user progress: $e");
+          if (mounted) setState(() => _isEngagementLoading = false);
+        });
 
-      final postOpFuture = _apiService.getUserProgress(
-        _patient.id,
-        category: 'post-op',
-      ).catchError((e) {
-        debugPrint("Error fetching post-op progress: $e");
-        return Response(requestOptions: RequestOptions(path: ''), data: null);
-      });
-
-      final historyFuture = _apiService.getUserHistory(
-        _patient.id, 
-        category: _selectedHistoryCategory.toLowerCase() == 'all' ? null : _selectedHistoryCategory.toLowerCase(),
-      ).catchError((e) {
-        debugPrint("Error fetching user history logs: $e");
-        return Response(requestOptions: RequestOptions(path: ''), data: null);
-      });
-
-      final results = await Future.wait([preOpFuture, postOpFuture, historyFuture]);
-
-      final preOpProgressRes = results[0];
-      final postOpProgressRes = results[1];
-      final historyRes = results[2];
-
-      Response? activeProgressRes;
-      final cat = activeCategory.toLowerCase();
-      if (cat == 'pre-op') {
-        activeProgressRes = preOpProgressRes;
-      } else if (cat == 'post-op') {
-        activeProgressRes = postOpProgressRes;
-      } else {
-        activeProgressRes = await _apiService.getUserProgress(
-          _patient.id,
-          category: cat == 'all' ? null : cat,
-        ).catchError((e) {
-          debugPrint("Error fetching user progress for $activeCategory: $e");
+    // 3. Fetch Stage Comparison (Pre-Op vs Post-Op) independently
+    final preOpFuture = _apiService
+        .getUserProgress(_patient.id, category: 'pre-op')
+        .catchError((e) {
+          debugPrint("Error fetching pre-op progress: $e");
           return Response(requestOptions: RequestOptions(path: ''), data: null);
         });
-      }
-      final resData = userRes.data;
 
-      Map<String, dynamic> userData = {};
-      if (resData is Map<String, dynamic>) {
-        if (resData['data'] is Map<String, dynamic>) {
-          userData = Map<String, dynamic>.from(resData['data']);
-        } else if (resData['user'] is Map<String, dynamic>) {
-          userData = Map<String, dynamic>.from(resData['user']);
-        } else {
-          userData = resData;
-        }
-      }
+    final postOpFuture = _apiService
+        .getUserProgress(_patient.id, category: 'post-op')
+        .catchError((e) {
+          debugPrint("Error fetching post-op progress: $e");
+          return Response(requestOptions: RequestOptions(path: ''), data: null);
+        });
 
-      if (userData.isNotEmpty) {
-        _patient = UserModel.fromJson(userData);
+    Future.wait([preOpFuture, postOpFuture])
+        .then((results) {
+          if (!mounted) return;
+          setState(() {
+            _computeStageStats(
+              preOpApiData: results[0].data,
+              postOpApiData: results[1].data,
+            );
+            _isComparisonLoading = false;
+          });
+        })
+        .catchError((e) {
+          debugPrint("Error comparing stage progress: $e");
+          if (mounted) setState(() => _isComparisonLoading = false);
+        });
 
-        final List<dynamic> rawVideos =
-            userData['assigned_videos'] ??
-            userData['assignedVideos'] ??
-            userData['videos'] ??
-            userData['history'] ??
-            userData['watched_videos'] ??
-            [];
-
-        _videoHistory = rawVideos
-            .map((v) => Map<String, dynamic>.from(v as Map))
-            .toList();
-
-        // If history API returned data, use or supplement it
-        if (historyRes.data != null) {
-          _parseHistoryData(
-            historyRes.data,
-            fallbackVideos: List<Map<String, dynamic>>.from(_videoHistory),
-          );
-        }
-
-        _totalVideos =
-            _parseInt(
-              userData['total_videos'] ??
-                  userData['totalVideos'] ??
-                  userData['total_assigned'] ??
-                  userData['total_watched'],
-            ) ??
-            _videoHistory.length;
-
-        _completedVideos =
-            _parseInt(
-              userData['total_completed'] ??
-                  userData['completed_videos'] ??
-                  userData['completedCount'],
-            ) ??
-            _videoHistory
-                .where(
-                  (v) =>
-                      v['isCompleted'] == true ||
-                      v['completed'] == true ||
-                      v['status'] == 'completed' ||
-                      v['progress'] == 100,
-                )
-                .length;
-
-        if (_totalVideos > 0) {
-          _progressRate = ((_completedVideos / _totalVideos) * 100).round();
-        } else if (userData['progress'] != null) {
-          _progressRate = _parseInt(userData['progress']) ?? 0;
-        } else {
-          _progressRate = 0;
-        }
-      }
-
-      if (activeProgressRes.data != null) {
-        _parseProgressData(activeProgressRes.data);
-      }
-
-      _computeStageStats(
-        preOpApiData: preOpProgressRes.data,
-        postOpApiData: postOpProgressRes.data,
-      );
-    } catch (e) {
-      debugPrint("Error fetching patient details: $e");
-      _errorMessage = "Failed to load patient profile.";
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // 4. Fetch User Video History independently
+    final histCat = _selectedHistoryCategory.toLowerCase() == 'all'
+        ? null
+        : _selectedHistoryCategory.toLowerCase();
+    _apiService
+        .getUserHistory(_patient.id, category: histCat)
+        .then((historyRes) {
+          if (!mounted) return;
+          if (historyRes.data != null) {
+            setState(() {
+              _parseHistoryData(historyRes.data);
+              _isHistoryLoading = false;
+            });
+          } else {
+            setState(() => _isHistoryLoading = false);
+          }
+        })
+        .catchError((e) {
+          debugPrint("Error fetching user history logs: $e");
+          if (mounted) setState(() => _isHistoryLoading = false);
+        });
   }
 
   Map<String, dynamic>? _extractStatsMap(dynamic raw) {
@@ -396,25 +381,6 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
       _progressRate = parsedRate;
     } else if (_totalVideos > 0) {
       _progressRate = ((_completedVideos / _totalVideos) * 100).round();
-    }
-
-    if (stats['video_history'] is List ||
-        stats['videoHistory'] is List ||
-        stats['videos'] is List ||
-        stats['history'] is List ||
-        stats['assigned_videos'] is List) {
-      final List list =
-          (stats['video_history'] ??
-                  stats['videoHistory'] ??
-                  stats['videos'] ??
-                  stats['history'] ??
-                  stats['assigned_videos'])
-              as List;
-      if (list.isNotEmpty) {
-        _videoHistory = list
-            .map((v) => Map<String, dynamic>.from(v as Map))
-            .toList();
-      }
     }
   }
 
@@ -835,403 +801,421 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
           const SizedBox(width: 4),
         ],
       ),
-      body: _isLoading && _videoHistory.isEmpty
-          ? const Center(
-              child: AppLogoLoader(
-                size: 52,
-                message: "Loading patient details...",
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: _fetchPatientDetails,
-              color: AppTheme.primaryBlue,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_errorMessage != null)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppTheme.error.withValues(alpha: 0.3),
+      body: RefreshIndicator(
+        onRefresh: _fetchPatientDetails,
+        color: AppTheme.primaryBlue,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_errorMessage != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppTheme.error.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppTheme.error,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: AppTheme.error,
+                            fontSize: 13,
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: AppTheme.error,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
+                      ),
+                    ],
+                  ),
+                ),
+              // Patient Profile Card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _buildAvatar(),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _patient.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: AppTheme.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2.5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isActive
+                                          ? AppTheme.emeraldBg
+                                          : AppTheme.background,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: isActive
+                                            ? AppTheme.emeraldBorder
+                                            : AppTheme.border,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      isActive ? "Active" : _patient.status,
+                                      style: TextStyle(
+                                        color: isActive
+                                            ? AppTheme.emeraldText
+                                            : AppTheme.textSecondary,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "${_patient.age > 0 ? '${_patient.age} yrs' : 'Age N/A'} • ${_patient.gender}",
                                 style: const TextStyle(
-                                  color: AppTheme.error,
-                                  fontSize: 13,
+                                  color: AppTheme.textSecondary,
+                                  fontSize: 12.5,
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 4),
+                              Text(
+                                "ID: P${_patient.id.length > 6 ? _patient.id.substring(0, 6) : _patient.id}",
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    _buildNotificationReminderSection(),
+                    const Divider(height: 24),
+
+                    // Contact Info List
+                    _buildInfoRow(
+                      Icons.phone_outlined,
+                      "Phone",
+                      _patient.phone,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
+                      Icons.email_outlined,
+                      "Email",
+                      _patient.email,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
+                      Icons.cake_outlined,
+                      "DOB",
+                      _patient.dob.isNotEmpty ? _patient.dob : "N/A",
+                    ),
+                    if (_patient.language.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildInfoRow(
+                        Icons.language_outlined,
+                        "Language",
+                        _patient.language,
                       ),
-                    // Patient Profile Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTheme.border),
+                    ],
+                    if (_patient.note.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildInfoRow(
+                        Icons.notes,
+                        "Clinical Notes",
+                        _patient.note,
                       ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              _buildAvatar(),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Engagement Stats Card with Stage Switcher
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Educational Engagement",
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+
+                        // PRE-OP OR POST-OP SELECTION BOX
+                        Container(
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.borderMedium),
+                          ),
+                          child: _isStageLoading
+                              ? const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  child: SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
+                                )
+                              : PopupMenuButton<String>(
+                                  tooltip: "Select Stage",
+                                  offset: const Offset(0, 36),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    side: const BorderSide(
+                                      color: AppTheme.border,
+                                    ),
+                                  ),
+                                  color: Colors.white,
+                                  elevation: 4,
+                                  onSelected: _onStageChanged,
+                                  itemBuilder: (context) => [
+                                    PopupMenuItem(
+                                      value: "Pre-op",
+                                      height: 36,
+                                      child: Text(
+                                        "Pre-op",
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight:
+                                              _selectedOpStage == "Pre-op"
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: _selectedOpStage == "Pre-op"
+                                              ? AppTheme.primary
+                                              : AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: "Post-op",
+                                      height: 36,
+                                      child: Text(
+                                        "Post-op",
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight:
+                                              _selectedOpStage == "Post-op"
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: _selectedOpStage == "Post-op"
+                                              ? AppTheme.primary
+                                              : AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: "All",
+                                      height: 36,
+                                      child: Text(
+                                        "All",
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: _selectedOpStage == "All"
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: _selectedOpStage == "All"
+                                              ? AppTheme.primary
+                                              : AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Expanded(
-                                          child: Text(
-                                            _patient.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: AppTheme.textPrimary,
-                                            ),
+                                        Text(
+                                          _selectedOpStage,
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.textPrimary,
                                           ),
                                         ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2.5,
-                                            ),
-                                          decoration: BoxDecoration(
-                                            color: isActive
-                                                ? AppTheme.emeraldBg
-                                                : AppTheme.background,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                            border: Border.all(
-                                              color: isActive
-                                                  ? AppTheme.emeraldBorder
-                                                  : AppTheme.border,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            isActive
-                                                ? "Active"
-                                                : _patient.status,
-                                            style: TextStyle(
-                                              color: isActive
-                                                  ? AppTheme.emeraldText
-                                                  : AppTheme.textSecondary,
-                                              fontSize: 10.5,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
+                                        const SizedBox(width: 4),
+                                        const Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          size: 16,
+                                          color: AppTheme.textSecondary,
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      "${_patient.age > 0 ? '${_patient.age} yrs' : 'Age N/A'} • ${_patient.gender}",
-                                      style: const TextStyle(
-                                        color: AppTheme.textSecondary,
-                                        fontSize: 12.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "ID: P${_patient.id.length > 6 ? _patient.id.substring(0, 6) : _patient.id}",
-                                      style: TextStyle(
-                                        color: Colors.grey.shade500,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Divider(height: 24),
-
-                          // Contact Info List
-                          _buildInfoRow(
-                            Icons.phone_outlined,
-                            "Phone",
-                            _patient.phone,
-                          ),
-                          const SizedBox(height: 8),
-                          _buildInfoRow(
-                            Icons.email_outlined,
-                            "Email",
-                            _patient.email,
-                          ),
-                          const SizedBox(height: 8),
-                          _buildInfoRow(
-                            Icons.cake_outlined,
-                            "DOB",
-                            _patient.dob.isNotEmpty ? _patient.dob : "N/A",
-                          ),
-                          if (_patient.language.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            _buildInfoRow(
-                              Icons.language_outlined,
-                              "Language",
-                              _patient.language,
-                            ),
-                          ],
-                          if (_patient.note.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            _buildInfoRow(
-                              Icons.notes,
-                              "Clinical Notes",
-                              _patient.note,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Engagement Stats Card with Stage Switcher
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                "Educational Engagement",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textPrimary,
-                                ),
-                              ),
-
-                              // PRE-OP OR POST-OP SELECTION BOX
-                              Container(
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: AppTheme.borderMedium,
                                   ),
                                 ),
-                                child: _isStageLoading
-                                    ? const Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 8,
-                                        ),
-                                        child: SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: AppTheme.primary,
-                                          ),
-                                        ),
-                                      )
-                                    : PopupMenuButton<String>(
-                                        tooltip: "Select Stage",
-                                        offset: const Offset(0, 36),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          side: const BorderSide(
-                                            color: AppTheme.border,
-                                          ),
-                                        ),
-                                        color: Colors.white,
-                                        elevation: 4,
-                                        onSelected: _onStageChanged,
-                                        itemBuilder: (context) => [
-                                          PopupMenuItem(
-                                            value: "Pre-op",
-                                            height: 36,
-                                            child: Text(
-                                              "Pre-op",
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight:
-                                                    _selectedOpStage == "Pre-op"
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w500,
-                                                color:
-                                                    _selectedOpStage == "Pre-op"
-                                                    ? AppTheme.primary
-                                                    : AppTheme.textPrimary,
-                                              ),
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: "Post-op",
-                                            height: 36,
-                                            child: Text(
-                                              "Post-op",
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight:
-                                                    _selectedOpStage ==
-                                                        "Post-op"
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w500,
-                                                color:
-                                                    _selectedOpStage ==
-                                                        "Post-op"
-                                                    ? AppTheme.primary
-                                                    : AppTheme.textPrimary,
-                                              ),
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: "All",
-                                            height: 36,
-                                            child: Text(
-                                              "All",
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight:
-                                                    _selectedOpStage == "All"
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w500,
-                                                color: _selectedOpStage == "All"
-                                                    ? AppTheme.primary
-                                                    : AppTheme.textPrimary,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                _selectedOpStage,
-                                                style: const TextStyle(
-                                                  fontSize: 12.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppTheme.textPrimary,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Icon(
-                                                Icons
-                                                    .keyboard_arrow_down_rounded,
-                                                size: 16,
-                                                color: AppTheme.textSecondary,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          AnimatedOpacity(
-                            opacity: _isStageLoading ? 0.6 : 1.0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (_isEngagementLoading)
+                      const _FlashingWidget(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatTile(
-                                        "Assigned",
-                                        "$_totalVideos",
-                                        Icons.video_library_outlined,
-                                        AppTheme.blue,
-                                        AppTheme.blueBg,
-                                        AppTheme.blueBorder,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: _buildStatTile(
-                                        "Completed",
-                                        "$_completedVideos",
-                                        Icons.check_circle_outline,
-                                        AppTheme.emerald,
-                                        AppTheme.emeraldBg,
-                                        AppTheme.emeraldBorder,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: _buildStatTile(
-                                        "Progress",
-                                        "$_progressRate%",
-                                        Icons.trending_up,
-                                        AppTheme.purple,
-                                        AppTheme.purpleBg,
-                                        AppTheme.purpleBorder,
-                                      ),
-                                    ),
-                                  ],
+                                Expanded(
+                                  child: _ShimmerBox(
+                                    height: 65,
+                                    borderRadius: 10,
+                                  ),
                                 ),
-                                const SizedBox(height: 14),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: _totalVideos > 0
-                                        ? (_completedVideos / _totalVideos)
-                                              .clamp(0.0, 1.0)
-                                        : 0.0,
-                                    minHeight: 6,
-                                    backgroundColor: AppTheme.borderSubtle,
-                                    color: _progressRate == 100
-                                        ? AppTheme.emerald
-                                        : AppTheme.primaryBlue,
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: _ShimmerBox(
+                                    height: 65,
+                                    borderRadius: 10,
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: _ShimmerBox(
+                                    height: 65,
+                                    borderRadius: 10,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                            SizedBox(height: 14),
+                            _ShimmerBox(height: 6, borderRadius: 4),
+                          ],
+                        ),
+                      )
+                    else
+                      AnimatedOpacity(
+                        opacity: _isStageLoading ? 0.6 : 1.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildStatTile(
+                                    "Assigned",
+                                    "$_totalVideos",
+                                    Icons.video_library_outlined,
+                                    AppTheme.blue,
+                                    AppTheme.blueBg,
+                                    AppTheme.blueBorder,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _buildStatTile(
+                                    "Completed",
+                                    "$_completedVideos",
+                                    Icons.check_circle_outline,
+                                    AppTheme.emerald,
+                                    AppTheme.emeraldBg,
+                                    AppTheme.emeraldBorder,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _buildStatTile(
+                                    "Progress",
+                                    "$_progressRate%",
+                                    Icons.trending_up,
+                                    AppTheme.purple,
+                                    AppTheme.purpleBg,
+                                    AppTheme.purpleBorder,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: _totalVideos > 0
+                                    ? (_completedVideos / _totalVideos).clamp(
+                                        0.0,
+                                        1.0,
+                                      )
+                                    : 0.0,
+                                minHeight: 6,
+                                backgroundColor: AppTheme.borderSubtle,
+                                color: _progressRate == 100
+                                    ? AppTheme.emerald
+                                    : AppTheme.primaryBlue,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Stage Performance Comparison Card (Pre-Op vs Post-Op)
-                    _buildStagePerformanceComparisonCard(),
-                    const SizedBox(height: 16),
-
-                    _buildAssignedAndWatchedCard(),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 16),
+
+              // Stage Performance Comparison Card (Pre-Op vs Post-Op)
+              _buildStagePerformanceComparisonCard(),
+              const SizedBox(height: 16),
+
+              _buildAssignedAndWatchedCard(),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1388,15 +1372,39 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
           ),
           const SizedBox(height: 14),
           if (_isHistoryLoading)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              alignment: Alignment.center,
-              child: const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppTheme.primary,
+            _FlashingWidget(
+              child: Column(
+                children: List.generate(
+                  3,
+                  (index) => Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.border),
+                    ),
+                    child: const Row(
+                      children: [
+                        _ShimmerBox(width: 80, height: 50, borderRadius: 8),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _ShimmerBox(height: 14, borderRadius: 4),
+                              SizedBox(height: 8),
+                              _ShimmerBox(
+                                width: 120,
+                                height: 10,
+                                borderRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             )
@@ -1429,17 +1437,16 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _videoHistory.length,
-              separatorBuilder: (context, index) => const Divider(
-                height: 16,
-                color: AppTheme.borderSubtle,
-              ),
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 16, color: AppTheme.borderSubtle),
               itemBuilder: (context, index) {
                 final v = _videoHistory[index];
                 final isCompleted =
                     v['isCompleted'] == true ||
                     v['completed'] == true ||
                     v['progress'] == 100;
-                final title = v['title']?.toString() ??
+                final title =
+                    v['title']?.toString() ??
                     v['name']?.toString() ??
                     'Video #${index + 1}';
                 final duration = v['duration']?.toString() ?? '10:00';
@@ -1768,35 +1775,46 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
           const SizedBox(height: 14),
 
           // Pre-Op and Post-Op visual cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildStageDetailBox(
-                  stageTitle: "PRE-OP",
-                  icon: Icons.assignment_outlined,
-                  stats: preOp,
-                  accentColor: AppTheme.blue,
-                  cardBg: AppTheme.blueCardBg,
-                  borderColor: AppTheme.blueBorder,
-                  textColor: AppTheme.blueText,
-                  badgeBg: AppTheme.blueBg,
-                ),
+          if (_isComparisonLoading)
+            const _FlashingWidget(
+              child: Row(
+                children: [
+                  Expanded(child: _ShimmerBox(height: 100, borderRadius: 10)),
+                  SizedBox(width: 10),
+                  Expanded(child: _ShimmerBox(height: 100, borderRadius: 10)),
+                ],
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildStageDetailBox(
-                  stageTitle: "POST-OP",
-                  icon: Icons.healing_outlined,
-                  stats: postOp,
-                  accentColor: AppTheme.emerald,
-                  cardBg: AppTheme.emeraldCardBg,
-                  borderColor: AppTheme.emeraldBorder,
-                  textColor: AppTheme.emeraldText,
-                  badgeBg: AppTheme.emeraldBg,
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStageDetailBox(
+                    stageTitle: "PRE-OP",
+                    icon: Icons.assignment_outlined,
+                    stats: preOp,
+                    accentColor: AppTheme.blue,
+                    cardBg: AppTheme.blueCardBg,
+                    borderColor: AppTheme.blueBorder,
+                    textColor: AppTheme.blueText,
+                    badgeBg: AppTheme.blueBg,
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildStageDetailBox(
+                    stageTitle: "POST-OP",
+                    icon: Icons.healing_outlined,
+                    stats: postOp,
+                    accentColor: AppTheme.emerald,
+                    cardBg: AppTheme.emeraldCardBg,
+                    borderColor: AppTheme.emeraldBorder,
+                    textColor: AppTheme.emeraldText,
+                    badgeBg: AppTheme.emeraldBg,
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -1860,6 +1878,145 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
               fontSize: 10.5,
               fontWeight: FontWeight.w500,
               color: AppTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationReminderSection() {
+    if (_isAccountLoading) {
+      return const _FlashingWidget(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+            border: Border.fromBorderSide(BorderSide(color: AppTheme.border)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                _ShimmerBox(width: 32, height: 32, borderRadius: 16),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ShimmerBox(width: 130, height: 11, borderRadius: 4),
+                      SizedBox(height: 6),
+                      _ShimmerBox(width: 90, height: 13, borderRadius: 4),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final bool isEnabled = _patient.isNotificationActive;
+    final String statusText = _patient.notificationStatus.isNotEmpty
+        ? _patient.notificationStatus.toUpperCase()
+        : (isEnabled ? "ON" : "OFF");
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isEnabled
+            ? AppTheme.emeraldBg.withValues(alpha: 0.5)
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isEnabled ? AppTheme.emeraldBorder : AppTheme.border,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: isEnabled
+                  ? AppTheme.emerald.withValues(alpha: 0.12)
+                  : Colors.grey.shade200,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isEnabled
+                  ? Icons.notifications_active_rounded
+                  : Icons.notifications_off_outlined,
+              size: 18,
+              color: isEnabled ? AppTheme.emeraldText : AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Daily Reminder Notification",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      isEnabled && _patient.notificationTime.isNotEmpty
+                          ? _patient.formattedNotificationTime
+                          : (isEnabled
+                                ? "Time not set"
+                                : "Notification Disabled"),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isEnabled
+                            ? AppTheme.textPrimary
+                            : AppTheme.textSecondary,
+                      ),
+                    ),
+                    if (isEnabled && _patient.notificationTime.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        "(${_patient.notificationTime})",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: isEnabled ? AppTheme.emeraldBg : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: isEnabled ? AppTheme.emeraldBorder : AppTheme.border,
+              ),
+            ),
+            child: Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isEnabled
+                    ? AppTheme.emeraldText
+                    : AppTheme.textSecondary,
+              ),
             ),
           ),
         ],
@@ -1937,6 +2094,64 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FlashingWidget extends StatefulWidget {
+  final Widget child;
+  const _FlashingWidget({required this.child});
+
+  @override
+  State<_FlashingWidget> createState() => _FlashingWidgetState();
+}
+
+class _FlashingWidgetState extends State<_FlashingWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animCtrl;
+  late Animation<double> _opacityAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _opacityAnim = Tween<double>(
+      begin: 0.35,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(opacity: _opacityAnim, child: widget.child);
+  }
+}
+
+class _ShimmerBox extends StatelessWidget {
+  final double? width;
+  final double? height;
+  final double borderRadius;
+
+  const _ShimmerBox({this.width, this.height, this.borderRadius = 8});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
   }

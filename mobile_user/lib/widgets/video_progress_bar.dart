@@ -3,8 +3,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../core/storage/video_progress_manager.dart';
 import '../core/theme/app_colors.dart';
 
-class VideoProgressBar extends StatelessWidget {
+class VideoProgressBar extends StatefulWidget {
   final String? videoKey;
+  final dynamic videoId;
   final Color activeColor;
   final Color completedColor;
   final Color backgroundColor;
@@ -12,18 +13,47 @@ class VideoProgressBar extends StatelessWidget {
   const VideoProgressBar({
     super.key,
     required this.videoKey,
+    this.videoId,
     this.activeColor = AppColors.primary,
     this.completedColor = AppColors.success,
     this.backgroundColor = AppColors.border,
   });
 
   @override
+  State<VideoProgressBar> createState() => _VideoProgressBarState();
+}
+
+class _VideoProgressBarState extends State<VideoProgressBar> {
+  @override
+  void initState() {
+    super.initState();
+    _syncServerProgress();
+  }
+
+  @override
+  void didUpdateWidget(covariant VideoProgressBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoId != widget.videoId || oldWidget.videoKey != widget.videoKey) {
+      _syncServerProgress();
+    }
+  }
+
+  void _syncServerProgress() {
+    if (widget.videoId != null) {
+      VideoProgressManager.fetchAndSyncProgressFromApi(
+        videoId: widget.videoId,
+        idOrUrl: widget.videoKey,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (videoKey == null || videoKey!.isEmpty) {
+    if (widget.videoKey == null || widget.videoKey!.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final normalized = VideoProgressManager.normalizeKey(videoKey);
+    final normalized = VideoProgressManager.normalizeKey(widget.videoKey);
 
     return ValueListenableBuilder<Box>(
       valueListenable: VideoProgressManager.listenable(keys: [normalized]),
@@ -33,7 +63,7 @@ class VideoProgressBar extends StatelessWidget {
         final double fraction = progress.progressFraction;
         final int percent = progress.percentInt;
 
-        final Color barColor = isCompleted ? completedColor : activeColor;
+        final Color barColor = isCompleted ? widget.completedColor : widget.activeColor;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,7 +75,7 @@ class VideoProgressBar extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: fraction,
                 minHeight: 5,
-                backgroundColor: backgroundColor,
+                backgroundColor: widget.backgroundColor,
                 valueColor: AlwaysStoppedAnimation<Color>(barColor),
               ),
             ),
@@ -61,7 +91,7 @@ class VideoProgressBar extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.check_circle_rounded,
-                        color: completedColor,
+                        color: widget.completedColor,
                         size: 16,
                       ),
                       const SizedBox(width: 4),
@@ -70,7 +100,7 @@ class VideoProgressBar extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: completedColor,
+                          color: widget.completedColor,
                         ),
                       ),
                     ],

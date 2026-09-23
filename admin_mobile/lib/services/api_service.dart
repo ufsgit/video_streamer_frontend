@@ -224,14 +224,15 @@ class ApiService {
     String id, {
     String? category,
   }) async {
-    final Map<String, dynamic> queryParams = {
-      'category': (category != null && category.trim().isNotEmpty)
-          ? category.trim().toLowerCase()
-          : 'all',
-    };
+    final Map<String, dynamic> queryParams = {};
+    if (category != null &&
+        category.trim().isNotEmpty &&
+        category.trim().toLowerCase() != 'all') {
+      queryParams['category'] = category.trim().toLowerCase();
+    }
     return await _dio.get(
       '/admin/users/history/$id',
-      queryParameters: queryParams,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
   }
 

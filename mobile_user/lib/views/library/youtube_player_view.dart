@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../core/storage/video_progress_manager.dart';
 import '../../services/api_service.dart';
+import '../../core/tutorial/app_tour_controller.dart';
+import '../../widgets/tour_guide_overlay.dart';
 
 class YoutubePlayerView extends StatefulWidget {
   final String videoUrl;
@@ -161,6 +163,10 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
             total: _videoDuration,
             isCompleted: _isCompleted,
           );
+          if (AppTourController.instance.currentStep ==
+              AppTourStep.pauseVideo) {
+            AppTourController.instance.setStep(AppTourStep.goBackFromPlayer);
+          }
         }
 
         // Send to API and update Hive on finish
@@ -177,6 +183,49 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
 
         _lastPlayerState = currentState;
       });
+    }
+
+    // Fetch authoritative progress from backend API, sync into Hive, and resume
+    _fetchServerProgressAndSync();
+  }
+
+  Future<void> _fetchServerProgressAndSync() async {
+    if (widget.videoId == null || !widget.enableApiSync) return;
+    try {
+      final updated = await VideoProgressManager.fetchAndSyncProgressFromApi(
+        videoId: widget.videoId,
+        idOrUrl: widget.videoUrl,
+      );
+      if (updated != null && mounted) {
+        final double serverPos = updated.currentPosition;
+        final double serverDur = updated.totalDuration;
+        final bool serverCompleted = updated.isActuallyCompleted;
+
+        setState(() {
+          if (serverPos > _savedResumePosition || _savedResumePosition == 0) {
+            _savedResumePosition = serverPos;
+            _currentPosition = serverPos;
+            _maxWatchedPosition = serverPos;
+          }
+          if (serverDur > 0) {
+            _videoDuration = serverDur;
+          }
+          if (serverCompleted) {
+            _isCompleted = true;
+          }
+        });
+
+        if (!_isCompleted && _savedResumePosition > 0 && _controller != null) {
+          try {
+            await _controller!.seekTo(
+              seconds: _savedResumePosition,
+              allowSeekAhead: true,
+            );
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint('[YoutubePlayerView] Error fetching progress from API: $e');
     }
   }
 
@@ -250,6 +299,9 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
         total: _videoDuration,
         isCompleted: _isCompleted,
       );
+      if (AppTourController.instance.currentStep == AppTourStep.pauseVideo) {
+        AppTourController.instance.setStep(AppTourStep.goBackFromPlayer);
+      }
     } else {
       _controller?.playVideo();
       _startPlaybackTicker();
@@ -300,6 +352,11 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
 
   /// Triggered when user goes back or leaves the screen
   void _onExitScreen() {
+    if (AppTourController.instance.currentStep ==
+            AppTourStep.goBackFromPlayer ||
+        AppTourController.instance.currentStep == AppTourStep.pauseVideo) {
+      AppTourController.instance.setStep(AppTourStep.selectVideosFromHereOnly);
+    }
     final bool completed =
         _isCompleted ||
         (_videoDuration > 0 && _maxWatchedPosition >= (_videoDuration - 1.0));
@@ -542,6 +599,25 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          leading: ListenableBuilder(
+            listenable: AppTourController.instance,
+            builder: (context, _) {
+              final bool isBackStep = AppTourController.instance.currentStep ==
+                  AppTourStep.goBackFromPlayer;
+              return TourHighlightTarget(
+                isHighlighted: isBackStep,
+                highlightColor: const Color(0xFF3B82F6),
+                borderRadius: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  onPressed: () {
+                    _onExitScreen();
+                    Navigator.of(context).pop();
+                  },
+                ),
+              );
+            },
+          ),
           backgroundColor: const Color(0xFF0F172A),
           foregroundColor: Colors.white,
           elevation: 0,
@@ -553,6 +629,40 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
 
             // Custom Control Bar below video (No skippable/rewind progress bar)
             _buildCustomControlsBar(),
+
+            // Interactive Tutorial Step Guidance Card
+            ListenableBuilder(
+              listenable: AppTourController.instance,
+              builder: (context, _) {
+                final step = AppTourController.instance.currentStep;
+                if (step == AppTourStep.pauseVideo) {
+                  return TourGuideCard(
+                    stepText: 'Step 3 of 4',
+                    title: 'Pause the Video',
+                    description:
+                        'Tap anywhere on the video player above to pause playback.',
+                    icon: Icons.pause_circle_filled_rounded,
+                    accentColor: const Color(0xFFF59E0B),
+                  );
+                }
+                if (step == AppTourStep.goBackFromPlayer) {
+                  return TourGuideCard(
+                    stepText: 'Step 4 of 4',
+                    title: 'Tap Back to Return',
+                    description:
+                        'Great job! Now tap the back button (←) in the top-left to return to your video list.',
+                    icon: Icons.arrow_back_rounded,
+                    accentColor: const Color(0xFF3B82F6),
+                    actionLabel: 'Go Back Now',
+                    onAction: () {
+                      _onExitScreen();
+                      Navigator.of(context).pop();
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
 
             // Live Progress & Complete Status Card
             Expanded(

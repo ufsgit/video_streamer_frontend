@@ -6,6 +6,8 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:hive/hive.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import '../core/storage/session_manager.dart';
+import 'api_service.dart';
 
 class NotificationService {
   NotificationService._internal();
@@ -286,6 +288,8 @@ class NotificationService {
     required int hour,
     required int minute,
     bool persist = true,
+    bool syncToServer = true,
+    int? userId,
   }) async {
     // Save to Hive settings box if required
     if (persist) {
@@ -294,6 +298,16 @@ class NotificationService {
       await box.put('reminder_time_set', true);
       await box.put('reminder_hour', hour);
       await box.put('reminder_minute', minute);
+    }
+
+    if (syncToServer && persist) {
+      // Fire-and-forget sync to server so local alarm scheduling is instantaneous
+      syncReminderToServer(
+        hour: hour,
+        minute: minute,
+        isEnabled: true,
+        userId: userId,
+      );
     }
 
     if (kIsWeb) {
@@ -306,7 +320,7 @@ class NotificationService {
     try {
       await initialize();
       await requestPermissions();
-      await cancelDailyReminder(persist: false);
+      await cancelDailyReminder(persist: false, syncToServer: false);
 
       final tz.TZDateTime scheduledDate = _nextInstanceOfTime(hour, minute);
       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
@@ -376,10 +390,23 @@ class NotificationService {
     }
   }
 
-  Future<void> cancelDailyReminder({bool persist = true}) async {
+  Future<void> cancelDailyReminder({
+    bool persist = true,
+    bool syncToServer = true,
+    int? userId,
+  }) async {
     if (persist) {
       final box = Hive.box('settings');
       await box.put('reminder_enabled', false);
+    }
+    if (syncToServer && persist) {
+      final time = getReminderTime();
+      syncReminderToServer(
+        hour: time.hour,
+        minute: time.minute,
+        isEnabled: false,
+        userId: userId,
+      );
     }
     try {
       await _notificationsPlugin.cancel(dailyReminderId);
@@ -387,6 +414,144 @@ class NotificationService {
     } catch (e) {
       debugPrint('Error cancelling reminder: $e');
     }
+  }
+
+  String? _lastSyncPayloadKey;
+  DateTime? _lastSyncTimestamp;
+
+  /// Syncs reminder settings with the backend API
+  Future<bool> syncReminderToServer({
+    required int hour,
+    required int minute,
+    required bool isEnabled,
+    DayPeriod? period,
+    int? userId,
+  }) async {
+    try {
+      int? effectiveUserId = userId;
+      if (effectiveUserId == null) {
+        final currentUser = ApiService().currentUser;
+        if (currentUser != null && currentUser.id > 0) {
+          effectiveUserId = currentUser.id;
+        } else {
+          // Check Hive directly
+          effectiveUserId = SessionManager.getUserId();
+          if (effectiveUserId == null || effectiveUserId <= 0) {
+            final user = await SessionManager.getUser();
+            if (user != null && user.id > 0) {
+              effectiveUserId = user.id;
+            }
+          }
+        }
+      }
+
+      if (effectiveUserId == null || effectiveUserId <= 0) {
+        debugPrint('NotificationService: Cannot sync reminder - no valid user ID');
+        return false;
+      }
+
+      // Convert to 24-hour format (00:00:00 to 23:59:00)
+      int hour24 = hour;
+      if (period != null) {
+        if (period == DayPeriod.am) {
+          hour24 = (hour == 12) ? 0 : (hour % 12);
+        } else {
+          hour24 = (hour == 12) ? 12 : (hour % 12) + 12;
+        }
+      }
+
+      // Prevent duplicate rapid calls with identical payload
+      final String payloadKey = '$effectiveUserId-$hour24:$minute-$isEnabled';
+      final DateTime now = DateTime.now();
+      if (_lastSyncPayloadKey == payloadKey &&
+          _lastSyncTimestamp != null &&
+          now.difference(_lastSyncTimestamp!).inMilliseconds < 1500) {
+        debugPrint(
+          'NotificationService: Skipping duplicate reminder sync to server ($payloadKey)',
+        );
+        return true;
+      }
+      _lastSyncPayloadKey = payloadKey;
+      _lastSyncTimestamp = now;
+
+      final String reminderTimeStr =
+          '${hour24.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}:00';
+
+      final success = await ApiService().saveUserReminder(
+        userId: effectiveUserId,
+        reminderTime: reminderTimeStr,
+        isEnabled: isEnabled ? 1 : 0,
+      );
+
+      debugPrint(
+        'NotificationService: Reminder synced to server (User: $effectiveUserId, Time: $reminderTimeStr, Enabled: ${isEnabled ? 1 : 0}, Success: $success)',
+      );
+      return success;
+    } catch (e) {
+      debugPrint('NotificationService: Error syncing reminder to server: $e');
+      return false;
+    }
+  }
+
+  /// Fetches saved reminder from server and applies to local configuration
+  Future<bool> fetchAndApplyServerReminder({int? userId}) async {
+    try {
+      int? effectiveUserId = userId;
+      if (effectiveUserId == null) {
+        final currentUser = ApiService().currentUser;
+        if (currentUser != null && currentUser.id > 0) {
+          effectiveUserId = currentUser.id;
+        } else {
+          // Check Hive directly
+          effectiveUserId = SessionManager.getUserId();
+          if (effectiveUserId == null || effectiveUserId <= 0) {
+            final user = await SessionManager.getUser();
+            if (user != null && user.id > 0) {
+              effectiveUserId = user.id;
+            }
+          }
+        }
+      }
+
+      if (effectiveUserId == null || effectiveUserId <= 0) return false;
+
+      final data = await ApiService().getUserReminder(effectiveUserId);
+      if (data != null && data['reminder_time'] != null) {
+        final String reminderTimeStr = data['reminder_time'].toString();
+        final dynamic rawEnabled = data['is_enabled'];
+        final bool isEnabled = rawEnabled == 1 || rawEnabled == '1' || rawEnabled == true;
+
+        final parts = reminderTimeStr.split(':');
+        if (parts.length >= 2) {
+          final int hour = int.tryParse(parts[0]) ?? 20;
+          final int minute = int.tryParse(parts[1]) ?? 0;
+
+          final box = Hive.box('settings');
+          await box.put('reminder_time_set', true);
+          await box.put('reminder_enabled', isEnabled);
+          await box.put('reminder_hour', hour);
+          await box.put('reminder_minute', minute);
+
+          if (isEnabled) {
+            await scheduleDailyReminder(
+              hour: hour,
+              minute: minute,
+              persist: false,
+              syncToServer: false,
+            );
+          } else {
+            await cancelDailyReminder(persist: false, syncToServer: false);
+          }
+          debugPrint(
+            'NotificationService: Applied server reminder (User: $effectiveUserId, Time: $reminderTimeStr, Enabled: $isEnabled)',
+          );
+          return true;
+        }
+      }
+    } catch (e) {
+      debugPrint('NotificationService: Error fetching server reminder: $e');
+    }
+    return false;
   }
 
   /// Calculates the next local instance of the requested hour:minute accurately

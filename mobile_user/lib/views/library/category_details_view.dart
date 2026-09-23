@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import '../../core/storage/video_progress_manager.dart';
 import '../../core/theme/app_colors.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/video_progress_bar.dart';
 import 'youtube_player_view.dart';
 import '../../models/video_model.dart';
+import '../../core/tutorial/app_tour_controller.dart';
+import '../../widgets/tour_guide_overlay.dart';
 
 class CategoryDetailsView extends StatefulWidget {
   final String category;
@@ -111,301 +115,429 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Category Title Badge
-              Container(
-                decoration: BoxDecoration(
-                  color: categoryBadgeBg,
-                  border: Border.all(
-                    width: 1.2,
-                    color: categoryAccent.withValues(alpha: 0.3),
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 5,
-                  ),
-                  child: Text(
-                    isPreOp ? 'Pre Op' : 'Post Op',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: categoryAccent,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
+        child: ListenableBuilder(
+          listenable: AppTourController.instance,
+          builder: (context, _) {
+            final bool isFirstVideoTour =
+                isPreOp &&
+                AppTourController.instance.currentStep ==
+                    AppTourStep.clickFirstVideo;
+            final bool isSelectVideosTour =
+                AppTourController.instance.currentStep ==
+                AppTourStep.selectVideosFromHereOnly;
+
+            return SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 8.0,
               ),
-
-              const SizedBox(height: 16),
-
-              ListenableBuilder(
-                listenable: _viewModel,
-                builder: (context, child) {
-                  if (_viewModel.isLoading &&
-                      _viewModel.currentCategoryVideos.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.only(top: 40.0),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    );
-                  }
-
-                  final videos = _viewModel.currentCategoryVideos.reversed.toList();
-
-                  if (videos.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.only(top: 40.0),
-                      child: Center(
-                        child: Text(
-                          'No videos found for this category.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    children: [
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: videos.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 16),
-                        itemBuilder: (context, index) {
-                          final video = videos[index];
-                          final bool isDone =
-                              video.status == VideoStatus.completed;
-                          final bool inProgress =
-                              video.status == VideoStatus.inProgress;
-
-                          String effectiveImageUrl = video.imageUrl;
-                          if (effectiveImageUrl.isEmpty &&
-                              video.link != null &&
-                              video.link!.isNotEmpty) {
-                            final videoId =
-                                YoutubePlayerController.convertUrlToId(
-                                  video.link!,
-                                );
-                            if (videoId != null && videoId.isNotEmpty) {
-                              effectiveImageUrl =
-                                  'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
-                            }
-                          }
-                          if (effectiveImageUrl.isEmpty) {
-                            effectiveImageUrl =
-                                'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80';
-                          }
-
-                          return GestureDetector(
-                            onTap: () {
-                              if (video.link != null &&
-                                  video.link!.isNotEmpty) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => YoutubePlayerView(
-                                      videoId: video.id,
-                                      videoUrl: video.link!,
-                                      title: video.title,
-                                    ),
-                                  ),
-                                ).then((_) {
-                                  if (mounted) {
-                                    setState(() {});
-                                  }
-                                });
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Video link is not available',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: inProgress
-                                      ? AppColors.primary
-                                      : AppColors.border,
-                                  width: inProgress ? 2.0 : 1.0,
-                                ),
-                                boxShadow: inProgress
-                                    ? [
-                                        BoxShadow(
-                                          color: AppColors.primary.withValues(
-                                            alpha: 0.12,
-                                          ),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ]
-                                    : AppColors.subtleShadow,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isFirstVideoTour) ...[
+                    TourGuideCard(
+                      stepText: 'Step 2 of 4',
+                      title: 'Tap on the First Video',
+                      description:
+                          'Tap the first video in the list below to open and begin playback.',
+                      icon: Icons.play_circle_fill_rounded,
+                      accentColor: categoryAccent,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (isSelectVideosTour) ...[
+                    TourGuideCard(
+                      stepText: 'Tutorial Complete',
+                      title: 'Watch videos within the app only',
+                      description:
+                          'Please continue watching your videos directly from this list. Complete them in order so your doctor can track your recovery.',
+                      icon: Icons.check_circle_rounded,
+                      accentColor: const Color(0xFF10B981),
+                      actionLabel: 'Got It!',
+                      showSkip: false,
+                      onAction: () async {
+                        await AppTourController.instance.finishTour();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Tutorial complete! You are ready to start.',
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    height: 170,
-                                    width: double.infinity,
-                                    child: ClipRRect(
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(16),
-                                        topRight: Radius.circular(16),
-                                      ),
-                                      child: Stack(
-                                        children: [
-                                          Positioned.fill(
-                                            child: Image.network(
-                                              effectiveImageUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (
-                                                    context,
-                                                    error,
-                                                    stackTrace,
-                                                  ) => Container(
-                                                    color: AppColors
-                                                        .surfaceSecondary,
-                                                    child: const Icon(
-                                                      Icons.image,
-                                                      size: 50,
-                                                      color:
-                                                          AppColors.textMuted,
-                                                    ),
-                                                  ),
-                                            ),
-                                          ),
-                                          if (inProgress)
-                                            Positioned(
-                                              left: 12,
-                                              top: 12,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 5,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.primary,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: const Text(
-                                                  'IN PROGRESS',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w800,
-                                                    letterSpacing: 0.3,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          Center(
-                                            child: Container(
-                                              padding: const EdgeInsets.all(12),
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withValues(
-                                                  alpha: 0.35,
-                                                ),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Icon(
-                                                Icons.play_arrow_rounded,
-                                                size: 32,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                          if (isDone)
-                                            Positioned(
-                                              right: 12,
-                                              bottom: 12,
-                                              child: Container(
-                                                padding: const EdgeInsets.all(
-                                                  5,
-                                                ),
-                                                decoration: const BoxDecoration(
-                                                  color: Colors.white,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: const Icon(
-                                                  Icons.check,
-                                                  size: 16,
-                                                  color: AppColors.success,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                      vertical: 14.0,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          video.title,
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 10),
-                                        VideoProgressBar(
-                                          videoKey:
-                                              video.link ?? video.id.toString(),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              backgroundColor: Color(0xFF10B981),
+                              behavior: SnackBarBehavior.floating,
                             ),
                           );
-                        },
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Category Title Badge
+                  Container(
+                    decoration: BoxDecoration(
+                      color: categoryBadgeBg,
+                      border: Border.all(
+                        width: 1.2,
+                        color: categoryAccent.withValues(alpha: 0.3),
                       ),
-                      if (_viewModel.isLoadingMore)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20.0),
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
-                          ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 5,
+                      ),
+                      child: Text(
+                        isPreOp ? 'Pre Op' : 'Post Op',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: categoryAccent,
+                          letterSpacing: -0.2,
                         ),
-                    ],
-                  );
-                },
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  ListenableBuilder(
+                    listenable: _viewModel,
+                    builder: (context, child) {
+                      if (_viewModel.isLoading &&
+                          _viewModel.currentCategoryVideos.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.only(top: 40.0),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        );
+                      }
+
+                      final videos = _viewModel.currentCategoryVideos.reversed
+                          .toList();
+
+                      if (videos.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.only(top: 40.0),
+                          child: Center(
+                            child: Text(
+                              'No videos found for this category.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return Column(
+                        children: [
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: videos.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final video = videos[index];
+                              final videoKey =
+                                  video.link ?? video.id.toString();
+                              final normalizedKey =
+                                  VideoProgressManager.normalizeKey(videoKey);
+
+                              String effectiveImageUrl = video.imageUrl;
+                              if (effectiveImageUrl.isEmpty &&
+                                  video.link != null &&
+                                  video.link!.isNotEmpty) {
+                                final videoId =
+                                    YoutubePlayerController.convertUrlToId(
+                                      video.link!,
+                                    );
+                                if (videoId != null && videoId.isNotEmpty) {
+                                  effectiveImageUrl =
+                                      'https://img.youtube.com/vi/$videoId/hqdefault.jpg';
+                                }
+                              }
+                              if (effectiveImageUrl.isEmpty) {
+                                effectiveImageUrl =
+                                    'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80';
+                              }
+
+                              return ValueListenableBuilder<Box>(
+                                valueListenable:
+                                    VideoProgressManager.listenable(
+                                      keys: [normalizedKey],
+                                    ),
+                                builder: (context, box, _) {
+                                  final saved =
+                                      VideoProgressManager.getProgress(
+                                        videoKey,
+                                      );
+                                  final bool isDone =
+                                      video.status == VideoStatus.completed ||
+                                      saved.isActuallyCompleted;
+                                  final bool inProgress =
+                                      !isDone &&
+                                      (video.status == VideoStatus.inProgress ||
+                                          saved.progressFraction > 0);
+
+                                  final bool isFirstVideoHighlight =
+                                      index == 0 &&
+                                      isPreOp &&
+                                      AppTourController.instance.currentStep ==
+                                          AppTourStep.clickFirstVideo;
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      if (isFirstVideoHighlight) {
+                                        AppTourController.instance.setStep(
+                                          AppTourStep.pauseVideo,
+                                        );
+                                      }
+                                      if (video.link != null &&
+                                          video.link!.isNotEmpty) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                YoutubePlayerView(
+                                                  videoId: video.id,
+                                                  videoUrl: video.link!,
+                                                  title: video.title,
+                                                ),
+                                          ),
+                                        ).then((_) {
+                                          if (mounted) {
+                                            setState(() {});
+                                          }
+                                        });
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Video link is not available',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    child: TourHighlightTarget(
+                                      isHighlighted: isFirstVideoHighlight,
+                                      highlightColor: categoryAccent,
+                                      borderRadius: 18,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surface,
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                          border: Border.all(
+                                            color: inProgress
+                                                ? AppColors.primary
+                                                : AppColors.border,
+                                            width: inProgress ? 2.0 : 1.0,
+                                          ),
+                                          boxShadow: inProgress
+                                              ? [
+                                                  BoxShadow(
+                                                    color: AppColors.primary
+                                                        .withValues(
+                                                          alpha: 0.12,
+                                                        ),
+                                                    blurRadius: 12,
+                                                    offset: const Offset(0, 4),
+                                                  ),
+                                                ]
+                                              : AppColors.subtleShadow,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            SizedBox(
+                                              height: 170,
+                                              width: double.infinity,
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    const BorderRadius.only(
+                                                      topLeft: Radius.circular(
+                                                        16,
+                                                      ),
+                                                      topRight: Radius.circular(
+                                                        16,
+                                                      ),
+                                                    ),
+                                                child: Stack(
+                                                  children: [
+                                                    Positioned.fill(
+                                                      child: Image.network(
+                                                        effectiveImageUrl,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder:
+                                                            (
+                                                              context,
+                                                              error,
+                                                              stackTrace,
+                                                            ) => Container(
+                                                              color: AppColors
+                                                                  .surfaceSecondary,
+                                                              child: const Icon(
+                                                                Icons.image,
+                                                                size: 50,
+                                                                color: AppColors
+                                                                    .textMuted,
+                                                              ),
+                                                            ),
+                                                      ),
+                                                    ),
+                                                    if (inProgress)
+                                                      Positioned(
+                                                        left: 12,
+                                                        top: 12,
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 10,
+                                                                vertical: 5,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: AppColors
+                                                                .primary,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8,
+                                                                ),
+                                                          ),
+                                                          child: const Text(
+                                                            'IN PROGRESS',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: 10,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w800,
+                                                              letterSpacing:
+                                                                  0.3,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    Center(
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets.all(
+                                                              12,
+                                                            ),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                              color: Colors
+                                                                  .black
+                                                                  .withValues(
+                                                                    alpha: 0.35,
+                                                                  ),
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                        child: const Icon(
+                                                          Icons
+                                                              .play_arrow_rounded,
+                                                          size: 32,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    if (isDone)
+                                                      Positioned(
+                                                        right: 12,
+                                                        bottom: 12,
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets.all(
+                                                                5,
+                                                              ),
+                                                          decoration:
+                                                              const BoxDecoration(
+                                                                color: Colors
+                                                                    .white,
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                              ),
+                                                          child: const Icon(
+                                                            Icons.check,
+                                                            size: 16,
+                                                            color: AppColors
+                                                                .success,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16.0,
+                                                    vertical: 14.0,
+                                                  ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    video.title,
+                                                    style: const TextStyle(
+                                                      fontSize: 15,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color:
+                                                          AppColors.textPrimary,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 10),
+                                                  VideoProgressBar(
+                                                    videoKey: videoKey,
+                                                    videoId: video.id,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          if (_viewModel.isLoadingMore)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20.0),
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
