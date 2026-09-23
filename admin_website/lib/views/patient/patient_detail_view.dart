@@ -233,119 +233,119 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         ],
       ),
       body: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_viewModel.errorMessage != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.amberBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.amberBorder),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: AppTheme.amber,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _viewModel.errorMessage!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.amberText,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _viewModel.fetchPatientDetails,
+                      child: const Text(
+                        "Retry",
+                        style: TextStyle(color: AppTheme.amberText),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (MediaQuery.of(context).size.width < 800)
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_viewModel.errorMessage != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme.amberBg,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.amberBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.info_outline_rounded,
-                            color: AppTheme.amber,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _viewModel.errorMessage!,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppTheme.amberText,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: _viewModel.fetchPatientDetails,
-                            child: const Text(
-                              "Retry",
-                              style: TextStyle(color: AppTheme.amberText),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (MediaQuery.of(context).size.width < 800)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  _buildAccountInfoCard(),
+                  const SizedBox(height: 16),
+                  _buildEngagementOverviewCard(),
+                  const SizedBox(height: 16),
+                  _buildStagePerformanceComparisonCard(),
+                  const SizedBox(height: 16),
+                  _buildVideoHistoryCard(),
+                ],
+              )
+            else if (_viewModel.isAccountInfoCollapsed)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildAccountInfoCard(),
-                        const SizedBox(height: 16),
-                        _buildEngagementOverviewCard(),
-                        const SizedBox(height: 16),
-                        _buildStagePerformanceComparisonCard(),
-                        const SizedBox(height: 16),
-                        _buildVideoHistoryCard(),
-                      ],
-                    )
-                  else if (_viewModel.isAccountInfoCollapsed)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                        Expanded(flex: 1, child: _buildAccountInfoCard()),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
                             children: [
-                              Expanded(flex: 1, child: _buildAccountInfoCard()),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  children: [
-                                    _buildEngagementOverviewCard(),
-                                    const SizedBox(height: 16),
-                                    _buildStagePerformanceComparisonCard(),
-                                  ],
-                                ),
-                              ),
+                              _buildEngagementOverviewCard(),
+                              const SizedBox(height: 16),
+                              _buildStagePerformanceComparisonCard(),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _buildVideoHistoryCard(),
                       ],
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildVideoHistoryCard(),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                        Expanded(flex: 1, child: _buildAccountInfoCard()),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
                             children: [
-                              Expanded(flex: 1, child: _buildAccountInfoCard()),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                flex: 2,
-                                child: Column(
-                                  children: [
-                                    _buildEngagementOverviewCard(),
-                                    const SizedBox(height: 16),
-                                    _buildStagePerformanceComparisonCard(),
-                                  ],
-                                ),
-                              ),
+                              _buildEngagementOverviewCard(),
+                              const SizedBox(height: 16),
+                              _buildStagePerformanceComparisonCard(),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _buildVideoHistoryCard(),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildVideoHistoryCard(),
                 ],
               ),
-            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1530,38 +1530,10 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: videoHistory.length,
-              separatorBuilder: (context, index) =>
-                  const Divider(height: 16, color: AppTheme.borderSubtle),
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final video = videoHistory[index];
-                final title =
-                    video['title']?.toString() ??
-                    video['name']?.toString() ??
-                    'Video #${index + 1}';
-                final duration = video['duration']?.toString() ?? 'N/A';
-                final category = video['category']?.toString() ?? 'Pre-Op';
-                final dateStr =
-                    video['assignedAt']?.toString() ??
-                    video['viewedAt']?.toString() ??
-                    video['date']?.toString() ??
-                    '';
-                final isCompleted =
-                    video['isCompleted'] == true ||
-                    video['completed'] == true ||
-                    video['status'] == 'completed' ||
-                    video['progress'] == 100;
-
-                return _buildHistoryItem(
-                  title: title,
-                  subtitle: dateStr.isNotEmpty
-                      ? (dateStr.length >= 10
-                            ? dateStr.substring(0, 10)
-                            : dateStr)
-                      : "Assigned",
-                  duration: duration,
-                  category: category,
-                  isCompleted: isCompleted,
-                );
+                return _buildHistoryItem(video, index);
               },
             ),
         ],
@@ -1569,118 +1541,565 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     );
   }
 
-  Widget _buildHistoryItem({
-    required String title,
-    required String subtitle,
-    required String duration,
-    required String category,
-    required bool isCompleted,
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final trimmed = value.trim();
+      return int.tryParse(trimmed) ?? double.tryParse(trimmed)?.toInt();
+    }
+    return null;
+  }
+
+  String _formatSeconds(int totalSecs) {
+    if (totalSecs <= 0) return "0:00";
+    final int hours = totalSecs ~/ 3600;
+    final int minutes = (totalSecs % 3600) ~/ 60;
+    final int seconds = totalSecs % 60;
+    final String secStr = seconds.toString().padLeft(2, '0');
+    if (hours > 0) {
+      final String minStr = minutes.toString().padLeft(2, '0');
+      return "$hours:$minStr:$secStr";
+    } else {
+      return "$minutes:$secStr";
+    }
+  }
+
+  String? _formatDateTimeOrNull(dynamic rawDate) {
+    if (rawDate == null) return null;
+    final str = rawDate.toString().trim();
+    if (str.isEmpty ||
+        str.toLowerCase() == 'null' ||
+        str.toLowerCase() == 'n/a')
+      return null;
+    final parsed = DateTime.tryParse(str);
+    if (parsed != null) {
+      final local = parsed.toLocal();
+      final day = local.day.toString().padLeft(2, '0');
+      final month = local.month.toString().padLeft(2, '0');
+      final year = local.year.toString();
+      final hour = local.hour;
+      final minute = local.minute.toString().padLeft(2, '0');
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final hourStr = displayHour.toString().padLeft(2, '0');
+      return "$day/$month/$year, $hourStr:$minute $period";
+    }
+    return str;
+  }
+
+  Widget _buildThumbnail(
+    String? thumbnailUrl,
+    bool isCompleted,
+    bool isPostOp,
+    int? totalDuration,
+  ) {
+    final hasThumbnail =
+        thumbnailUrl != null &&
+        thumbnailUrl.trim().isNotEmpty &&
+        thumbnailUrl.toLowerCase() != 'null';
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 90,
+        height: 60,
+        decoration: BoxDecoration(
+          color: isCompleted
+              ? AppTheme.emeraldBg
+              : (isPostOp ? AppTheme.purpleBg : AppTheme.blueBg),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isCompleted
+                ? AppTheme.emeraldBorder
+                : (isPostOp ? AppTheme.purpleBorder : AppTheme.blueBorder),
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (hasThumbnail)
+              Image.network(
+                thumbnailUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Center(
+                  child: Icon(
+                    isCompleted
+                        ? Icons.check_circle_rounded
+                        : Icons.play_circle_fill_rounded,
+                    color: isCompleted
+                        ? AppTheme.emerald
+                        : (isPostOp ? AppTheme.purple : AppTheme.primary),
+                    size: 26,
+                  ),
+                ),
+              )
+            else
+              Center(
+                child: Icon(
+                  isCompleted
+                      ? Icons.check_circle_rounded
+                      : Icons.play_circle_fill_rounded,
+                  color: isCompleted
+                      ? AppTheme.emerald
+                      : (isPostOp ? AppTheme.purple : AppTheme.primary),
+                  size: 26,
+                ),
+              ),
+            if (totalDuration != null && totalDuration > 0)
+              Positioned(
+                bottom: 3,
+                right: 3,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(
+                    _formatSeconds(totalDuration),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(
+    bool isCompleted,
+    int progressPercent,
+    int currentSeconds,
+    bool hasOpened,
+  ) {
+    if (isCompleted) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: AppTheme.emeraldBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.emeraldBorder),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_rounded, size: 12, color: AppTheme.emerald),
+            SizedBox(width: 4),
+            Text(
+              "Completed",
+              style: TextStyle(
+                color: AppTheme.emeraldText,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (currentSeconds > 0 || hasOpened) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: AppTheme.blueBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.blueBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.access_time_rounded,
+              size: 12,
+              color: AppTheme.primary,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              "In Progress • $progressPercent%",
+              style: const TextStyle(
+                color: AppTheme.blueText,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFCBD5E1)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.radio_button_unchecked,
+              size: 12,
+              color: Color(0xFF64748B),
+            ),
+            SizedBox(width: 4),
+            Text(
+              "Not Started",
+              style: TextStyle(
+                color: Color(0xFF475569),
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildTimestampBadge(
+    IconData icon,
+    String label,
+    String formattedTime, {
+    bool isSuccess = false,
   }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: isSuccess ? AppTheme.emeraldBg : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: isSuccess ? AppTheme.emeraldBorder : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 11,
+            color: isSuccess ? AppTheme.emerald : AppTheme.textSecondary,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            "$label: ",
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: isSuccess ? AppTheme.emeraldText : AppTheme.textSecondary,
+            ),
+          ),
+          Text(
+            formattedTime,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+              color: isSuccess ? AppTheme.emeraldText : AppTheme.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(Map<String, dynamic> video, int index) {
+    final videoId = _parseInt(
+      video['video_id'] ?? video['videoId'] ?? video['id'],
+    );
+    final title =
+        video['title']?.toString() ??
+        video['name']?.toString() ??
+        (videoId != null ? 'Video #$videoId' : 'Video #${index + 1}');
+
+    final description = video['description']?.toString().trim();
+    final bool hasDescription =
+        description != null &&
+        description.isNotEmpty &&
+        description.toLowerCase() != 'null';
+
+    final rawCategory = video['category']?.toString() ?? 'Pre-Op';
+    final category = rawCategory.trim().isEmpty ? 'Pre-Op' : rawCategory;
     final bool isPostOp = category.toLowerCase().contains('post');
 
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isCompleted ? AppTheme.emeraldBg : AppTheme.blueBg,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isCompleted ? AppTheme.emeraldBorder : AppTheme.blueBorder,
-            ),
-          ),
-          child: Icon(
-            Icons.play_circle_fill_rounded,
-            color: isCompleted ? AppTheme.emerald : AppTheme.primary,
-            size: 18,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                  fontSize: 13.5,
+    final thumbnailUrl =
+        video['thumbnail_url']?.toString() ?? video['thumbnailUrl']?.toString();
+
+    final rawCompleted =
+        video['is_completed'] ?? video['isCompleted'] ?? video['completed'];
+    final bool isCompleted =
+        rawCompleted == 1 ||
+        rawCompleted == true ||
+        rawCompleted == '1' ||
+        rawCompleted == 'true' ||
+        video['status'] == 'completed';
+
+    final int currentSeconds =
+        _parseInt(
+          video['current_timestamp_seconds'] ??
+              video['currentTimestampSeconds'] ??
+              video['current_timestamp'] ??
+              video['progress_seconds'],
+        ) ??
+        0;
+
+    final int? totalDuration = _parseInt(
+      video['total_video_duration'] ??
+          video['totalVideoDuration'] ??
+          video['duration_seconds'] ??
+          video['duration'],
+    );
+
+    final firstOpenedAt = _formatDateTimeOrNull(
+      video['first_opened_at'] ?? video['firstOpenedAt'],
+    );
+    final lastWatchedAt = _formatDateTimeOrNull(
+      video['last_watched_at'] ?? video['lastWatchedAt'] ?? video['viewedAt'],
+    );
+    final completedAt = _formatDateTimeOrNull(
+      video['completed_at'] ?? video['completedAt'],
+    );
+    final assignedAt = _formatDateTimeOrNull(
+      video['assignedAt'] ?? video['assigned_at'] ?? video['date'],
+    );
+
+    int progressPercent;
+    if (totalDuration != null && totalDuration > 0) {
+      progressPercent = ((currentSeconds / totalDuration) * 100)
+          .clamp(0, 100)
+          .round();
+    } else if (isCompleted) {
+      progressPercent = 100;
+    } else {
+      progressPercent = 0;
+    }
+    if (isCompleted && progressPercent < 100) {
+      progressPercent = 100;
+    }
+    final double progressRatio = (progressPercent / 100.0).clamp(0.0, 1.0);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildThumbnail(thumbnailUrl, isCompleted, isPostOp, totalDuration),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Row 1: Title, Video ID, Category, and Status Badge
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          if (videoId != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 1.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: const Color(0xFFCBD5E1),
+                                ),
+                              ),
+                              child: Text(
+                                "#$videoId",
+                                style: const TextStyle(
+                                  color: Color(0xFF475569),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isPostOp
+                                  ? AppTheme.purpleBg
+                                  : AppTheme.blueBg,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: isPostOp
+                                    ? AppTheme.purpleBorder
+                                    : AppTheme.blueBorder,
+                              ),
+                            ),
+                            child: Text(
+                              category,
+                              style: TextStyle(
+                                color: isPostOp
+                                    ? AppTheme.purpleText
+                                    : AppTheme.blueText,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildStatusBadge(
+                      isCompleted,
+                      progressPercent,
+                      currentSeconds,
+                      firstOpenedAt != null,
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 3),
-              Row(
-                children: [
+
+                // Description (if present)
+                if (hasDescription) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    "$subtitle • $duration",
+                    description,
                     style: const TextStyle(
-                      color: AppTheme.textSecondary,
                       fontSize: 11.5,
+                      color: AppTheme.textSecondary,
+                      height: 1.3,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1.5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isPostOp ? AppTheme.purpleBg : AppTheme.blueBg,
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: isPostOp
-                            ? AppTheme.purpleBorder
-                            : AppTheme.blueBorder,
-                      ),
-                    ),
-                    child: Text(
-                      category,
-                      style: TextStyle(
-                        color: isPostOp
-                            ? AppTheme.purpleText
-                            : AppTheme.blueText,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-          decoration: BoxDecoration(
-            color: isCompleted ? AppTheme.emeraldBg : AppTheme.blueBg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isCompleted ? AppTheme.emeraldBorder : AppTheme.blueBorder,
+
+                // Watch Progress Section
+                const SizedBox(height: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.timer_outlined,
+                              size: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              totalDuration != null && totalDuration > 0
+                                  ? "Watched: ${_formatSeconds(currentSeconds)} / ${_formatSeconds(totalDuration)}"
+                                  : (currentSeconds > 0
+                                        ? "Watched: ${_formatSeconds(currentSeconds)}"
+                                        : "Not watched yet"),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          "$progressPercent%",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: isCompleted
+                                ? AppTheme.emeraldText
+                                : (progressPercent > 0
+                                      ? AppTheme.primary
+                                      : AppTheme.textSecondary),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: progressRatio,
+                        minHeight: 5,
+                        backgroundColor: const Color(0xFFE2E8F0),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          isCompleted ? AppTheme.emerald : AppTheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Timestamps Section: first_opened_at, last_watched_at, completed_at
+                if (firstOpenedAt != null ||
+                    lastWatchedAt != null ||
+                    completedAt != null ||
+                    assignedAt != null) ...[
+                  const SizedBox(height: 9),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 5,
+                    children: [
+                      if (firstOpenedAt != null)
+                        _buildTimestampBadge(
+                          Icons.login_rounded,
+                          "Started",
+                          firstOpenedAt,
+                        ),
+                      if (lastWatchedAt != null)
+                        _buildTimestampBadge(
+                          Icons.history_rounded,
+                          "Last Watched",
+                          lastWatchedAt,
+                        ),
+                      if (completedAt != null)
+                        _buildTimestampBadge(
+                          Icons.check_circle_outline_rounded,
+                          "Completed",
+                          completedAt,
+                          isSuccess: true,
+                        )
+                      else if (assignedAt != null &&
+                          firstOpenedAt == null &&
+                          lastWatchedAt == null)
+                        _buildTimestampBadge(
+                          Icons.calendar_today_outlined,
+                          "Assigned",
+                          assignedAt,
+                        ),
+                    ],
+                  ),
+                ],
+              ],
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isCompleted
-                    ? Icons.check_circle_rounded
-                    : Icons.access_time_rounded,
-                size: 12,
-                color: isCompleted ? AppTheme.emerald : AppTheme.primary,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                isCompleted ? "Completed" : "In Progress",
-                style: TextStyle(
-                  color: isCompleted ? AppTheme.emeraldText : AppTheme.blueText,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -1691,10 +2110,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         decoration: BoxDecoration(
           color: AppTheme.emeraldCardBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppTheme.emeraldBorder,
-            width: 1.2,
-          ),
+          border: Border.all(color: AppTheme.emeraldBorder, width: 1.2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1878,9 +2294,10 @@ class _FlashingWidgetState extends State<FlashingWidget>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.35, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _animation = Tween<double>(
+      begin: 0.35,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1892,10 +2309,7 @@ class _FlashingWidgetState extends State<FlashingWidget>
   @override
   Widget build(BuildContext context) {
     if (!widget.isFlashing) return widget.child;
-    return FadeTransition(
-      opacity: _animation,
-      child: widget.child,
-    );
+    return FadeTransition(opacity: _animation, child: widget.child);
   }
 }
 
