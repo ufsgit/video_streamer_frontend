@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../core/error_utils.dart';
 
 class PatientsListViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -118,7 +119,7 @@ class PatientsListViewModel extends ChangeNotifier {
         if (totalPages < 1) totalPages = 1;
       }
     } catch (e) {
-      errorMessage = "Failed to load patients.";
+      errorMessage = ErrorUtils.format(e, fallback: "Server error. Please try again.");
       debugPrint("fetchPatients error: $e");
     } finally {
       isLoading = false;

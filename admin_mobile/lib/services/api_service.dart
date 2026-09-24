@@ -236,6 +236,17 @@ class ApiService {
     );
   }
 
+  Future<Response> getUserStageComparison(String id) async {
+    try {
+      return await _dio.get('/admin/users/stage-comparison/$id');
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 404) {
+        return await _dio.get('/api/admin/users/stage-comparison/$id');
+      }
+      rethrow;
+    }
+  }
+
   Future<Response> createUser(dynamic userData) async {
     return await _dio.post('/admin/users/create', data: userData);
   }

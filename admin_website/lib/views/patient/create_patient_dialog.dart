@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/error_utils.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/api_service.dart';
@@ -250,30 +251,23 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
         Navigator.pop(context, true);
       } else {
         setState(() {
-          _errorMessage =
-              response.data?['message']?.toString() ??
-              (isEditing
-                  ? 'Failed to update patient profile.'
-                  : 'Failed to create patient profile.');
+          _errorMessage = ErrorUtils.format(
+            response.data,
+            fallback: isEditing
+                ? 'Failed to update patient profile.'
+                : 'Failed to create patient profile.',
+          );
         });
       }
     } catch (e) {
       if (mounted) {
-        String errorMsg = isEditing
-            ? 'Failed to update patient. Please check input.'
-            : 'Failed to create patient. Please check input.';
-        if (e is DioException) {
-          if (e.response?.data is Map && e.response?.data['message'] != null) {
-            errorMsg = e.response!.data['message'].toString();
-          } else if (e.response?.data is Map &&
-              e.response?.data['error'] != null) {
-            errorMsg = e.response!.data['error'].toString();
-          } else if (e.type == DioExceptionType.connectionError) {
-            errorMsg = 'Cannot reach server. Please check backend connection.';
-          }
-        }
         setState(() {
-          _errorMessage = errorMsg;
+          _errorMessage = ErrorUtils.format(
+            e,
+            fallback: isEditing
+                ? 'Server error updating patient.'
+                : 'Server error creating patient.',
+          );
         });
       }
     } finally {

@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dio/dio.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import '../../core/error_utils.dart';
 import '../../core/theme.dart';
 import '../../services/api_service.dart';
 
@@ -1410,26 +1410,19 @@ class _AddVideoDialogState extends State<AddVideoDialog> {
         }
       } else {
         setState(() {
-          _errorMessage = "Server returned status code ${response.statusCode}";
+          _errorMessage = ErrorUtils.format(
+            response.data,
+            fallback: "Server error saving video.",
+          );
         });
       }
     } catch (e) {
       debugPrint("Error saving video: $e");
-      String err = isEditing
-          ? "Failed to update video."
-          : "Failed to create video.";
-      if (e is DioException) {
-        final data = e.response?.data;
-        if (data is Map && data['message'] != null) {
-          err = data['message'].toString();
-        } else if (data is Map && data['error'] != null) {
-          err = data['error'].toString();
-        } else if (e.message != null) {
-          err = e.message!;
-        }
-      }
       setState(() {
-        _errorMessage = err;
+        _errorMessage = ErrorUtils.format(
+          e,
+          fallback: isEditing ? "Server error updating video." : "Server error creating video.",
+        );
       });
     } finally {
       if (mounted) {

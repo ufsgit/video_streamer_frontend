@@ -87,13 +87,13 @@ class _LibraryViewState extends State<LibraryView> {
                               description:
                                   'Tap the Pre-op button below to view your videos.',
                               icon: Icons.touch_app_rounded,
-                              accentColor: AppColors.preOpAccent,
+                              accentColor: AppColors.tutorialHighlight,
                             ),
                             const SizedBox(height: 8),
                           ],
                           TourHighlightTarget(
                             isHighlighted: isTourStep,
-                            highlightColor: AppColors.preOpAccent,
+                            highlightColor: AppColors.tutorialHighlight,
                             borderRadius: 24,
                             child: _buildColorfulCategoryCard(
                               context,

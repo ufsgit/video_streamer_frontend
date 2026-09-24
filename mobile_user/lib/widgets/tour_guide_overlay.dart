@@ -20,7 +20,7 @@ class TourGuideCard extends StatefulWidget {
     required this.title,
     required this.description,
     this.icon = Icons.touch_app_rounded,
-    this.accentColor = AppColors.primary,
+    this.accentColor = AppColors.tutorialHighlight,
     this.onAction,
     this.actionLabel,
     this.showSkip = true,
@@ -44,7 +44,7 @@ class _TourGuideCardState extends State<TourGuideCard>
       duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.06).animate(
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
     );
   }
@@ -60,21 +60,21 @@ class _TourGuideCardState extends State<TourGuideCard>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 211, 216, 230),
+        color: const Color(0xFF0F172A),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.accentColor.withValues(alpha: 0.45),
-          width: 1.5,
+          color: widget.accentColor.withValues(alpha: 0.85),
+          width: 2.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.accentColor.withValues(alpha: 0.28),
-            blurRadius: 24,
+            color: widget.accentColor.withValues(alpha: 0.35),
+            blurRadius: 20,
             spreadRadius: 2,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
+            color: Colors.black.withValues(alpha: 0.45),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -92,14 +92,14 @@ class _TourGuideCardState extends State<TourGuideCard>
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 4,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: widget.accentColor.withValues(alpha: 0.16),
+                    color: widget.accentColor.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: widget.accentColor.withValues(alpha: 0.35),
-                      width: 1,
+                      color: widget.accentColor.withValues(alpha: 0.55),
+                      width: 1.2,
                     ),
                   ),
                   child: Row(
@@ -109,7 +109,7 @@ class _TourGuideCardState extends State<TourGuideCard>
                         scale: _pulseAnimation,
                         child: Icon(
                           widget.icon,
-                          size: 14,
+                          size: 15,
                           color: widget.accentColor,
                         ),
                       ),
@@ -117,8 +117,8 @@ class _TourGuideCardState extends State<TourGuideCard>
                       Text(
                         widget.stepText,
                         style: TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
                           color: widget.accentColor,
                           letterSpacing: 0.3,
                         ),
@@ -141,7 +141,7 @@ class _TourGuideCardState extends State<TourGuideCard>
                       'Skip Tour',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Color.fromARGB(255, 1, 9, 21),
+                        color: Color(0xFF94A3B8),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -152,48 +152,50 @@ class _TourGuideCardState extends State<TourGuideCard>
 
           // Body Content: Title & Description
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.title,
                   style: const TextStyle(
-                    fontSize: 15.5,
+                    fontSize: 16.5,
                     fontWeight: FontWeight.w800,
-                    color: Color.fromARGB(255, 12, 0, 0),
+                    color: Colors.white,
                     letterSpacing: -0.2,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   widget.description,
                   style: const TextStyle(
-                    fontSize: 12.5,
-                    color: Color.fromARGB(255, 0, 4, 8),
-                    height: 1.35,
+                    fontSize: 13,
+                    color: Color(0xFFCBD5E1),
+                    height: 1.4,
                   ),
                 ),
                 if (widget.onAction != null) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: widget.onAction,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: widget.accentColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 11),
+                        foregroundColor: const Color(0xFF0F172A),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        elevation: 0,
+                        elevation: 4,
+                        shadowColor: widget.accentColor.withValues(alpha: 0.5),
                       ),
                       child: Text(
                         widget.actionLabel ?? 'Next',
                         style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ),
@@ -219,7 +221,7 @@ class TourHighlightTarget extends StatefulWidget {
     super.key,
     required this.child,
     required this.isHighlighted,
-    this.highlightColor = AppColors.primary,
+    this.highlightColor = AppColors.tutorialHighlight,
     this.borderRadius = 22,
   });
 
@@ -237,11 +239,11 @@ class _TourHighlightTargetState extends State<TourHighlightTarget>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1100),
+      duration: const Duration(milliseconds: 1000),
     );
     _glowAnimation = Tween<double>(
-      begin: 3.0,
-      end: 12.0,
+      begin: 4.0,
+      end: 14.0,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     if (widget.isHighlighted) {
@@ -279,12 +281,20 @@ class _TourHighlightTargetState extends State<TourHighlightTarget>
             borderRadius: BorderRadius.circular(widget.borderRadius),
             boxShadow: [
               BoxShadow(
-                color: widget.highlightColor.withValues(alpha: 0.55),
-                blurRadius: _glowAnimation.value * 2,
-                spreadRadius: _glowAnimation.value / 2,
+                color: widget.highlightColor.withValues(alpha: 0.7),
+                blurRadius: _glowAnimation.value * 2.2,
+                spreadRadius: _glowAnimation.value * 0.8,
+              ),
+              BoxShadow(
+                color: widget.highlightColor.withValues(alpha: 0.35),
+                blurRadius: _glowAnimation.value * 3.5,
+                spreadRadius: _glowAnimation.value * 1.5,
               ),
             ],
-            border: Border.all(color: Colors.white, width: 2.5),
+            border: Border.all(
+              color: widget.highlightColor,
+              width: 3.2,
+            ),
           ),
           child: child,
         );

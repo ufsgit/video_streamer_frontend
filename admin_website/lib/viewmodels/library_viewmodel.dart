@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../core/error_utils.dart';
 
 class VideoLibraryViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -205,7 +206,7 @@ class VideoLibraryViewModel extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint("Error fetching videos from API: $e");
-      errorMessage = "Failed to load videos from server.";
+      errorMessage = ErrorUtils.format(e, fallback: "Server error. Please try again.");
     } finally {
       isLoading = false;
       notifyListeners();

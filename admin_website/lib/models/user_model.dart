@@ -38,7 +38,8 @@ class UserModel {
   });
 
   bool get isNotificationActive =>
-      isNotificationEnabled == 1 || notificationStatus.trim().toUpperCase() == 'ON';
+      isNotificationEnabled == 1 ||
+      notificationStatus.trim().toUpperCase() == 'ON';
 
   String get formattedNotificationTime {
     if (notificationTime.trim().isEmpty) return 'Not set';
@@ -72,8 +73,9 @@ class UserModel {
     if (json['is_notification_enabled'] is int) {
       parsedNotificationEnabled = json['is_notification_enabled'];
     } else if (json['is_notification_enabled'] is bool) {
-      parsedNotificationEnabled =
-          json['is_notification_enabled'] == true ? 1 : 0;
+      parsedNotificationEnabled = json['is_notification_enabled'] == true
+          ? 1
+          : 0;
     } else if (json['is_notification_enabled'] != null) {
       parsedNotificationEnabled =
           int.tryParse(json['is_notification_enabled'].toString()) ?? 0;
@@ -81,48 +83,52 @@ class UserModel {
 
     String parsedNotificationStatus =
         json['notification_status']?.toString().trim() ??
-            (parsedNotificationEnabled == 1 ? 'ON' : 'OFF');
+        (parsedNotificationEnabled == 1 ? 'ON' : 'OFF');
     if (parsedNotificationStatus.isEmpty) {
-      parsedNotificationStatus =
-          parsedNotificationEnabled == 1 ? 'ON' : 'OFF';
+      parsedNotificationStatus = parsedNotificationEnabled == 1 ? 'ON' : 'OFF';
     }
 
     String parsedNotificationTime =
         json['notification_time']?.toString().trim() ??
-            json['reminder_time']?.toString().trim() ??
-            '';
+        json['reminder_time']?.toString().trim() ??
+        '';
 
     return UserModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       username: json['username']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Unnamed Patient',
       age: parsedAge,
-      gender: json['sex']?.toString() ??
+      gender:
+          json['sex']?.toString() ??
           json['gender']?.toString() ??
           'Not specified',
       dob: json['dob']?.toString() ?? '',
-      phone: json['phone_number']?.toString() ??
+      phone:
+          json['phone_number']?.toString() ??
           json['phone']?.toString() ??
           'N/A',
       email: json['email']?.toString() ?? 'N/A',
       status: json['status']?.toString() ?? 'Active',
-      date: json['registered_date']?.toString() ??
+      date:
+          json['registered_date']?.toString() ??
           json['registration_date']?.toString() ??
           json['date']?.toString() ??
           '',
       streak: json['current_streak'] != null
           ? '${json['current_streak']} days'
           : (json['streak']?.toString() ??
-              (json['streakDays'] != null
-                  ? '${json['streakDays']} days'
-                  : null) ??
-              '0 days'),
-      imageUrl: json['photo_url']?.toString() ??
+                (json['streakDays'] != null
+                    ? '${json['streakDays']} days'
+                    : null) ??
+                '0 days'),
+      imageUrl:
+          json['photo_url']?.toString() ??
           json['photo']?.toString() ??
           json['imageUrl']?.toString() ??
           '',
       note: json['note']?.toString() ?? '',
-      language: json['language_name']?.toString() ??
+      language:
+          json['language_name']?.toString() ??
           json['language']?.toString() ??
           json['languageName']?.toString() ??
           '',

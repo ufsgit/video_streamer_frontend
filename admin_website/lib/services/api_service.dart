@@ -9,7 +9,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
+  static const String baseUrl = 'https://videostreamerapi.ufstech.net.in';
 
   late Dio _dio;
   String? _authToken;
@@ -220,10 +220,7 @@ class ApiService {
     return await getUserProgress(id, category: category, stage: stage);
   }
 
-  Future<Response> getUserHistory(
-    String id, {
-    String? category,
-  }) async {
+  Future<Response> getUserHistory(String id, {String? category}) async {
     final Map<String, dynamic> queryParams = {};
     if (category != null &&
         category.trim().isNotEmpty &&
@@ -236,6 +233,14 @@ class ApiService {
     );
   }
 
+  Future<Response> getUserStageComparison(String id) async {
+    try {
+      return await _dio.get('/admin/users/stage-comparison/$id');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<Response> createUser(dynamic userData) async {
     return await _dio.post('/admin/users/create', data: userData);
   }
@@ -246,6 +251,43 @@ class ApiService {
 
   Future<Response> deleteUser(String id) async {
     return await _dio.delete('/admin/users/delete/$id');
+  }
+
+  Future<Response> getUserReport({String? userId}) async {
+    final Map<String, dynamic> queryParams = {};
+    if (userId != null && userId.isNotEmpty) {
+      queryParams['userId'] = userId;
+      queryParams['user_id'] = userId;
+      queryParams['id'] = userId;
+      queryParams['patientId'] = userId;
+    }
+
+    try {
+      return await _dio.get(
+        '/admin/users/report',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Accept': '*/*'},
+        ),
+      );
+    } catch (e) {
+      {
+        rethrow;
+      }
+    }
+  }
+
+  Future<Response> getComparisonData(String patientId) async {
+    final params = {'patient_id': patientId, 'compact': true};
+    return await _dio.get(
+      '/admin/users/report',
+      queryParameters: params,
+      options: Options(
+        headers: {'Accept': 'application/json'},
+        responseType: ResponseType.json,
+      ),
+    );
   }
 
   // --- 5. Video Management ---

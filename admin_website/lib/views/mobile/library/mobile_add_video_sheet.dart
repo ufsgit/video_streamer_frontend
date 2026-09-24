@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dio/dio.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'package:admin_website/core/theme.dart';
+import 'package:admin_website/core/error_utils.dart';
 import 'package:admin_website/services/api_service.dart';
 
 class MobileAddVideoSheet extends StatefulWidget {
@@ -579,26 +579,13 @@ class _MobileAddVideoSheetState extends State<MobileAddVideoSheet> {
         }
       } else {
         setState(() {
-          _errorMessage = "Server returned status code ${response.statusCode}";
+          _errorMessage = ErrorUtils.format(response.data, fallback: isEditing ? "Failed to update video." : "Failed to create video.");
         });
       }
     } catch (e) {
       debugPrint("Error saving video: $e");
-      String err = isEditing
-          ? "Failed to update video."
-          : "Failed to create video.";
-      if (e is DioException) {
-        final data = e.response?.data;
-        if (data is Map && data['message'] != null) {
-          err = data['message'].toString();
-        } else if (data is Map && data['error'] != null) {
-          err = data['error'].toString();
-        } else if (e.message != null) {
-          err = e.message!;
-        }
-      }
       setState(() {
-        _errorMessage = err;
+        _errorMessage = ErrorUtils.format(e, fallback: isEditing ? "Failed to update video. Please try again." : "Failed to create video. Please try again.");
       });
     } finally {
       if (mounted) {

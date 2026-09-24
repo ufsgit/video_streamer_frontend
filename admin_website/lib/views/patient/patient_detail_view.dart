@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/api_service.dart';
+import '../../services/file_downloader.dart';
 import '../../viewmodels/patient_detail_viewmodel.dart';
 import 'create_patient_dialog.dart';
 
@@ -33,6 +35,209 @@ class _PatientDetailViewState extends State<PatientDetailView> {
   void dispose() {
     _viewModel.dispose();
     super.dispose();
+  }
+
+  bool _isExporting = false;
+
+  Future<void> _exportExcelSheet() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+
+    try {
+      final patient = _viewModel.patient;
+      final response = await ApiService().getUserReport(userId: patient.id);
+
+      if (response.data != null) {
+        final data = response.data;
+        final contentType =
+            response.headers.value('content-type')?.toLowerCase() ?? '';
+
+        if (data is List<int> && data.isNotEmpty) {
+          String? textContent;
+          try {
+            textContent = utf8.decode(data);
+          } catch (_) {}
+
+          if (textContent != null &&
+              (textContent.trim().startsWith('{') ||
+                  textContent.trim().startsWith('['))) {
+            _handleReportJsonData(jsonDecode(textContent), patient);
+          } else {
+            final isXlsx =
+                contentType.contains('spreadsheet') ||
+                contentType.contains('excel') ||
+                (data.length > 4 && data[0] == 0x50 && data[1] == 0x4B);
+            final ext = isXlsx ? 'xlsx' : 'csv';
+            final safeName = patient.name
+                .replaceAll(RegExp(r'[^\w\s-]'), '')
+                .replaceAll(' ', '_');
+            final fileName =
+                '${safeName.isNotEmpty ? safeName : "Patient"}_Report.$ext';
+
+            FileDownloader.downloadBytes(
+              data,
+              fileName,
+              mimeType: isXlsx
+                  ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                  : 'text/csv;charset=utf-8',
+            );
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: AppTheme.emerald,
+                  content: Text("Exported $fileName successfully"),
+                ),
+              );
+            }
+          }
+        } else if (data is Map || data is List) {
+          _handleReportJsonData(data, patient);
+        } else if (data is String) {
+          if (data.startsWith('http://') || data.startsWith('https://')) {
+            FileDownloader.openUrl(data);
+          } else {
+            final safeName = patient.name
+                .replaceAll(RegExp(r'[^\w\s-]'), '')
+                .replaceAll(' ', '_');
+            FileDownloader.downloadString(
+              data,
+              '${safeName.isNotEmpty ? safeName : "Patient"}_Report.csv',
+            );
+          }
+        }
+      } else {
+        _generateFallbackPatientCsv();
+      }
+    } catch (e) {
+      debugPrint("Error exporting report from API: $e");
+      _generateFallbackPatientCsv();
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  void _handleReportJsonData(dynamic data, UserModel patient) {
+    if (data is Map) {
+      final downloadUrl =
+          (data['url'] ?? data['downloadUrl'] ?? data['fileUrl'])?.toString();
+      if (downloadUrl != null && downloadUrl.isNotEmpty) {
+        FileDownloader.openUrl(downloadUrl);
+        return;
+      }
+    }
+    _generateFallbackPatientCsv(apiData: data);
+  }
+
+  String _csvEscape(dynamic val) {
+    if (val == null) return '""';
+    final s = val.toString().replaceAll('"', '""');
+    return '"$s"';
+  }
+
+  void _generateFallbackPatientCsv({dynamic apiData}) {
+    final patient = _viewModel.patient;
+    final preOp = _viewModel.preOpStats;
+    final postOp = _viewModel.postOpStats;
+    final preEffort = _viewModel.preOpEffortShare.round();
+    final postEffort = _viewModel.postOpEffortShare.round();
+    final adherence = _viewModel.stageAdherenceRatio > 0
+        ? '${_viewModel.stageAdherenceRatio.toStringAsFixed(2)}x'
+        : 'N/A';
+
+    final headers = [
+      "Patient ID",
+      "Patient Name",
+      "Age",
+      "Gender",
+      "Date of Birth",
+      "Phone Number",
+      "Email Address",
+      "Language",
+      "Registration Date",
+      "Account Status",
+      "Clinical Note",
+      "Activity Streak",
+      "Reminder Status",
+      "Daily Reminder Time",
+      "Total Assigned Videos",
+      "Total Completed Videos",
+      "Overall Completion (%)",
+      "Pre-Op Assigned",
+      "Pre-Op Completed",
+      "Pre-Op In-Progress",
+      "Pre-Op Not Started",
+      "Pre-Op Completion (%)",
+      "Pre-Op Time Watched",
+      "Post-Op Assigned",
+      "Post-Op Completed",
+      "Post-Op In-Progress",
+      "Post-Op Not Started",
+      "Post-Op Completion (%)",
+      "Post-Op Time Watched",
+      "Stage Adherence Ratio",
+      "Stage Effort Share",
+    ];
+
+    final row = [
+      _csvEscape(patient.id),
+      _csvEscape(patient.name),
+      _csvEscape(patient.age > 0 ? patient.age : 'N/A'),
+      _csvEscape(patient.gender),
+      _csvEscape(patient.dob),
+      _csvEscape(patient.phone),
+      _csvEscape(patient.email),
+      _csvEscape(patient.language),
+      _csvEscape(_formatDateTime(patient.date)),
+      _csvEscape(patient.status),
+      _csvEscape(patient.note),
+      _csvEscape(patient.streak),
+      _csvEscape(patient.isNotificationActive ? 'ON' : 'OFF'),
+      _csvEscape(patient.formattedNotificationTime),
+      _csvEscape(_viewModel.totalVideos),
+      _csvEscape(_viewModel.completedVideos),
+      _csvEscape('${_viewModel.progressRate}%'),
+      _csvEscape(preOp.totalAssigned),
+      _csvEscape(preOp.totalCompleted),
+      _csvEscape(preOp.inProgress),
+      _csvEscape(preOp.notStarted),
+      _csvEscape('${preOp.progressRate}%'),
+      _csvEscape(
+        '${_formatSeconds(_viewModel.preOpSecondsWatched)} / ${_formatSeconds(_viewModel.preOpTotalDurationSeconds)}',
+      ),
+      _csvEscape(postOp.totalAssigned),
+      _csvEscape(postOp.totalCompleted),
+      _csvEscape(postOp.inProgress),
+      _csvEscape(postOp.notStarted),
+      _csvEscape('${postOp.progressRate}%'),
+      _csvEscape(
+        '${_formatSeconds(_viewModel.postOpSecondsWatched)} / ${_formatSeconds(_viewModel.postOpTotalDurationSeconds)}',
+      ),
+      _csvEscape(adherence),
+      _csvEscape('Pre: $preEffort% | Post: $postEffort%'),
+    ];
+
+    final csvContent =
+        '${headers.map(_csvEscape).join(',')}\n${row.join(',')}\n';
+    final safeName = patient.name
+        .replaceAll(RegExp(r'[^\w\s-]'), '')
+        .replaceAll(' ', '_');
+    final fileName = '${safeName.isNotEmpty ? safeName : "Patient"}_Report.csv';
+
+    FileDownloader.downloadString(csvContent, fileName);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppTheme.emerald,
+          content: Text("Exported $fileName successfully"),
+        ),
+      );
+    }
   }
 
   Future<void> _confirmDelete() async {
@@ -149,6 +354,26 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         actions: [
           if (MediaQuery.of(context).size.width < 600) ...[
             IconButton(
+              icon: _isExporting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.emerald,
+                        ),
+                      ),
+                    )
+                  : const Icon(
+                      Icons.table_chart_outlined,
+                      color: AppTheme.emerald,
+                      size: 20,
+                    ),
+              tooltip: "XL Sheet",
+              onPressed: _isExporting ? null : _exportExcelSheet,
+            ),
+            IconButton(
               icon: const Icon(
                 Icons.edit_outlined,
                 color: AppTheme.primary,
@@ -176,6 +401,40 @@ class _PatientDetailViewState extends State<PatientDetailView> {
               onPressed: _confirmDelete,
             ),
           ] else ...[
+            ElevatedButton.icon(
+              onPressed: _isExporting ? null : _exportExcelSheet,
+              icon: _isExporting
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.table_chart_outlined, size: 15),
+              label: Text(
+                _isExporting ? "Exporting..." : "XL Sheet",
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.emerald,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                minimumSize: const Size(0, 34),
+              ),
+            ),
+            const SizedBox(width: 8),
             ElevatedButton.icon(
               onPressed: () async {
                 final updated = await showDialog<bool>(
@@ -503,51 +762,50 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         ),
                         const SizedBox(height: 14),
                         const Divider(height: 1, color: AppTheme.borderSubtle),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
                         _buildInfoRow(
                           "AGE",
                           patient.age > 0 ? '${patient.age} yrs' : 'N/A',
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 16),
                         _buildInfoRow("GENDER", patient.gender),
                         if (patient.dob.isNotEmpty) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 16),
                           _buildInfoRow(
                             "DATE OF BIRTH",
                             _formatDateOnly(patient.dob),
                           ),
                         ],
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 16),
                         _buildInfoRow(
                           "LANGUAGE",
                           patient.language.isNotEmpty
                               ? patient.language
                               : "N/A",
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 16),
                         _buildInfoRow(
                           "PHONE NUMBER",
                           patient.phone.isNotEmpty ? patient.phone : "N/A",
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 16),
                         _buildInfoRow(
                           "EMAIL ADDRESS",
                           patient.email.isNotEmpty ? patient.email : "N/A",
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 16),
                         _buildInfoRow(
                           "REGISTRATION DATE",
                           _formatDateTime(patient.date),
                         ),
-                        const SizedBox(height: 10),
-                        _buildInfoRow(
-                          "ACTIVITY STREAK",
-                          patient.streak.isNotEmpty ? patient.streak : "0 days",
-                        ),
                         if (patient.note.isNotEmpty) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 16),
                           _buildInfoRow("CLINICAL NOTE", patient.note),
                         ],
+                        const SizedBox(height: 16),
+                        const Divider(height: 1, color: AppTheme.borderSubtle),
+                        const SizedBox(height: 14),
+                        _buildAccountInfoFooterRow(patient),
                       ],
                     ),
                   ),
@@ -751,7 +1009,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         ),
         Expanded(
           child: Text(
-            value,
+            ": $value",
             style: const TextStyle(
               fontSize: 12.5,
               color: AppTheme.textPrimary,
@@ -1069,144 +1327,41 @@ class _PatientDetailViewState extends State<PatientDetailView> {
   }
 
   Widget _buildStagePerformanceComparisonCard() {
-    final preOp = _viewModel.preOpStats;
-    final postOp = _viewModel.postOpStats;
-    final delta = _viewModel.stageDeltaRate;
+    return _StageComparisonCardStack(
+      viewModel: _viewModel,
+      formatSeconds: _formatSeconds,
+      buildStageDetailBox: _buildStageDetailBox,
+      buildSkeletonStageBox: _buildSkeletonStageBox,
+    );
+  }
 
-    String deltaLabel;
-    Color deltaTextColor;
-    Color deltaBg;
-    Color deltaBorder;
-    IconData deltaIcon;
-
-    if (delta > 0) {
-      deltaLabel = "Post-Op +${delta.abs()}%";
-      deltaTextColor = AppTheme.emeraldText;
-      deltaBg = AppTheme.emeraldBg;
-      deltaBorder = AppTheme.emeraldBorder;
-      deltaIcon = Icons.trending_up_rounded;
-    } else if (delta < 0) {
-      deltaLabel = "Pre-Op +${delta.abs()}%";
-      deltaTextColor = AppTheme.blueText;
-      deltaBg = AppTheme.blueBg;
-      deltaBorder = AppTheme.blueBorder;
-      deltaIcon = Icons.trending_up_rounded;
-    } else {
-      deltaLabel = "Equal Completion";
-      deltaTextColor = AppTheme.textSecondary;
-      deltaBg = AppTheme.borderSubtle;
-      deltaBorder = AppTheme.borderMedium;
-      deltaIcon = Icons.horizontal_rule_rounded;
-    }
-
+  Widget _buildStageStatusChip({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.textPrimary.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.purpleBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.compare_arrows_rounded,
-                      color: AppTheme.purple,
-                      size: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    "Pre-Op & Post-Op Comparison",
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: deltaBg,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: deltaBorder),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(deltaIcon, size: 14, color: deltaTextColor),
-                    const SizedBox(width: 4),
-                    Text(
-                      deltaLabel,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: deltaTextColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Pre-Op and Post-Op visual cards
-          Row(
-            children: [
-              Expanded(
-                child: _viewModel.isComparisonLoading
-                    ? _buildSkeletonStageBox()
-                    : _buildStageDetailBox(
-                        stageTitle: "PRE-OP",
-                        icon: Icons.assignment_outlined,
-                        stats: preOp,
-                        accentColor: AppTheme.blue,
-                        cardBg: AppTheme.blueCardBg,
-                        borderColor: AppTheme.blueBorder,
-                        textColor: AppTheme.blueText,
-                        badgeBg: AppTheme.blueBg,
-                      ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _viewModel.isComparisonLoading
-                    ? _buildSkeletonStageBox()
-                    : _buildStageDetailBox(
-                        stageTitle: "POST-OP",
-                        icon: Icons.healing_outlined,
-                        stats: postOp,
-                        accentColor: AppTheme.emerald,
-                        cardBg: AppTheme.emeraldCardBg,
-                        borderColor: AppTheme.emeraldBorder,
-                        textColor: AppTheme.emeraldText,
-                        badgeBg: AppTheme.emeraldBg,
-                      ),
-              ),
-            ],
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: color == AppTheme.textMuted
+                  ? AppTheme.textSecondary
+                  : color,
+            ),
           ),
         ],
       ),
@@ -1222,6 +1377,8 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     required Color borderColor,
     required Color textColor,
     required Color badgeBg,
+    int secondsWatched = 0,
+    int totalDurationSeconds = 0,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1256,16 +1413,83 @@ class _PatientDetailViewState extends State<PatientDetailView> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            "${stats.progressRate}%",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: textColor,
-              letterSpacing: -0.3,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                _formatSeconds(secondsWatched),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                "/ ${_formatSeconds(totalDurationSeconds)}",
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 5),
+              const Text(
+                "watched",
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: totalDurationSeconds > 0
+                  ? (secondsWatched / totalDurationSeconds).clamp(0.0, 1.0)
+                  : stats.completionFraction,
+              minHeight: 5,
+              backgroundColor: AppTheme.borderSubtle,
+              valueColor: AlwaysStoppedAnimation<Color>(accentColor),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _buildStageStatusChip(
+                label: "${stats.totalCompleted} Completed",
+                icon: Icons.check_circle_rounded,
+                color: AppTheme.emerald,
+                bgColor: AppTheme.emeraldBg,
+              ),
+              _buildStageStatusChip(
+                label: "${stats.inProgress} In-Progress",
+                icon: Icons.timelapse_rounded,
+                color: AppTheme.amber,
+                bgColor: AppTheme.amberBg,
+              ),
+              _buildStageStatusChip(
+                label: "${stats.notStarted} Not Started",
+                icon: Icons.radio_button_unchecked_rounded,
+                color: AppTheme.textMuted,
+                bgColor: const Color(0xFFF1F5F9),
+              ),
+              _buildStageStatusChip(
+                label:
+                    "Total: ${stats.totalAssigned} ${stats.totalAssigned == 1 ? 'Video' : 'Videos'}",
+                icon: Icons.video_library_outlined,
+                color: AppTheme.blue,
+                bgColor: const Color(0xFFF8FAFC),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1332,6 +1556,180 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     );
   }
 
+  Widget _buildAccountInfoFooterRow(UserModel patient) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final streakBadge = _buildStreakBadge(patient);
+        final watchSourceBadge = _buildWatchSourceBadge();
+
+        if (constraints.maxWidth < 260) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              streakBadge,
+              const SizedBox(height: 8),
+              watchSourceBadge,
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: streakBadge),
+            const SizedBox(width: 8),
+            Expanded(child: watchSourceBadge),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildStreakBadge(UserModel patient) {
+    final streakValue = patient.streak.isNotEmpty ? patient.streak : "0 days";
+    final formattedStreak = streakValue.toLowerCase().contains("day")
+        ? streakValue
+        : "$streakValue days";
+
+    return Container(
+      height: 34,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.amberBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.amberBorder),
+      ),
+      alignment: Alignment.center,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.local_fire_department_rounded,
+            size: 15,
+            color: AppTheme.amber,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              "Streak: $formattedStreak",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.amberText,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWatchSourceBadge() {
+    if (_viewModel.isUserReportLoading) {
+      return Container(
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppTheme.border),
+        ),
+        alignment: Alignment.center,
+        child: const FlashingWidget(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ShimmerBox(width: 14, height: 14, borderRadius: 7),
+              SizedBox(width: 6),
+              ShimmerBox(width: 75, height: 11),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final report = _viewModel.userReportData;
+
+    double parseMetric(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      final s = val.toString().trim().replaceAll('%', '').replaceAll(',', '');
+      return double.tryParse(s) ?? 0.0;
+    }
+
+    final double selfValue = parseMetric(
+      report?['Self-Initiated Views'] ??
+          report?['Self-Initiated Watch Percentage'] ??
+          report?['self_initiated_views'] ??
+          report?['Self-Initiated'] ??
+          report?['Self Initiated Views'] ??
+          report?['self_initiated_percentage'],
+    );
+
+    final double promptedValue = parseMetric(
+      report?['Reminder-Prompted Views'] ??
+          report?['Prompted Watch Percentage'] ??
+          report?['Prompted Watch'] ??
+          report?['reminder_prompted_views'] ??
+          report?['prompted_watch'] ??
+          report?['Prompted Views'] ??
+          report?['prompted_percentage'],
+    );
+
+    final bool isSelf = selfValue > promptedValue;
+    final String label = isSelf
+        ? "Self initiated views"
+        : "watched on reminder";
+
+    final Color bgColor = isSelf ? AppTheme.emeraldBg : AppTheme.blueBg;
+    final Color borderColor = isSelf
+        ? AppTheme.emeraldBorder
+        : AppTheme.blueBorder;
+    final Color textColor = isSelf ? AppTheme.emeraldText : AppTheme.blueText;
+    final Color iconColor = isSelf ? AppTheme.emerald : AppTheme.blue;
+    final IconData icon = isSelf
+        ? Icons.volunteer_activism_outlined
+        : Icons.notifications_active_outlined;
+
+    final String selfDisplay = selfValue % 1 == 0 ? selfValue.toInt().toString() : selfValue.toString();
+    final String promptedDisplay = promptedValue % 1 == 0 ? promptedValue.toInt().toString() : promptedValue.toString();
+
+    return Tooltip(
+      message:
+          "Self-Initiated Views: $selfDisplay · Reminder-Prompted Views: $promptedDisplay",
+      child: Container(
+        height: 34,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: iconColor),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildVideoHistoryCard() {
     final videoHistory = _viewModel.videoHistory;
 
@@ -1352,32 +1750,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppTheme.blueBg,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.history_rounded,
-                  color: AppTheme.primary,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                "Assigned & Watched Video History",
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const Spacer(),
-              // CATEGORY DROPDOWN: All, Pre-op, Post-op
-              Container(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final categoryDropdown = Container(
                 height: 32,
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -1472,15 +1847,17 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+              );
+
+              final videoCountBadge = Container(
+                height: 32,
+                padding: const EdgeInsets.symmetric(horizontal: 9),
                 decoration: BoxDecoration(
                   color: AppTheme.borderSubtle,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppTheme.border),
                 ),
+                alignment: Alignment.center,
                 child: Text(
                   "${videoHistory.length} ${videoHistory.length == 1 ? 'Video' : 'Videos'}",
                   style: const TextStyle(
@@ -1489,8 +1866,81 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            ],
+              );
+
+              if (constraints.maxWidth < 620) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.blueBg,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.history_rounded,
+                            color: AppTheme.primary,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "Assigned & Watched Video History",
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [categoryDropdown, videoCountBadge],
+                    ),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.blueBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.history_rounded,
+                      color: AppTheme.primary,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "Assigned & Watched Video History",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  categoryDropdown,
+                  const SizedBox(width: 8),
+                  videoCountBadge,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 16),
           if (_viewModel.isHistoryLoading)
@@ -1571,8 +2021,9 @@ class _PatientDetailViewState extends State<PatientDetailView> {
     final str = rawDate.toString().trim();
     if (str.isEmpty ||
         str.toLowerCase() == 'null' ||
-        str.toLowerCase() == 'n/a')
+        str.toLowerCase() == 'n/a') {
       return null;
+    }
     final parsed = DateTime.tryParse(str);
     if (parsed != null) {
       final local = parsed.toLocal();
@@ -1819,12 +2270,6 @@ class _PatientDetailViewState extends State<PatientDetailView> {
         video['name']?.toString() ??
         (videoId != null ? 'Video #$videoId' : 'Video #${index + 1}');
 
-    final description = video['description']?.toString().trim();
-    final bool hasDescription =
-        description != null &&
-        description.isNotEmpty &&
-        description.toLowerCase() != 'null';
-
     final rawCategory = video['category']?.toString() ?? 'Pre-Op';
     final category = rawCategory.trim().isEmpty ? 'Pre-Op' : rawCategory;
     final bool isPostOp = category.toLowerCase().contains('post');
@@ -1980,21 +2425,6 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                     ),
                   ],
                 ),
-
-                // Description (if present)
-                if (hasDescription) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: AppTheme.textSecondary,
-                      height: 1.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
 
                 // Watch Progress Section
                 const SizedBox(height: 8),
@@ -2334,6 +2764,1133 @@ class ShimmerBox extends StatelessWidget {
         color: const Color(0xFFE2E8F0),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
+    );
+  }
+}
+
+/// Custom painter for the animated Donut Pie Chart comparing Pre-Op and Post-Op metrics.
+class _StagePieChartPainter extends CustomPainter {
+  final double preOpValue;
+  final double postOpValue;
+  final Color preOpColor;
+  final Color postOpColor;
+  final double strokeWidth;
+  final double animationProgress;
+
+  _StagePieChartPainter({
+    required this.preOpValue,
+    required this.postOpValue,
+    required this.preOpColor,
+    required this.postOpColor,
+    this.strokeWidth = 22.0,
+    this.animationProgress = 1.0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (math.min(size.width, size.height) - strokeWidth) / 2;
+    final total = preOpValue + postOpValue;
+
+    // Background track ring
+    final backgroundPaint = Paint()
+      ..color = const Color(0xFFF1F5F9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius, backgroundPaint);
+
+    if (total <= 0) {
+      return;
+    }
+
+    final preOpFraction = (preOpValue / total).clamp(0.0, 1.0);
+    final postOpFraction = (postOpValue / total).clamp(0.0, 1.0);
+
+    final preOpSweep = (2 * math.pi * preOpFraction) * animationProgress;
+    final postOpSweep = (2 * math.pi * postOpFraction) * animationProgress;
+
+    double startAngle = -math.pi / 2;
+
+    if (preOpValue > 0) {
+      final preOpPaint = Paint()
+        ..color = preOpColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        preOpSweep,
+        false,
+        preOpPaint,
+      );
+      startAngle += preOpSweep;
+    }
+
+    if (postOpValue > 0) {
+      final postOpPaint = Paint()
+        ..color = postOpColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        postOpSweep,
+        false,
+        postOpPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _StagePieChartPainter oldDelegate) {
+    return oldDelegate.preOpValue != preOpValue ||
+        oldDelegate.postOpValue != postOpValue ||
+        oldDelegate.animationProgress != animationProgress ||
+        oldDelegate.preOpColor != preOpColor ||
+        oldDelegate.postOpColor != postOpColor;
+  }
+}
+
+/// Vertical swipe card stack featuring Detailed Comparison Stats and Interactive Pie Chart.
+class _StageComparisonCardStack extends StatefulWidget {
+  final PatientDetailViewModel viewModel;
+  final String Function(int) formatSeconds;
+  final Widget Function({
+    required String stageTitle,
+    required IconData icon,
+    required StagePerformanceStats stats,
+    required Color accentColor,
+    required Color cardBg,
+    required Color borderColor,
+    required Color textColor,
+    required Color badgeBg,
+    int secondsWatched,
+    int totalDurationSeconds,
+  })
+  buildStageDetailBox;
+  final Widget Function() buildSkeletonStageBox;
+
+  const _StageComparisonCardStack({
+    required this.viewModel,
+    required this.formatSeconds,
+    required this.buildStageDetailBox,
+    required this.buildSkeletonStageBox,
+  });
+
+  @override
+  State<_StageComparisonCardStack> createState() =>
+      _StageComparisonCardStackState();
+}
+
+class _StageComparisonCardStackState extends State<_StageComparisonCardStack>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<double> _curvedAnimation;
+  int _currentIndex = 0; // 0 = Detailed Stats, 1 = Pie Chart
+  int _targetIndex = 0;
+  bool _isSwipeDown = false;
+  bool _isAnimating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _curvedAnimation = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  void _switchCard(int newIndex, {bool isSwipeDown = false}) {
+    if (_isAnimating || _currentIndex == newIndex) return;
+    setState(() {
+      _isAnimating = true;
+      _isSwipeDown = isSwipeDown;
+      _targetIndex = newIndex;
+    });
+    _animController.forward(from: 0.0).then((_) {
+      if (mounted) {
+        setState(() {
+          _currentIndex = _targetIndex;
+          _isAnimating = false;
+        });
+      }
+    });
+  }
+
+  void _toggleCard({bool isSwipeDown = false}) {
+    _switchCard(_currentIndex == 0 ? 1 : 0, isSwipeDown: isSwipeDown);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final backIndex = _isAnimating
+        ? _targetIndex
+        : (_currentIndex == 0 ? 1 : 0);
+    final frontIndex = _currentIndex;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Stack container with vertical drag swipe gestures
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragEnd: (details) {
+            final velocity = details.primaryVelocity ?? 0;
+            if (velocity < -100) {
+              // Swipe UP
+              _toggleCard(isSwipeDown: false);
+            } else if (velocity > 100) {
+              // Swipe DOWN
+              _toggleCard(isSwipeDown: true);
+            }
+          },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 1. Background Card (peeking out at the bottom)
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _curvedAnimation,
+                  builder: (context, child) {
+                    final t = _isAnimating ? _curvedAnimation.value : 0.0;
+                    final scale = 0.965 + (0.035 * t);
+                    final offset = Offset(0, 10 * (1.0 - t));
+                    final opacity = (0.50 + (0.50 * t)).clamp(0.0, 1.0);
+
+                    return Transform.translate(
+                      offset: offset,
+                      child: Transform.scale(
+                        scale: scale,
+                        alignment: Alignment.bottomCenter,
+                        child: Opacity(
+                          opacity: opacity,
+                          child: IgnorePointer(
+                            ignoring: true,
+                            child: SingleChildScrollView(
+                              physics: const NeverScrollableScrollPhysics(),
+                              child: _buildCardByIndex(backIndex),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // 2. Foreground Active Card
+              AnimatedBuilder(
+                animation: _curvedAnimation,
+                builder: (context, child) {
+                  if (_isAnimating) {
+                    final t = _curvedAnimation.value;
+                    final slideDist = (_isSwipeDown ? 65.0 : -65.0) * t;
+                    final frontOpacity = (1.0 - t).clamp(0.0, 1.0);
+                    final frontScale = 1.0 - (0.035 * t);
+
+                    return Transform.translate(
+                      offset: Offset(0, slideDist),
+                      child: Transform.scale(
+                        scale: frontScale,
+                        child: Opacity(
+                          opacity: frontOpacity,
+                          child: _buildCardByIndex(frontIndex),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return _buildCardByIndex(_currentIndex);
+                },
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        // Navigation Control & Stack Pill Bar
+        _buildStackControlsBar(),
+      ],
+    );
+  }
+
+  Widget _buildCardByIndex(int index) {
+    if (index == 0) {
+      return _buildDetailedStatsCard();
+    } else {
+      return _buildPieChartCard();
+    }
+  }
+
+  // --- CARD 0: Detailed Stage Comparison ---
+  Widget _buildDetailedStatsCard() {
+    final preOp = widget.viewModel.preOpStats;
+    final postOp = widget.viewModel.postOpStats;
+    final delta = widget.viewModel.stageDeltaRate;
+    final preEffort = widget.viewModel.preOpEffortShare;
+    final postEffort = widget.viewModel.postOpEffortShare;
+    final totalCompleted = widget.viewModel.totalStageCompleted;
+
+    String deltaLabel;
+    Color deltaTextColor;
+    Color deltaBg;
+    Color deltaBorder;
+    IconData deltaIcon;
+
+    if (totalCompleted == 0) {
+      deltaLabel = "";
+      deltaTextColor = AppTheme.textSecondary;
+      deltaBg = AppTheme.borderSubtle;
+      deltaBorder = AppTheme.borderMedium;
+      deltaIcon = Icons.hourglass_empty;
+    } else if (preEffort >= 65) {
+      deltaLabel = "Pre-Op Dominant (${preEffort.round()}% Effort)";
+      deltaTextColor = AppTheme.blueText;
+      deltaBg = AppTheme.blueBg;
+      deltaBorder = AppTheme.blueBorder;
+      deltaIcon = Icons.pie_chart_rounded;
+    } else if (postEffort >= 65) {
+      deltaLabel = "Post-Op Dominant (${postEffort.round()}% Effort)";
+      deltaTextColor = AppTheme.emeraldText;
+      deltaBg = AppTheme.emeraldBg;
+      deltaBorder = AppTheme.emeraldBorder;
+      deltaIcon = Icons.pie_chart_rounded;
+    } else if (delta > 0) {
+      deltaLabel = "Post-Op +${delta.abs()}% Rate";
+      deltaTextColor = AppTheme.emeraldText;
+      deltaBg = AppTheme.emeraldBg;
+      deltaBorder = AppTheme.emeraldBorder;
+      deltaIcon = Icons.trending_up_rounded;
+    } else if (delta < 0) {
+      deltaLabel = "Pre-Op +${delta.abs()}% Rate";
+      deltaTextColor = AppTheme.blueText;
+      deltaBg = AppTheme.blueBg;
+      deltaBorder = AppTheme.blueBorder;
+      deltaIcon = Icons.trending_up_rounded;
+    } else {
+      deltaLabel = "Equal Completion (50/50)";
+      deltaTextColor = AppTheme.textSecondary;
+      deltaBg = AppTheme.borderSubtle;
+      deltaBorder = AppTheme.borderMedium;
+      deltaIcon = Icons.check_circle_outline_rounded;
+    }
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 330),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with switch card button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.purpleBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.compare_arrows_rounded,
+                      color: AppTheme.purple,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "Pre-Op & Post-Op Comparison",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.borderSubtle,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      "Card 1 of 2",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  if (deltaLabel.isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: deltaBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: deltaBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(deltaIcon, size: 13, color: deltaTextColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            deltaLabel,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: deltaTextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  // Quick Switch Button
+                  InkWell(
+                    onTap: () => _switchCard(1),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.purpleBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppTheme.purple.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.pie_chart_rounded,
+                            size: 13,
+                            color: AppTheme.purple,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            "Pie Chart",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.purple,
+                            ),
+                          ),
+                          SizedBox(width: 3),
+                          Icon(
+                            Icons.swap_vert_rounded,
+                            size: 14,
+                            color: AppTheme.purple,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Pre-Op and Post-Op visual boxes
+          Row(
+            children: [
+              Expanded(
+                child: widget.viewModel.isComparisonLoading
+                    ? widget.buildSkeletonStageBox()
+                    : widget.buildStageDetailBox(
+                        stageTitle: "PRE-OP",
+                        icon: Icons.assignment_outlined,
+                        stats: preOp,
+                        accentColor: AppTheme.blue,
+                        cardBg: AppTheme.blueCardBg,
+                        borderColor: AppTheme.blueBorder,
+                        textColor: AppTheme.blueText,
+                        badgeBg: AppTheme.blueBg,
+                        secondsWatched: widget.viewModel.preOpSecondsWatched,
+                        totalDurationSeconds:
+                            widget.viewModel.preOpTotalDurationSeconds,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: widget.viewModel.isComparisonLoading
+                    ? widget.buildSkeletonStageBox()
+                    : widget.buildStageDetailBox(
+                        stageTitle: "POST-OP",
+                        icon: Icons.healing_outlined,
+                        stats: postOp,
+                        accentColor: AppTheme.emerald,
+                        cardBg: AppTheme.emeraldCardBg,
+                        borderColor: AppTheme.emeraldBorder,
+                        textColor: AppTheme.emeraldText,
+                        badgeBg: AppTheme.emeraldBg,
+                        secondsWatched: widget.viewModel.postOpSecondsWatched,
+                        totalDurationSeconds:
+                            widget.viewModel.postOpTotalDurationSeconds,
+                      ),
+              ),
+            ],
+          ),
+
+          // Stage Effort Share & Relative Adherence Bar
+          if (!widget.viewModel.isComparisonLoading) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(
+                            Icons.pie_chart_outline_rounded,
+                            size: 14,
+                            color: AppTheme.purple,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            "Stage Effort Share & Relative Adherence",
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (widget.viewModel.stageAdherenceRatio > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppTheme.border),
+                          ),
+                          child: Text(
+                            "Adherence Ratio: ${widget.viewModel.stageAdherenceRatio.toStringAsFixed(2)}x",
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: SizedBox(
+                      height: 6,
+                      child: Row(
+                        children: [
+                          if (totalCompleted == 0)
+                            Expanded(
+                              child: Container(color: AppTheme.borderMedium),
+                            )
+                          else ...[
+                            Expanded(
+                              flex: (preEffort * 10).round().clamp(1, 1000),
+                              child: Container(color: AppTheme.blue),
+                            ),
+                            Expanded(
+                              flex: (postEffort * 10).round().clamp(1, 1000),
+                              child: Container(color: AppTheme.emerald),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppTheme.blue,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            "Pre-Op Effort: ${preEffort.round()}% (${preOp.totalCompleted} watched)",
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppTheme.emerald,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            "Post-Op Effort: ${postEffort.round()}% (${postOp.totalCompleted} watched)",
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // --- CARD 1: Pie Chart Comparison View ---
+  Widget _buildPieChartCard() {
+    final preOp = widget.viewModel.preOpStats;
+    final postOp = widget.viewModel.postOpStats;
+    final preEffort = widget.viewModel.preOpEffortShare;
+    final postEffort = widget.viewModel.postOpEffortShare;
+
+    final double piePreVal = preEffort > 0
+        ? preEffort
+        : (postEffort > 0 ? 0 : 50);
+    final double piePostVal = postEffort > 0
+        ? postEffort
+        : (preEffort > 0 ? 0 : 50);
+    final double totalPie = piePreVal + piePostVal;
+    final double prePct = totalPie > 0 ? (piePreVal / totalPie) * 100 : 50;
+    final double postPct = totalPie > 0 ? (piePostVal / totalPie) * 100 : 50;
+
+    final String centerMainText = "${prePct.round()}%";
+    final String centerSubText = "Pre-Op Share";
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 330),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with switch card button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.purpleBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.pie_chart_rounded,
+                      color: AppTheme.purple,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "Pre-Op & Post-Op Comparison",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.purpleBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      "Pie Chart · 2 of 2",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.purple,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  // Quick Switch Button
+                  InkWell(
+                    onTap: () => _switchCard(0),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.blueBg,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppTheme.blue.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.view_agenda_outlined,
+                            size: 13,
+                            color: AppTheme.blue,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            "Detailed Stats",
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.blue,
+                            ),
+                          ),
+                          SizedBox(width: 3),
+                          Icon(
+                            Icons.swap_vert_rounded,
+                            size: 14,
+                            color: AppTheme.blue,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+
+          // Donut Pie Chart + Side Breakdown Cards
+          Builder(
+            builder: (context) {
+              final isNarrow = MediaQuery.of(context).size.width < 1100;
+
+              final pieWidget = SizedBox(
+                width: 175,
+                height: 175,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
+                      size: const Size(175, 175),
+                      painter: _StagePieChartPainter(
+                        preOpValue: piePreVal,
+                        postOpValue: piePostVal,
+                        preOpColor: AppTheme.blue,
+                        postOpColor: AppTheme.emerald,
+                        strokeWidth: 20,
+                        animationProgress: 1.0,
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          centerMainText,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.textPrimary,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          centerSubText,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+
+              final detailsWidget = Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Pre-Op Pill Card
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.blueCardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.blueBorder,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 9,
+                                    height: 9,
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.blue,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    "PRE-OP",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.blueText,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "Completion: ${preOp.progressRate}%",
+                                    style: const TextStyle(
+                                      fontSize: 11.5,
+                                      color: AppTheme.textSecondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 7),
+                              SizedBox(
+                                width: 140,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: LinearProgressIndicator(
+                                    value: (preOp.progressRate / 100).clamp(
+                                      0.0,
+                                      1.0,
+                                    ),
+                                    backgroundColor: AppTheme.blue.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          AppTheme.blue,
+                                        ),
+                                    minHeight: 4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.blueBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.blueBorder),
+                          ),
+                          child: Text(
+                            "${prePct.round()}% Share",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.blueText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Post-Op Pill Card
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.emeraldCardBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.emeraldBorder,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 9,
+                                    height: 9,
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.emerald,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    "POST-OP",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.emeraldText,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    "Completion: ${postOp.progressRate}%",
+                                    style: const TextStyle(
+                                      fontSize: 11.5,
+                                      color: AppTheme.textSecondary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 7),
+                              SizedBox(
+                                width: 140,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: LinearProgressIndicator(
+                                    value: (postOp.progressRate / 100).clamp(
+                                      0.0,
+                                      1.0,
+                                    ),
+                                    backgroundColor: AppTheme.emerald
+                                        .withValues(alpha: 0.15),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          AppTheme.emerald,
+                                        ),
+                                    minHeight: 4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.emeraldBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.emeraldBorder),
+                          ),
+                          child: Text(
+                            "${postPct.round()}% Share",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.emeraldText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              if (isNarrow) {
+                return Column(
+                  children: [
+                    Center(child: pieWidget),
+                    const SizedBox(height: 14),
+                    detailsWidget,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  pieWidget,
+                  const SizedBox(width: 20),
+                  Expanded(child: detailsWidget),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Footer info
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.touch_app_outlined,
+                    size: 13,
+                    color: AppTheme.textMuted,
+                  ),
+                  const SizedBox(width: 5),
+                  const Text(
+                    "Swipe up or down anywhere on card to flip back",
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              if (widget.viewModel.stageAdherenceRatio > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Text(
+                    "Adherence: ${widget.viewModel.stageAdherenceRatio.toStringAsFixed(2)}x",
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Bottom stack navigation controls bar
+  Widget _buildStackControlsBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.swap_vert_rounded, size: 14, color: AppTheme.textMuted),
+        SizedBox(width: 3),
+        Text(
+          "Swipe up or down to flip stack",
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textMuted,
+          ),
+        ),
+      ],
     );
   }
 }

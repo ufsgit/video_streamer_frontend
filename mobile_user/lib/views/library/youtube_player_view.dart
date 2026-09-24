@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../core/storage/video_progress_manager.dart';
 import '../../services/api_service.dart';
+import '../../core/theme/app_colors.dart';
 import '../../core/tutorial/app_tour_controller.dart';
 import '../../widgets/tour_guide_overlay.dart';
 
@@ -606,7 +607,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
                   AppTourStep.goBackFromPlayer;
               return TourHighlightTarget(
                 isHighlighted: isBackStep,
-                highlightColor: const Color(0xFF3B82F6),
+                highlightColor: AppColors.tutorialHighlight,
                 borderRadius: 20,
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back_rounded),
@@ -642,7 +643,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
                     description:
                         'Tap anywhere on the video player above to pause playback.',
                     icon: Icons.pause_circle_filled_rounded,
-                    accentColor: const Color(0xFFF59E0B),
+                    accentColor: AppColors.tutorialHighlight,
                   );
                 }
                 if (step == AppTourStep.goBackFromPlayer) {
@@ -652,7 +653,7 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
                     description:
                         'Great job! Now tap the back button (←) in the top-left to return to your video list.',
                     icon: Icons.arrow_back_rounded,
-                    accentColor: const Color(0xFF3B82F6),
+                    accentColor: AppColors.tutorialHighlight,
                     actionLabel: 'Go Back Now',
                     onAction: () {
                       _onExitScreen();

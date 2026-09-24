@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../core/error_utils.dart';
 
 class ProfileViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -29,14 +29,10 @@ class ProfileViewModel extends ChangeNotifier {
           _user = UserModel.fromJson(data);
         }
       } else {
-        _errorMessage = 'Failed to load profile';
+        _errorMessage = 'Server error. Please try again.';
       }
     } catch (e) {
-      if (e is DioException) {
-        _errorMessage = e.response?.data?['message']?.toString() ?? 'Network error occurred';
-      } else {
-        _errorMessage = 'An unexpected error occurred';
-      }
+      _errorMessage = ErrorUtils.format(e, fallback: 'Server error. Please try again.');
       if (kDebugMode) {
         print('Error fetching profile: $e');
       }

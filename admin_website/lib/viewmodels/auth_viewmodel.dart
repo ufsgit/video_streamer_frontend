@@ -1,5 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import '../core/error_utils.dart';
 import '../services/api_service.dart';
 
 class AuthViewModel extends ChangeNotifier {
@@ -50,25 +50,16 @@ class AuthViewModel extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        errorMessage = response.data?['message']?.toString() ??
-            'Login failed. Please check your credentials.';
+        errorMessage = ErrorUtils.format(
+          response.data,
+          fallback: 'Invalid credentials. Please try again.',
+        );
         isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      String errorMsg = ' server error. Please try again.';
-      if (e is DioException) {
-        if (e.response?.data is Map && e.response?.data['message'] != null) {
-          errorMsg = e.response!.data['message'].toString();
-        } else if (e.type == DioExceptionType.connectionTimeout ||
-            e.type == DioExceptionType.receiveTimeout) {
-          errorMsg = 'Connection timed out. Please try again.';
-        } else if (e.type == DioExceptionType.connectionError) {
-          errorMsg = 'Cannot reach server. Please check backend connection.';
-        }
-      }
-      errorMessage = errorMsg;
+      errorMessage = ErrorUtils.format(e, fallback: 'Server error. Please try again.');
       isLoading = false;
       notifyListeners();
       return false;

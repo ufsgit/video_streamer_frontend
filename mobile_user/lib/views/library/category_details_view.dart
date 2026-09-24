@@ -142,7 +142,7 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                       description:
                           'Tap the first video in the list below to open and begin playback.',
                       icon: Icons.play_circle_fill_rounded,
-                      accentColor: categoryAccent,
+                      accentColor: AppColors.tutorialHighlight,
                     ),
                     const SizedBox(height: 12),
                   ],
@@ -331,7 +331,7 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                     },
                                     child: TourHighlightTarget(
                                       isHighlighted: isFirstVideoHighlight,
-                                      highlightColor: categoryAccent,
+                                      highlightColor: AppColors.tutorialHighlight,
                                       borderRadius: 18,
                                       child: Container(
                                         decoration: BoxDecoration(

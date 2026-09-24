@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:admin_mobile/core/error_utils.dart';
 import 'package:admin_mobile/core/theme.dart';
 import 'package:admin_mobile/models/user_model.dart';
 import 'package:admin_mobile/services/api_service.dart';
@@ -235,22 +236,15 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
         );
       } else {
         setState(() {
-          _errorMessage =
-              response.data?['message']?.toString() ??
-              'Failed to save patient profile.';
+          _errorMessage = ErrorUtils.format(
+            response.data,
+            fallback: 'Failed to save patient.',
+          );
         });
       }
     } catch (e) {
       if (mounted) {
-        String errorMsg = 'Failed to save patient. Please check input.';
-        if (e is DioException) {
-          if (e.response?.data is Map && e.response?.data['message'] != null) {
-            errorMsg = e.response!.data['message'].toString();
-          } else if (e.type == DioExceptionType.connectionError) {
-            errorMsg = 'Cannot reach server.';
-          }
-        }
-        setState(() => _errorMessage = errorMsg);
+        setState(() => _errorMessage = ErrorUtils.format(e, fallback: 'Server error. Please try again.'));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

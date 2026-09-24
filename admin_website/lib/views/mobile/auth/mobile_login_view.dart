@@ -1,5 +1,5 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:admin_website/core/error_utils.dart';
 import 'package:admin_website/core/theme.dart';
 import 'package:admin_website/services/api_service.dart';
 import 'package:admin_website/widgets/app_logo.dart';
@@ -71,26 +71,16 @@ class _MobileLoginViewState extends State<MobileLoginView> {
         Navigator.of(context).pushReplacementNamed('/main');
       } else {
         setState(() {
-          _errorMessage =
-              response.data?['message']?.toString() ??
-              'Login failed. Please check credentials.';
+          _errorMessage = ErrorUtils.format(
+            response.data,
+            fallback: 'Invalid credentials. Please try again.',
+          );
         });
       }
     } catch (e) {
       if (mounted) {
-        String errorMsg = 'Invalid credentials or server error.';
-        if (e is DioException) {
-          if (e.response?.data is Map && e.response?.data['message'] != null) {
-            errorMsg = e.response!.data['message'].toString();
-          } else if (e.type == DioExceptionType.connectionTimeout ||
-              e.type == DioExceptionType.receiveTimeout) {
-            errorMsg = 'Connection timed out. Please retry.';
-          } else if (e.type == DioExceptionType.connectionError) {
-            errorMsg = 'Cannot reach server. Please check backend connection.';
-          }
-        }
         setState(() {
-          _errorMessage = errorMsg;
+          _errorMessage = ErrorUtils.format(e, fallback: 'Server error. Please try again.');
         });
       }
     } finally {
