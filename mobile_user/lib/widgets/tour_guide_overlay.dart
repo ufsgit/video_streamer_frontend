@@ -60,23 +60,23 @@ class _TourGuideCardState extends State<TourGuideCard>
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.accentColor.withValues(alpha: 0.85),
-          width: 2.0,
+          color: widget.accentColor.withValues(alpha: 0.6),
+          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.accentColor.withValues(alpha: 0.35),
-            blurRadius: 20,
-            spreadRadius: 2,
+            color: widget.accentColor.withValues(alpha: 0.12),
+            blurRadius: 18,
+            spreadRadius: 1,
             offset: const Offset(0, 4),
           ),
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 16,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -95,10 +95,10 @@ class _TourGuideCardState extends State<TourGuideCard>
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: widget.accentColor.withValues(alpha: 0.18),
+                    color: widget.accentColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: widget.accentColor.withValues(alpha: 0.55),
+                      color: widget.accentColor.withValues(alpha: 0.35),
                       width: 1.2,
                     ),
                   ),
@@ -141,7 +141,7 @@ class _TourGuideCardState extends State<TourGuideCard>
                       'Skip Tour',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF94A3B8),
+                        color: Color(0xFF64748B),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -161,7 +161,7 @@ class _TourGuideCardState extends State<TourGuideCard>
                   style: const TextStyle(
                     fontSize: 16.5,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: Color(0xFF0F172A),
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -170,7 +170,7 @@ class _TourGuideCardState extends State<TourGuideCard>
                   widget.description,
                   style: const TextStyle(
                     fontSize: 13,
-                    color: Color(0xFFCBD5E1),
+                    color: Color(0xFF334155),
                     height: 1.4,
                   ),
                 ),
@@ -182,13 +182,13 @@ class _TourGuideCardState extends State<TourGuideCard>
                       onPressed: widget.onAction,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: widget.accentColor,
-                        foregroundColor: const Color(0xFF0F172A),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        elevation: 4,
-                        shadowColor: widget.accentColor.withValues(alpha: 0.5),
+                        elevation: 2,
+                        shadowColor: widget.accentColor.withValues(alpha: 0.4),
                       ),
                       child: Text(
                         widget.actionLabel ?? 'Next',

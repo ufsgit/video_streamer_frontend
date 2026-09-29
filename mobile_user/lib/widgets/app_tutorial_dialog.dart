@@ -1,23 +1,47 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
+import '../core/storage/session_manager.dart';
 import '../core/tutorial/app_tour_controller.dart';
-import '../views/navigation/main_navigation_view.dart';
 
 class AppTutorialDialog extends StatefulWidget {
   final bool isManual;
 
   const AppTutorialDialog({super.key, this.isManual = false});
 
+  static bool _isShowing = false;
+  static int? _lastPromptedUserId;
+
+  /// Resets the in-session prompt tracking (useful for testing, logout, or profile manual replay).
+  static void resetSessionPrompt() {
+    _lastPromptedUserId = null;
+  }
+
   /// Shows the dialog first if the user hasn't seen it yet.
   /// Once completed, it starts the interactive tour on the real screens.
   static Future<bool> showIfNeeded(BuildContext context) async {
+    if (_isShowing) return false;
+
+    final currentUserId = SessionManager.getUserId();
+    // Avoid double-prompting the SAME user in rapid succession on initial mount
+    if (currentUserId != null && _lastPromptedUserId == currentUserId) {
+      return false;
+    }
+
     final bool shouldShow =
         await AppTourController.instance.shouldShowOnStartup();
-    if (!shouldShow) return false;
-    if (!context.mounted) return false;
+    if (!shouldShow || !context.mounted || _isShowing) {
+      return false;
+    }
 
-    await show(context, isManual: false);
-    return true;
+    _isShowing = true;
+    _lastPromptedUserId = currentUserId;
+
+    try {
+      await show(context, isManual: false);
+      return true;
+    } finally {
+      _isShowing = false;
+    }
   }
 
   /// Displays the tutorial modal dialog (can be triggered manually anytime from Profile).
@@ -122,23 +146,18 @@ class _AppTutorialDialogState extends State<AppTutorialDialog> {
     ),
   ];
 
-  Future<void> _completeTutorial() async {
+  Future<void> _completeTutorial({bool skipTour = false}) async {
     if (mounted) {
       Navigator.of(context).pop();
     }
 
-    // If triggered manually from Profile, redirect to Library to start from Step 1
-    if (widget.isManual && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => const MainNavigationView(initialIndex: 0),
-        ),
-        (route) => false,
-      );
+    if (skipTour) {
+      await AppTourController.instance.skipTour();
+    } else {
+      await AppTourController.instance.markSeen();
+      // Launch the interactive guided tour across the real screens!
+      AppTourController.instance.startTour(isManual: widget.isManual);
     }
-
-    // Launch the interactive guided tour across the real screens!
-    AppTourController.instance.startTour(isManual: widget.isManual);
   }
 
   void _nextPage() {
@@ -148,7 +167,7 @@ class _AppTutorialDialogState extends State<AppTutorialDialog> {
         curve: Curves.easeInOut,
       );
     } else {
-      _completeTutorial();
+      _completeTutorial(skipTour: false);
     }
   }
 
@@ -220,7 +239,7 @@ class _AppTutorialDialogState extends State<AppTutorialDialog> {
                         ),
                       ),
                       TextButton(
-                        onPressed: _completeTutorial,
+                        onPressed: () => _completeTutorial(skipTour: true),
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,

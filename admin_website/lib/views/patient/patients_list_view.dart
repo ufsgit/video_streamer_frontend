@@ -7,6 +7,7 @@ import 'create_patient_dialog.dart';
 import '../../viewmodels/patients_list_viewmodel.dart';
 import '../../models/user_model.dart';
 import 'patient_detail_view.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class PatientsListView extends StatefulWidget {
   const PatientsListView({super.key});
@@ -142,10 +143,8 @@ class _PatientsListViewState extends State<PatientsListView> {
   }
 
   Widget _buildPatientsContent() {
-    if (_viewModel.isLoading && _viewModel.patients.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppTheme.primaryBlue),
-      );
+    if (_viewModel.isLoading) {
+      return const PatientsGridSkeleton(itemCount: 6);
     }
 
     if (_viewModel.patients.isEmpty) {

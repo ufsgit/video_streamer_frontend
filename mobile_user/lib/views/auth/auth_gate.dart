@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../../services/notification_service.dart';
 import '../../services/version_service.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/app_logo.dart';
@@ -23,6 +24,7 @@ class _AuthGateState extends State<AuthGate> {
   bool _isCheckingVersion = true;
   VersionCheckResult? _versionResult;
   bool _hasPromptedOptionalUpdate = false;
+  bool _hasPromptedLanguageSelection = false;
 
   @override
   void initState() {
@@ -49,6 +51,12 @@ class _AuthGateState extends State<AuthGate> {
     // 2. Check user session
     await _viewModel.checkSession();
     if (!mounted) return;
+
+    if (_viewModel.isAuthenticated) {
+      NotificationService.instance.onUserLoggedIn(
+        userId: _viewModel.currentUser?.id,
+      );
+    }
 
     // 3. If optional update, show non-blocking prompt
     if (vResult.updateAvailable &&
@@ -253,13 +261,18 @@ class _AuthGateState extends State<AuthGate> {
             return const MainNavigationView();
           } else {
             // Need to select language
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => const LanguageSelectionDialog(),
-              );
-            });
+            if (!_hasPromptedLanguageSelection) {
+              _hasPromptedLanguageSelection = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const LanguageSelectionDialog(),
+                  );
+                }
+              });
+            }
             // Return empty scaffold while dialog is shown
             return const Scaffold(backgroundColor: Color(0xFFF7F9FC));
           }

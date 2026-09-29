@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../../services/notification_service.dart';
 import '../../services/version_service.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/app_update_dialog.dart';
 import '../navigation/main_navigation_view.dart';
+import 'auth_gate.dart';
 import 'language_selection_dialog.dart';
 
 class LoginView extends StatefulWidget {
@@ -54,30 +56,38 @@ class _LoginViewState extends State<LoginView> {
     if (!mounted) return;
 
     if (success) {
-      final box = Hive.box('settings');
-      final selectedLanguage = box.get('selected_language');
-      final selectedLanguageId = box.get('selected_language_id');
-      
-      final bool hasValidLanguage = (selectedLanguage != null &&
-              selectedLanguage.toString().trim().isNotEmpty &&
-              selectedLanguage.toString().trim().toLowerCase() != 'none' &&
-              selectedLanguage.toString().trim().toLowerCase() != 'null') ||
-          (selectedLanguageId != null &&
-              selectedLanguageId.toString().trim().isNotEmpty &&
-              selectedLanguageId.toString() != '0');
+      // Trigger notifications check and reminder configuration
+      NotificationService.instance.onUserLoggedIn(userId: _viewModel.currentUser?.id);
 
-      if (hasValidLanguage) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainNavigationView()),
-        );
-      } else {
-        // Show the language selection dialog
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const LanguageSelectionDialog(),
-        );
+      // If hosted inside AuthGate, AuthGate's ListenableBuilder automatically handles
+      // displaying MainNavigationView or prompting language selection reactively.
+      // Only perform manual fallback navigation if AuthGate is not in the ancestor tree.
+      if (context.findAncestorWidgetOfExactType<AuthGate>() == null) {
+        final box = Hive.box('settings');
+        final selectedLanguage = box.get('selected_language');
+        final selectedLanguageId = box.get('selected_language_id');
+
+        final bool hasValidLanguage = (selectedLanguage != null &&
+                selectedLanguage.toString().trim().isNotEmpty &&
+                selectedLanguage.toString().trim().toLowerCase() != 'none' &&
+                selectedLanguage.toString().trim().toLowerCase() != 'null') ||
+            (selectedLanguageId != null &&
+                selectedLanguageId.toString().trim().isNotEmpty &&
+                selectedLanguageId.toString() != '0');
+
+        if (hasValidLanguage) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainNavigationView()),
+          );
+        } else {
+          // Show the language selection dialog
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const LanguageSelectionDialog(),
+          );
+        }
       }
     } else if (_viewModel.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(

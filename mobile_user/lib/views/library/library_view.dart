@@ -75,7 +75,7 @@ class _LibraryViewState extends State<LibraryView> {
                     builder: (context, _) {
                       final bool isTourStep =
                           AppTourController.instance.currentStep ==
-                              AppTourStep.clickPreOp;
+                          AppTourStep.clickPreOp;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -341,39 +341,6 @@ class _LibraryViewState extends State<LibraryView> {
                         ),
                       ),
                       const SizedBox(height: 4),
-
-                      // Bottom Action Row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              'Explore protocols',
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.92),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.arrow_forward_rounded,
-                              color: gradientColors.first,
-                              size: 18,
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),

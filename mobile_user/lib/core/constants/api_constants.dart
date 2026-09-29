@@ -19,7 +19,9 @@ class ApiConstants {
   static String videoProgressByIdPath(dynamic videoId) =>
       '/api/user/videos/progress/$videoId';
   static const String userReminderSavePath = '/api/user/reminder/save';
-  static String userReminderPath(dynamic userId) => '/api/user/reminder/$userId';
+  static String userReminderPath(dynamic userId) =>
+      '/api/user/reminder/$userId';
+  static const String userNotificationsPath = '/api/user/notifications';
 
   // Full URL endpoints
   static const String userLogin = '$baseUrl$userLoginPath';
@@ -33,5 +35,7 @@ class ApiConstants {
   static String videoProgressById(dynamic videoId) =>
       '$baseUrl${videoProgressByIdPath(videoId)}';
   static const String userReminderSave = '$baseUrl$userReminderSavePath';
-  static String userReminder(dynamic userId) => '$baseUrl${userReminderPath(userId)}';
+  static String userReminder(dynamic userId) =>
+      '$baseUrl${userReminderPath(userId)}';
+  static const String userNotifications = '$baseUrl$userNotificationsPath';
 }

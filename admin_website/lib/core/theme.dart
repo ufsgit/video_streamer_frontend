@@ -19,9 +19,10 @@ class AppTheme {
   static const Color cardBg = Colors.white;
   static const Color cardHover = Color(0xFFFAFBFD);
   static const Color border = Color(0xFFE2E8F0);
+
   static const Color borderSubtle = Color(0xFFF1F5F9);
   static const Color borderMedium = Color(0xFFCBD5E1);
-
+  static const Color borderColor = Color.fromARGB(255, 224, 56, 62);
   // ==========================================
   // Typography
   // ==========================================
@@ -93,12 +94,36 @@ class AppTheme {
   // Dynamic Pastel Avatar Color Palettes
   // ==========================================
   static const List<Map<String, Color>> avatarPalettes = [
-    {'bg': Color(0xFFEFF6FF), 'fg': Color(0xFF2563EB), 'border': Color(0xFFBFDBFE)}, // Blue
-    {'bg': Color(0xFFF5F3FF), 'fg': Color(0xFF7C3AED), 'border': Color(0xFFDDD6FE)}, // Purple
-    {'bg': Color(0xFFECFDF5), 'fg': Color(0xFF059669), 'border': Color(0xFFA7F3D0)}, // Emerald
-    {'bg': Color(0xFFFFF7ED), 'fg': Color(0xFFEA580C), 'border': Color(0xFFFED7AA)}, // Orange
-    {'bg': Color(0xFFFDF2F8), 'fg': Color(0xFFDB2777), 'border': Color(0xFFFBCFE8)}, // Pink
-    {'bg': Color(0xFFF0FDFA), 'fg': Color(0xFF0D9488), 'border': Color(0xFF99F6E4)}, // Teal
+    {
+      'bg': Color(0xFFEFF6FF),
+      'fg': Color(0xFF2563EB),
+      'border': Color(0xFFBFDBFE),
+    }, // Blue
+    {
+      'bg': Color(0xFFF5F3FF),
+      'fg': Color(0xFF7C3AED),
+      'border': Color(0xFFDDD6FE),
+    }, // Purple
+    {
+      'bg': Color(0xFFECFDF5),
+      'fg': Color(0xFF059669),
+      'border': Color(0xFFA7F3D0),
+    }, // Emerald
+    {
+      'bg': Color(0xFFFFF7ED),
+      'fg': Color(0xFFEA580C),
+      'border': Color(0xFFFED7AA),
+    }, // Orange
+    {
+      'bg': Color(0xFFFDF2F8),
+      'fg': Color(0xFFDB2777),
+      'border': Color(0xFFFBCFE8),
+    }, // Pink
+    {
+      'bg': Color(0xFFF0FDFA),
+      'fg': Color(0xFF0D9488),
+      'border': Color(0xFF99F6E4),
+    }, // Teal
   ];
 
   static Map<String, Color> getAvatarPalette(String name) {

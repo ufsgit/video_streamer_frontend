@@ -5,7 +5,7 @@ import '../../core/network/dio_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../viewmodels/profile_viewmodel.dart';
-import '../auth/login_view.dart';
+import '../auth/auth_gate.dart';
 import '../../widgets/app_tutorial_dialog.dart';
 import 'notification_settings_view.dart';
 import 'personal_info_view.dart';
@@ -34,7 +34,7 @@ class _ProfileViewState extends State<ProfileView> {
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginView()),
+      MaterialPageRoute(builder: (context) => const AuthGate()),
       (route) => false,
     );
   }

@@ -9,7 +9,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'https://videostreamerapi.ufstech.net.in';
+  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
 
   late Dio _dio;
   String? _authToken;
@@ -142,6 +142,10 @@ class ApiService {
 
   Future<Response> getActivityLogs() async {
     return await _dio.get('/admin/dashboard/activity-logs');
+  }
+
+  Future<Response> getTopWatchedVideos() async {
+    return await _dio.get('/admin/dashboard/top-watched-videos');
   }
 
   // --- 4. Admin User Management ---
@@ -477,5 +481,17 @@ class ApiService {
     }
 
     return null;
+  }
+
+  // --- 8. Broadcast Notifications ---
+  Future<Response> createBroadcastNotification({
+    required String title,
+    required String message,
+    required String scheduleTime,
+  }) async {
+    return await _dio.post(
+      '/admin/notifications/create',
+      data: {'title': title, 'message': message, 'schedule_time': scheduleTime},
+    );
   }
 }

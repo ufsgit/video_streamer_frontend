@@ -5,9 +5,11 @@ import '../widgets/sidebar.dart';
 import 'dashboard/dashboard_view.dart';
 import 'library/video_library_view.dart';
 import 'patient/patients_list_view.dart';
+import 'notifications/notifications_view.dart';
 import 'mobile/dashboard/mobile_dashboard_view.dart';
 import 'mobile/library/mobile_library_view.dart';
 import 'mobile/patient/mobile_patients_view.dart';
+import 'mobile/notifications/mobile_notifications_view.dart';
 
 class MainLayout extends StatefulWidget {
   final int initialIndex;
@@ -25,18 +27,21 @@ class _MainLayoutState extends State<MainLayout> {
     '/dashboard',
     '/library',
     '/patients',
+    '/notifications',
   ];
 
   final List<Widget> _desktopViews = [
     const DashboardView(),
     const VideoLibraryView(),
     const PatientsListView(),
+    const NotificationsView(),
   ];
 
   final List<Widget> _mobileViews = const [
     MobileDashboardView(),
     MobileLibraryView(),
     MobilePatientsView(),
+    MobileNotificationsView(),
   ];
 
   @override
@@ -55,6 +60,9 @@ class _MainLayoutState extends State<MainLayout> {
 
       if (fragment.contains('library') || path.contains('library')) return 1;
       if (fragment.contains('patient') || path.contains('patient')) return 2;
+      if (fragment.contains('notification') || path.contains('notification')) {
+        return 3;
+      }
       if (fragment.contains('dashboard') || path.contains('dashboard')) {
         return 0;
       }
@@ -129,6 +137,14 @@ class _MainLayoutState extends State<MainLayout> {
                   color: AppTheme.primary,
                 ),
                 label: 'Patients',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.notifications_none_rounded),
+                selectedIcon: Icon(
+                  Icons.notifications_rounded,
+                  color: AppTheme.primary,
+                ),
+                label: 'Notifications',
               ),
             ],
           ),

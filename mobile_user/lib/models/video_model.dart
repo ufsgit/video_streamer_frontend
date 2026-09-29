@@ -15,6 +15,8 @@ class VideoModel {
   final VideoStatus status;
   final String? link;
   final String? folder;
+  final String? language;
+  final int? languageId;
 
   VideoModel({
     required this.id,
@@ -28,10 +30,19 @@ class VideoModel {
     required this.status,
     this.link,
     this.folder,
+    this.language,
+    this.languageId,
   });
 
   // API MENTION: Implement factory fromJson when Video List API endpoint is ready.
   factory VideoModel.fromJson(Map<String, dynamic> json) {
+    int? parsedLangId;
+    if (json['language_id'] != null) {
+      parsedLangId = int.tryParse(json['language_id'].toString());
+    } else if (json['languageId'] != null) {
+      parsedLangId = int.tryParse(json['languageId'].toString());
+    }
+
     return VideoModel(
       id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
@@ -40,9 +51,11 @@ class VideoModel {
       totalSteps: json['totalSteps'] ?? 1,
       progressPercent: json['progressPercent'] ?? 0,
       durationLeft: json['durationLeft'] ?? '',
-      imageUrl: json['imageUrl'] ?? '',
-      link: json['link'] ?? json['video_url'] ?? json['youtube_link'],
+      imageUrl: json['imageUrl'] ?? json['thumbnail_url'] ?? json['thumbnail'] ?? '',
+      link: json['link'] ?? json['video_url'] ?? json['youtube_link'] ?? json['youtubeUrl'],
       folder: json['folder'] ?? json['folder_name'] ?? json['category'],
+      language: json['language']?.toString() ?? json['language_name']?.toString(),
+      languageId: parsedLangId,
       status: VideoStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => VideoStatus.notStarted,
@@ -64,6 +77,8 @@ class VideoModel {
       'status': status.name,
       'link': link,
       'folder': folder,
+      'language': language,
+      'language_id': languageId,
     };
   }
 }

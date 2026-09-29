@@ -7,6 +7,7 @@ import '../core/storage/session_manager.dart';
 import '../models/user_model.dart';
 import 'user_repository.dart';
 import '../services/notification_service.dart';
+import '../widgets/app_tutorial_dialog.dart';
 
 abstract class AuthRepository {
   Future<Map<String, dynamic>> login({
@@ -48,6 +49,7 @@ class AuthRepositoryImpl implements AuthRepository {
           }
         } catch (_) {}
       }
+      NotificationService.instance.onUserLoggedIn(userId: _user?.id);
       return true;
     }
     return false;
@@ -182,6 +184,15 @@ class AuthRepositoryImpl implements AuthRepository {
           await SessionManager.saveSession(token: token, user: _user);
         }
 
+        // Configure notifications after logged in:
+        // Always calls /api/user/notifications, and applies response if no notification is set
+        try {
+          final userId = _user?.id;
+          NotificationService.instance.onUserLoggedIn(userId: userId);
+        } catch (e) {
+          debugPrint('[AuthRepository] Error initializing notifications after login: $e');
+        }
+
         return {'success': true, 'data': data};
       }
       return {'success': true, 'data': data};
@@ -217,6 +228,7 @@ class AuthRepositoryImpl implements AuthRepository {
     _client.setAuthToken(null);
     _user = null;
     await SessionManager.clearSession();
+    AppTutorialDialog.resetSessionPrompt();
     try {
       await NotificationService.instance.cancelDailyReminder(
         persist: false,

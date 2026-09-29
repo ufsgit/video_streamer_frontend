@@ -87,6 +87,39 @@ class SessionManager {
     return null;
   }
 
+  /// Get current user's selected language ID directly from Hive
+  static int? getLanguageId() {
+    try {
+      if (Hive.isBoxOpen(settingsBoxName)) {
+        final box = Hive.box(settingsBoxName);
+        final dynamic rawId = box.get('selected_language_id');
+        if (rawId is int && rawId > 0) return rawId;
+        if (rawId != null) {
+          final parsed = int.tryParse(rawId.toString());
+          if (parsed != null && parsed > 0) return parsed;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Get current user's selected language name directly from Hive
+  static String? getLanguage() {
+    try {
+      if (Hive.isBoxOpen(settingsBoxName)) {
+        final box = Hive.box(settingsBoxName);
+        final dynamic rawLang = box.get('selected_language');
+        if (rawLang != null) {
+          final s = rawLang.toString().trim();
+          if (s.isNotEmpty && s.toLowerCase() != 'none' && s.toLowerCase() != 'null') {
+            return s;
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Get UserModel restored from Hive (or fallback from SharedPreferences)
   static Future<UserModel?> getUser() async {
     // 1. Try reading from Hive first

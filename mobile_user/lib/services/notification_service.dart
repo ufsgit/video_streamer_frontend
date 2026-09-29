@@ -104,14 +104,18 @@ class NotificationService {
         timeZoneName = rawZone.trim();
       } else if (rawZone != null) {
         try {
-          timeZoneName = (rawZone.name ?? rawZone.id ?? rawZone.title ?? '').toString().trim();
+          timeZoneName = (rawZone.name ?? rawZone.id ?? rawZone.title ?? '')
+              .toString()
+              .trim();
         } catch (_) {
           timeZoneName = rawZone.toString().trim();
         }
       }
 
       // Normalization for common aliases
-      if (timeZoneName.contains('Calcutta') || timeZoneName == 'IST' || timeZoneName.contains('India')) {
+      if (timeZoneName.contains('Calcutta') ||
+          timeZoneName == 'IST' ||
+          timeZoneName.contains('India')) {
         timeZoneName = 'Asia/Kolkata';
       }
 
@@ -229,7 +233,9 @@ class NotificationService {
       await initialize();
       await requestPermissions();
 
-      final tz.TZDateTime scheduledDate = tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds));
+      final tz.TZDateTime scheduledDate = tz.TZDateTime.now(
+        tz.local,
+      ).add(Duration(seconds: seconds));
 
       const AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
@@ -278,7 +284,9 @@ class NotificationService {
               UILocalNotificationDateInterpretation.absoluteTime,
         );
       }
-      debugPrint('Test reminder scheduled for $seconds seconds from now ($scheduledDate)');
+      debugPrint(
+        'Test reminder scheduled for $seconds seconds from now ($scheduledDate)',
+      );
     } catch (e) {
       debugPrint('Error scheduling test reminder: $e');
     }
@@ -287,6 +295,8 @@ class NotificationService {
   Future<String> scheduleDailyReminder({
     required int hour,
     required int minute,
+    String? title,
+    String? body,
     bool persist = true,
     bool syncToServer = true,
     int? userId,
@@ -325,9 +335,13 @@ class NotificationService {
       final tz.TZDateTime scheduledDate = _nextInstanceOfTime(hour, minute);
       final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
       final difference = scheduledDate.difference(now);
-      final isToday = scheduledDate.day == now.day && scheduledDate.month == now.month && scheduledDate.year == now.year;
-      final timeStr = '${(hour % 12 == 0 ? 12 : hour % 12).toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}';
-      
+      final isToday =
+          scheduledDate.day == now.day &&
+          scheduledDate.month == now.month &&
+          scheduledDate.year == now.year;
+      final timeStr =
+          '${(hour % 12 == 0 ? 12 : hour % 12).toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}';
+
       final String scheduledSummary = isToday
           ? 'Today at $timeStr (in ${difference.inHours > 0 ? '${difference.inHours}h ' : ''}${difference.inMinutes % 60}m)'
           : 'Tomorrow at $timeStr';
@@ -355,11 +369,20 @@ class NotificationService {
         iOS: darwinDetails,
       );
 
+      final String notifTitle =
+          title ??
+          (Hive.box('settings').get('reminder_title') as String?) ??
+          'Daily Video Reminder';
+      final String notifBody =
+          body ??
+          (Hive.box('settings').get('reminder_message') as String?) ??
+          'Reminder to watch your videos';
+
       try {
         await _notificationsPlugin.zonedSchedule(
           dailyReminderId,
-          'Daily Video Reminder',
-          'Reminder to watch your videos',
+          notifTitle,
+          notifBody,
           scheduledDate,
           notificationDetails,
           androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -367,14 +390,16 @@ class NotificationService {
               UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time,
         );
-        debugPrint('Daily reminder scheduled for $scheduledDate (Summary: $scheduledSummary)');
+        debugPrint(
+          'Daily reminder scheduled for $scheduledDate (Summary: $scheduledSummary)',
+        );
         return scheduledSummary;
       } catch (e) {
         debugPrint('exactAllowWhileIdle mode failed ($e), trying inexact...');
         await _notificationsPlugin.zonedSchedule(
           dailyReminderId,
-          'Daily Video Reminder',
-          'Reminder to watch your videos',
+          notifTitle,
+          notifBody,
           scheduledDate,
           notificationDetails,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -446,7 +471,9 @@ class NotificationService {
       }
 
       if (effectiveUserId == null || effectiveUserId <= 0) {
-        debugPrint('NotificationService: Cannot sync reminder - no valid user ID');
+        debugPrint(
+          'NotificationService: Cannot sync reminder - no valid user ID',
+        );
         return false;
       }
 
@@ -493,65 +520,270 @@ class NotificationService {
     }
   }
 
-  /// Fetches saved reminder from server and applies to local configuration
-  Future<bool> fetchAndApplyServerReminder({int? userId}) async {
+  /// Explicitly called immediately after login to ensure /api/user/notifications is called.
+  /// If no notification is set by the user, uses the response from this API.
+  Future<void> onUserLoggedIn({int? userId}) async {
+    print(
+      '🔔 [NotificationService] onUserLoggedIn: Triggered after login. Calling /api/user/notifications...',
+    );
+
+    // 1. ALWAYS call /api/user/notifications after login
+    dynamic notifData;
     try {
-      int? effectiveUserId = userId;
-      if (effectiveUserId == null) {
-        final currentUser = ApiService().currentUser;
-        if (currentUser != null && currentUser.id > 0) {
-          effectiveUserId = currentUser.id;
-        } else {
-          // Check Hive directly
-          effectiveUserId = SessionManager.getUserId();
-          if (effectiveUserId == null || effectiveUserId <= 0) {
-            final user = await SessionManager.getUser();
-            if (user != null && user.id > 0) {
-              effectiveUserId = user.id;
-            }
-          }
-        }
-      }
-
-      if (effectiveUserId == null || effectiveUserId <= 0) return false;
-
-      final data = await ApiService().getUserReminder(effectiveUserId);
-      if (data != null && data['reminder_time'] != null) {
-        final String reminderTimeStr = data['reminder_time'].toString();
-        final dynamic rawEnabled = data['is_enabled'];
-        final bool isEnabled = rawEnabled == 1 || rawEnabled == '1' || rawEnabled == true;
-
-        final parts = reminderTimeStr.split(':');
-        if (parts.length >= 2) {
-          final int hour = int.tryParse(parts[0]) ?? 20;
-          final int minute = int.tryParse(parts[1]) ?? 0;
-
-          final box = Hive.box('settings');
-          await box.put('reminder_time_set', true);
-          await box.put('reminder_enabled', isEnabled);
-          await box.put('reminder_hour', hour);
-          await box.put('reminder_minute', minute);
-
-          if (isEnabled) {
-            await scheduleDailyReminder(
-              hour: hour,
-              minute: minute,
-              persist: false,
-              syncToServer: false,
-            );
-          } else {
-            await cancelDailyReminder(persist: false, syncToServer: false);
-          }
-          debugPrint(
-            'NotificationService: Applied server reminder (User: $effectiveUserId, Time: $reminderTimeStr, Enabled: $isEnabled)',
-          );
-          return true;
-        }
-      }
+      notifData = await ApiService().getUserNotifications();
+      print(
+        '🔔 [NotificationService] /api/user/notifications response: $notifData',
+      );
     } catch (e) {
-      debugPrint('NotificationService: Error fetching server reminder: $e');
+      print(
+        '🔔 [NotificationService] Error calling /api/user/notifications: $e',
+      );
     }
-    return false;
+
+    // 2. Check if user already has an individual reminder set on server or locally
+    final box = Hive.box('settings');
+    final bool hasCustomFlag =
+        box.get('user_custom_reminder_set', defaultValue: false) as bool;
+
+    int? effectiveUserId =
+        userId ?? SessionManager.getUserId() ?? ApiService().currentUser?.id;
+    Map<String, dynamic>? userReminderData;
+    if (effectiveUserId != null && effectiveUserId > 0) {
+      try {
+        userReminderData = await ApiService().getUserReminder(effectiveUserId);
+      } catch (e) {
+        print('🔔 [NotificationService] Error checking user reminder: $e');
+      }
+    }
+
+    final bool hasServerReminder =
+        userReminderData != null &&
+        userReminderData['reminder_time'] != null &&
+        userReminderData['reminder_time'].toString().trim().isNotEmpty;
+
+    if (hasServerReminder) {
+      print(
+        '🔔 [NotificationService] User has individual reminder on server. Applying it.',
+      );
+      await _applyServerReminderData(userReminderData);
+      return;
+    }
+
+    if (hasCustomFlag) {
+      print(
+        '🔔 [NotificationService] User has previously chosen a custom reminder locally. Keeping it.',
+      );
+      return;
+    }
+
+    // 3. If no notification is set by the user, use the response from /api/user/notifications
+    if (notifData != null) {
+      print(
+        '🔔 [NotificationService] No notification is set. Using response from /api/user/notifications to set reminder...',
+      );
+      await _applyBroadcastNotificationData(notifData);
+    } else {
+      print(
+        '🔔 [NotificationService] /api/user/notifications returned no data.',
+      );
+    }
+  }
+
+  Future<void> _applyServerReminderData(Map<String, dynamic> data) async {
+    final String reminderTimeStr = data['reminder_time'].toString();
+    final dynamic rawEnabled = data['is_enabled'];
+    final bool isEnabled =
+        rawEnabled == 1 || rawEnabled == '1' || rawEnabled == true;
+
+    final parts = reminderTimeStr.split(':');
+    if (parts.length >= 2) {
+      final int hour = int.tryParse(parts[0]) ?? 20;
+      final int minute = int.tryParse(parts[1]) ?? 0;
+
+      final box = Hive.box('settings');
+      await box.put('reminder_time_set', true);
+      await box.put('reminder_enabled', isEnabled);
+      await box.put('reminder_hour', hour);
+      await box.put('reminder_minute', minute);
+
+      if (isEnabled) {
+        await scheduleDailyReminder(
+          hour: hour,
+          minute: minute,
+          persist: false,
+          syncToServer: false,
+        );
+      } else {
+        await cancelDailyReminder(persist: false, syncToServer: false);
+      }
+    }
+  }
+
+  /// Fetches saved reminder from server and applies to local configuration.
+  /// If no individual user reminder is set, automatically falls back to
+  /// the broadcast / default notification from /api/user/notifications.
+  Future<bool> fetchAndApplyServerReminder({int? userId}) async {
+    await onUserLoggedIn(userId: userId);
+    return isTimeSet;
+  }
+
+  Future<bool> _applyBroadcastNotificationData(dynamic data) =>
+      fetchAndApplyBroadcastNotification(data);
+
+  /// Fetches system / broadcast notification from /api/user/notifications
+  /// and applies its schedule_time and message if no notification is set.
+  Future<bool> fetchAndApplyBroadcastNotification([
+    dynamic optionalData,
+  ]) async {
+    try {
+      final dynamic responseData =
+          optionalData ?? await ApiService().getUserNotifications();
+      if (responseData == null) {
+        debugPrint(
+          'NotificationService: /api/user/notifications returned null',
+        );
+        return false;
+      }
+
+      Map<String, dynamic>? notifMap;
+
+      if (responseData is Map<String, dynamic>) {
+        if (responseData['data'] is List &&
+            (responseData['data'] as List).isNotEmpty) {
+          final list = responseData['data'] as List;
+          final activeItem = list.firstWhere(
+            (item) =>
+                item is Map &&
+                (item['is_active'] == 1 || item['is_active'] == true),
+            orElse: () => list.last,
+          );
+          if (activeItem is Map<String, dynamic>) {
+            notifMap = activeItem;
+          } else if (activeItem is Map) {
+            notifMap = Map<String, dynamic>.from(activeItem);
+          }
+        } else if (responseData['data'] is Map<String, dynamic>) {
+          notifMap = responseData['data'] as Map<String, dynamic>;
+        } else if (responseData['data'] is Map) {
+          notifMap = Map<String, dynamic>.from(responseData['data'] as Map);
+        } else if (responseData['notifications'] is List &&
+            (responseData['notifications'] as List).isNotEmpty) {
+          final list = responseData['notifications'] as List;
+          final activeItem = list.firstWhere(
+            (item) =>
+                item is Map &&
+                (item['is_active'] == 1 || item['is_active'] == true),
+            orElse: () => list.last,
+          );
+          if (activeItem is Map) {
+            notifMap = Map<String, dynamic>.from(activeItem);
+          }
+        } else if (responseData.containsKey('schedule_time') ||
+            responseData.containsKey('reminder_time')) {
+          notifMap = responseData;
+        }
+      } else if (responseData is List && responseData.isNotEmpty) {
+        final activeItem = responseData.firstWhere(
+          (item) =>
+              item is Map &&
+              (item['is_active'] == 1 || item['is_active'] == true),
+          orElse: () => responseData.last,
+        );
+        if (activeItem is Map) {
+          notifMap = Map<String, dynamic>.from(activeItem);
+        }
+      }
+
+      if (notifMap == null) {
+        debugPrint(
+          'NotificationService: No valid notification found in /api/user/notifications response',
+        );
+        return false;
+      }
+
+      final dynamic rawTime =
+          notifMap['schedule_time'] ??
+          notifMap['scheduleTime'] ??
+          notifMap['reminder_time'] ??
+          notifMap['time'];
+
+      if (rawTime == null || rawTime.toString().trim().isEmpty) {
+        debugPrint(
+          'NotificationService: Broadcast notification has no schedule_time',
+        );
+        return false;
+      }
+
+      final String timeStr = rawTime.toString().trim();
+      final TimeOfDay? parsedTime = _parseTimeString(timeStr);
+      if (parsedTime == null) {
+        debugPrint(
+          'NotificationService: Could not parse time string "$timeStr"',
+        );
+        return false;
+      }
+
+      final String title =
+          notifMap['title']?.toString().trim().isNotEmpty == true
+          ? notifMap['title'].toString().trim()
+          : 'Daily Video Reminder';
+      final String message =
+          notifMap['message']?.toString().trim().isNotEmpty == true
+          ? notifMap['message'].toString().trim()
+          : (notifMap['body']?.toString().trim().isNotEmpty == true
+                ? notifMap['body'].toString().trim()
+                : 'Reminder to watch your daily assigned videos.');
+
+      final box = Hive.box('settings');
+      await box.put('reminder_time_set', true);
+      await box.put('reminder_enabled', true);
+      await box.put('reminder_hour', parsedTime.hour);
+      await box.put('reminder_minute', parsedTime.minute);
+      await box.put('reminder_title', title);
+      await box.put('reminder_message', message);
+
+      await scheduleDailyReminder(
+        hour: parsedTime.hour,
+        minute: parsedTime.minute,
+        title: title,
+        body: message,
+        persist: false,
+        syncToServer: false,
+      );
+
+      debugPrint(
+        'NotificationService: Applied broadcast notification from /api/user/notifications (Time: $timeStr -> ${parsedTime.hour}:${parsedTime.minute}, Title: "$title")',
+      );
+      return true;
+    } catch (e) {
+      debugPrint(
+        'NotificationService: Error applying broadcast notification: $e',
+      );
+      return false;
+    }
+  }
+
+  /// Parses multiple time formats such as "18:00:00", "18:00", "6:00 PM"
+  TimeOfDay? _parseTimeString(String timeStr) {
+    try {
+      final clean = timeStr.trim();
+      if (clean.contains(':')) {
+        final parts = clean.split(':');
+        int hour = int.tryParse(parts[0].trim()) ?? 0;
+        int minute = 0;
+        if (parts.length >= 2) {
+          final minPart = parts[1].trim().split(' ')[0];
+          minute = int.tryParse(minPart) ?? 0;
+        }
+        if (clean.toUpperCase().contains('PM') && hour < 12) {
+          hour += 12;
+        } else if (clean.toUpperCase().contains('AM') && hour == 12) {
+          hour = 0;
+        }
+        return TimeOfDay(hour: hour % 24, minute: minute % 60);
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Calculates the next local instance of the requested hour:minute accurately

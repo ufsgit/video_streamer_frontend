@@ -78,4 +78,7 @@ class ApiService {
 
   Future<Map<String, dynamic>?> getUserReminder(int userId) =>
       userRepository.getUserReminder(userId);
+
+  Future<dynamic> getUserNotifications() =>
+      userRepository.getUserNotifications();
 }

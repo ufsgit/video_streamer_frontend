@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:admin_website/core/error_utils.dart';
 import 'package:admin_website/core/theme.dart';
 import 'package:admin_website/services/api_service.dart';
@@ -27,6 +28,7 @@ class _MobileLoginViewState extends State<MobileLoginView> {
   }
 
   Future<void> _handleLogin() async {
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -105,9 +107,15 @@ class _MobileLoginViewState extends State<MobileLoginView> {
             ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
+              child: CallbackShortcuts(
+                bindings: {
+                  const SingleActivator(LogicalKeyboardKey.enter): _handleLogin,
+                  const SingleActivator(LogicalKeyboardKey.numpadEnter):
+                      _handleLogin,
+                },
+                child: Form(
+                  key: _formKey,
+                  child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -187,6 +195,14 @@ class _MobileLoginViewState extends State<MobileLoginView> {
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _usernameController,
+                      textInputAction: TextInputAction.next,
+                      onFieldSubmitted: (_) {
+                        if (_passwordController.text.trim().isEmpty) {
+                          FocusScope.of(context).nextFocus();
+                        } else {
+                          _handleLogin();
+                        }
+                      },
                       decoration: InputDecoration(
                         hintText: "admin@hospital.org",
                         hintStyle: TextStyle(
@@ -242,6 +258,8 @@ class _MobileLoginViewState extends State<MobileLoginView> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _handleLogin(),
                       decoration: InputDecoration(
                         hintText: "Enter your password",
                         hintStyle: TextStyle(
@@ -334,6 +352,7 @@ class _MobileLoginViewState extends State<MobileLoginView> {
                 ),
               ),
             ),
+          ),
           ),
         ),
       ),

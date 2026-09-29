@@ -79,6 +79,7 @@ class Sidebar extends StatelessWidget {
           _buildNavItem(0, "Dashboard", Icons.dashboard_outlined),
           _buildNavItem(1, "Library", Icons.video_library_outlined),
           _buildNavItem(2, "Patients", Icons.people_outline),
+          _buildNavItem(3, "Notifications", Icons.notifications_none_rounded),
           const Spacer(),
           InkWell(
             onTap: () {

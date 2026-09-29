@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import '../../core/storage/session_manager.dart';
 import '../../core/storage/video_progress_manager.dart';
 import '../../core/theme/app_colors.dart';
 import '../../viewmodels/library_viewmodel.dart';
@@ -35,7 +36,13 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
     _viewModel = widget.viewModel ?? LibraryViewModel();
     // Fetch videos for this category
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _viewModel.fetchDynamicCategoryVideos(widget.category);
+      final langId = SessionManager.getLanguageId();
+      final langName = SessionManager.getLanguage();
+      _viewModel.fetchDynamicCategoryVideos(
+        widget.category,
+        languageId: langId,
+        language: langName,
+      );
     });
 
     _scrollController.addListener(_onScroll);
@@ -45,7 +52,13 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       if (!_viewModel.isLoadingMore && _viewModel.hasMore) {
-        _viewModel.loadMoreCategoryVideos(widget.category);
+        final langId = SessionManager.getLanguageId();
+        final langName = SessionManager.getLanguage();
+        _viewModel.loadMoreCategoryVideos(
+          widget.category,
+          languageId: langId,
+          language: langName,
+        );
       }
     }
   }

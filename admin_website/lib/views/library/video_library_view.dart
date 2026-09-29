@@ -5,6 +5,7 @@ import '../../services/api_service.dart';
 import '../../viewmodels/library_viewmodel.dart';
 import 'assign_videos_dialog.dart';
 import 'add_video_dialog.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class VideoLibraryView extends StatefulWidget {
   const VideoLibraryView({super.key});
@@ -524,19 +525,7 @@ class _VideoLibraryViewState extends State<VideoLibraryView> {
 
   Widget _buildVideoGrid(List<Map<String, dynamic>> videos) {
     if (_viewModel.isLoading) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text(
-              "Loading videos from server...",
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-            ),
-          ],
-        ),
-      );
+      return const VideoGridSkeleton(itemCount: 8);
     }
 
     if (videos.isEmpty) {

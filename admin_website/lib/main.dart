@@ -16,7 +16,8 @@ class MyApp extends StatelessWidget {
     final name = (routeName ?? '').toLowerCase();
     if (name.contains('library')) return 1;
     if (name.contains('patient')) return 2;
-    if (name.contains('profile')) return 3;
+    if (name.contains('notification')) return 3;
+    if (name.contains('profile')) return 4;
     return 0;
   }
 

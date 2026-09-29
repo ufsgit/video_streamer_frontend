@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:admin_mobile/core/theme.dart';
 import 'package:admin_mobile/viewmodels/dashboard_viewmodel.dart';
 import 'package:admin_mobile/widgets/app_logo.dart';
+import 'package:admin_mobile/widgets/skeleton_loader.dart';
 
 class MobileDashboardView extends StatefulWidget {
   const MobileDashboardView({super.key});
@@ -129,6 +130,7 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                       iconColor: AppTheme.blue,
                       borderColor: AppTheme.blueBorder,
                       cardBg: AppTheme.blueCardBg,
+                      isLoading: _viewModel.isLoading,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -141,6 +143,7 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                       iconColor: AppTheme.purple,
                       borderColor: AppTheme.purpleBorder,
                       cardBg: AppTheme.purpleCardBg,
+                      isLoading: _viewModel.isLoading,
                     ),
                   ),
                 ],
@@ -155,7 +158,12 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                 borderColor: AppTheme.emeraldBorder,
                 cardBg: AppTheme.emeraldCardBg,
                 isFullWidth: true,
+                isLoading: _viewModel.isLoading,
               ),
+              const SizedBox(height: 18),
+
+              // Top Watched Videos Section
+              _buildTopVideosSection(),
               const SizedBox(height: 20),
 
               // Activity Logs Header
@@ -192,14 +200,13 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
 
               // Activity Logs List
               if (_viewModel.isLoading && _viewModel.activityLogs.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(36.0),
-                    child: AppLogoLoader(
-                      size: 48,
-                      message: "Loading dashboard activity...",
-                    ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
                   ),
+                  child: const ActivityLogsSkeleton(rowCount: 4, isMobile: true),
                 )
               else if (_viewModel.activityLogs.isEmpty)
                 Container(
@@ -371,6 +378,7 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
     required Color borderColor,
     required Color cardBg,
     bool isFullWidth = false,
+    bool isLoading = false,
   }) {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -410,17 +418,219 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
+                isLoading
+                    ? const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 2.0),
+                        child: SkeletonPulse(
+                          child: SkeletonBox(
+                            width: 45,
+                            height: 20,
+                            borderRadius: 4,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        value,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopVideosSection() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textPrimary.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        Icons.local_fire_department_rounded,
+                        color: Colors.white,
+                        size: 15,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "Top Watched Videos",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFFEDD5)),
+                  ),
+                  child: Text(
+                    "${_viewModel.topWatchedVideos.length} Ranked",
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFC2410C),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
+          const Divider(height: 1, color: AppTheme.border),
+          if (_viewModel.isLoading)
+            const TopVideosSkeleton(itemCount: 4)
+          else if (_viewModel.topWatchedVideos.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Center(
+                child: Text(
+                  "No video watch statistics yet",
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              itemCount: _viewModel.topWatchedVideos.take(5).length,
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, color: AppTheme.borderSubtle),
+              itemBuilder: (context, index) {
+                final video = _viewModel.topWatchedVideos[index];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12.0,
+                    vertical: 8.0,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: index < 3
+                              ? (index == 0
+                                  ? const Color(0xFFFBBF24)
+                                  : (index == 1
+                                      ? const Color(0xFFCBD5E1)
+                                      : const Color(0xFFD97706)))
+                              : const Color(0xFFF1F5F9),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          "${index + 1}",
+                          style: TextStyle(
+                            color: index < 3 ? Colors.white : AppTheme.textSecondary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              video.title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: AppTheme.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              video.category,
+                              style: const TextStyle(
+                                fontSize: 10.5,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2.5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.blueBg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.blueBorder),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.play_circle_fill_rounded,
+                              size: 11,
+                              color: AppTheme.blue,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              "${video.watchCount}",
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.blueText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

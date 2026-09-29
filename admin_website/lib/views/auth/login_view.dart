@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../mobile/auth/mobile_login_view.dart';
@@ -33,6 +34,7 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _handleLogin() async {
+    if (_authViewModel.isLoading) return;
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -75,9 +77,16 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 440),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
+                    child: CallbackShortcuts(
+                      bindings: {
+                        const SingleActivator(LogicalKeyboardKey.enter):
+                            _handleLogin,
+                        const SingleActivator(LogicalKeyboardKey.numpadEnter):
+                            _handleLogin,
+                      },
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -156,6 +165,14 @@ class _LoginViewState extends State<LoginView> {
                           const SizedBox(height: 8),
                           TextFormField(
                             controller: _usernamecontroller,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) {
+                              if (_passwordController.text.trim().isEmpty) {
+                                FocusScope.of(context).nextFocus();
+                              } else {
+                                _handleLogin();
+                              }
+                            },
                             style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF0F172A),
@@ -232,6 +249,8 @@ class _LoginViewState extends State<LoginView> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _authViewModel.obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _handleLogin(),
                             style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF0F172A),
@@ -377,6 +396,7 @@ class _LoginViewState extends State<LoginView> {
                       ),
                     ),
                   ),
+                ),
                 ),
               ),
             ),

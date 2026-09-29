@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
+import '../services/notification_service.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
@@ -38,6 +39,8 @@ class AuthViewModel extends ChangeNotifier {
     final hasSession = await _authRepository.tryAutoLogin();
     if (hasSession) {
       _currentUser = _authRepository.currentUser;
+      // Trigger user notifications and reminder setup on valid session
+      NotificationService.instance.onUserLoggedIn(userId: _currentUser?.id);
     }
 
     _isCheckingSession = false;
@@ -71,6 +74,9 @@ class AuthViewModel extends ChangeNotifier {
       _currentUser = _authRepository.currentUser;
       _errorMessage = null;
       notifyListeners();
+
+      // Trigger user notifications and reminder setup immediately after login
+      NotificationService.instance.onUserLoggedIn(userId: _currentUser?.id);
       return true;
     } else {
       _errorMessage = result['message'] ?? 'Login failed. Please try again.';

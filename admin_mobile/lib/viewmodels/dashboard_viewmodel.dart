@@ -122,6 +122,71 @@ class UserActivity {
   }
 }
 
+class TopWatchedVideo {
+  final String id;
+  final String title;
+  final int watchCount;
+  final String category;
+  final String duration;
+  final String thumbnailUrl;
+  final double? completionRate;
+
+  TopWatchedVideo({
+    required this.id,
+    required this.title,
+    required this.watchCount,
+    this.category = 'Pre-op',
+    this.duration = '',
+    this.thumbnailUrl = '',
+    this.completionRate,
+  });
+
+  factory TopWatchedVideo.fromJson(Map<String, dynamic> json) {
+    int parsedWatchCount = 0;
+    final rawCount = json['watch_count'] ??
+        json['watchCount'] ??
+        json['views'] ??
+        json['view_count'] ??
+        json['total_views'] ??
+        json['totalViews'] ??
+        json['count'] ??
+        json['watched'] ??
+        json['plays'];
+    if (rawCount is num) {
+      parsedWatchCount = rawCount.toInt();
+    } else if (rawCount != null) {
+      parsedWatchCount = int.tryParse(rawCount.toString()) ?? 0;
+    }
+
+    double? parsedRate;
+    final rawRate = json['completion_rate'] ?? json['completionRate'] ?? json['rate'];
+    if (rawRate is num) {
+      parsedRate = rawRate.toDouble();
+    } else if (rawRate != null) {
+      parsedRate = double.tryParse(rawRate.toString());
+    }
+
+    return TopWatchedVideo(
+      id: json['id']?.toString() ?? json['video_id']?.toString() ?? json['_id']?.toString() ?? '',
+      title: json['title']?.toString() ??
+          json['video_title']?.toString() ??
+          json['videoTitle']?.toString() ??
+          json['name']?.toString() ??
+          'Video',
+      watchCount: parsedWatchCount,
+      category: json['category']?.toString() ?? json['category_name']?.toString() ?? 'Pre-op',
+      duration: json['duration']?.toString() ?? '',
+      thumbnailUrl: json['thumbnail_url']?.toString() ??
+          json['thumbnailUrl']?.toString() ??
+          json['thumbnail']?.toString() ??
+          json['imageUrl']?.toString() ??
+          json['image_url']?.toString() ??
+          '',
+      completionRate: parsedRate,
+    );
+  }
+}
+
 class DashboardViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
@@ -130,6 +195,7 @@ class DashboardViewModel extends ChangeNotifier {
   double avgVideosWatched = 0.0;
   double completionRate = 0.0;
   List<UserActivity> activityLogs = [];
+  List<TopWatchedVideo> topWatchedVideos = [];
   bool isLoading = false;
   String? errorMessage;
 
@@ -149,6 +215,7 @@ class DashboardViewModel extends ChangeNotifier {
         _apiService.getCompletionRate().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
         _apiService.getActivityLogs().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
         _apiService.listUsers(limit: 100).catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
+        _apiService.getTopWatchedVideos().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
       ]);
 
       final loginsRes = results[0];
@@ -260,6 +327,25 @@ class DashboardViewModel extends ChangeNotifier {
       } else if (resData is List) {
         totalUsers = resData.length;
       }
+
+      // 6. Top Watched Videos
+      final topRes = results[5];
+      final topData = topRes.data;
+      List<dynamic> topList = [];
+      if (topData is Map<String, dynamic>) {
+        final d = topData['data'] ?? topData['videos'] ?? topData['top_videos'] ?? topData;
+        if (d is List) {
+          topList = d;
+        } else if (d is Map && d['videos'] is List) {
+          topList = d['videos'];
+        }
+      } else if (topData is List) {
+        topList = topData;
+      }
+
+      topWatchedVideos = topList
+          .map((json) => TopWatchedVideo.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
     } catch (e) {
       errorMessage = "Failed to load dashboard data.";
       debugPrint("refreshData error: $e");

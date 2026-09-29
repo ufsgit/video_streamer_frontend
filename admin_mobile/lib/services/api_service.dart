@@ -144,6 +144,10 @@ class ApiService {
     return await _dio.get('/admin/dashboard/activity-logs');
   }
 
+  Future<Response> getTopWatchedVideos() async {
+    return await _dio.get('/admin/dashboard/top-watched-videos');
+  }
+
   // --- 4. Admin User Management ---
   Future<Response> listUsers({
     int? page,
@@ -446,5 +450,21 @@ class ApiService {
     }
 
     return null;
+  }
+
+  // --- 8. Broadcast Notifications ---
+  Future<Response> createBroadcastNotification({
+    required String title,
+    required String message,
+    required String scheduleTime,
+  }) async {
+    return await _dio.post(
+      '/admin/notifications/create',
+      data: {
+        'title': title,
+        'message': message,
+        'schedule_time': scheduleTime,
+      },
+    );
   }
 }

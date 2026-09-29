@@ -38,6 +38,13 @@ class _MainNavigationViewState extends State<MainNavigationView> {
   }
 
   void _onTourStateChanged() {
+    if (AppTourController.instance.isActive && mounted) {
+      if (_currentIndex != 0) {
+        setState(() {
+          _currentIndex = 0;
+        });
+      }
+    }
     if (!AppTourController.instance.isActive && mounted) {
       DailyReminderDialog.showIfNeeded(context);
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../storage/session_manager.dart';
 
 enum AppTourStep {
   idle,
@@ -24,11 +25,20 @@ class AppTourController extends ChangeNotifier {
   static const String _boxName = 'settings';
   static const String _prefKey = 'has_seen_tutorial';
 
+  /// Generates a preference key unique to the current user ID
+  String _getUserPrefKey() {
+    final userId = SessionManager.getUserId();
+    if (userId != null && userId > 0) {
+      return '${_prefKey}_$userId';
+    }
+    return _prefKey;
+  }
+
   /// Checks Hive storage to determine if the first-time tour should run.
   bool get hasSeenTutorial {
     if (!Hive.isBoxOpen(_boxName)) return false;
     final box = Hive.box(_boxName);
-    return box.get(_prefKey, defaultValue: false) as bool;
+    return box.get(_getUserPrefKey(), defaultValue: false) as bool;
   }
 
   /// Evaluates whether the automatic onboarding tour should start on app launch.
@@ -36,7 +46,8 @@ class AppTourController extends ChangeNotifier {
     final box = Hive.isBoxOpen(_boxName)
         ? Hive.box(_boxName)
         : await Hive.openBox(_boxName);
-    final bool hasSeen = box.get(_prefKey, defaultValue: false) as bool;
+    final key = _getUserPrefKey();
+    final bool hasSeen = box.get(key, defaultValue: false) as bool;
     return !hasSeen;
   }
 
@@ -54,6 +65,18 @@ class AppTourController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Marks tutorial as seen in Hive storage without altering the current active step.
+  Future<void> markSeen() async {
+    try {
+      final box = Hive.isBoxOpen(_boxName)
+          ? Hive.box(_boxName)
+          : await Hive.openBox(_boxName);
+      await box.put(_getUserPrefKey(), true);
+    } catch (e) {
+      debugPrint('[AppTourController] Error saving tutorial completion: $e');
+    }
+  }
+
   /// Skips the tour and marks it as completed.
   Future<void> skipTour() async {
     await finishTour();
@@ -68,7 +91,7 @@ class AppTourController extends ChangeNotifier {
       final box = Hive.isBoxOpen(_boxName)
           ? Hive.box(_boxName)
           : await Hive.openBox(_boxName);
-      await box.put(_prefKey, true);
+      await box.put(_getUserPrefKey(), true);
     } catch (e) {
       debugPrint('[AppTourController] Error saving tutorial completion: $e');
     }
@@ -79,7 +102,7 @@ class AppTourController extends ChangeNotifier {
     final box = Hive.isBoxOpen(_boxName)
         ? Hive.box(_boxName)
         : await Hive.openBox(_boxName);
-    await box.put(_prefKey, false);
+    await box.put(_getUserPrefKey(), false);
     _currentStep = AppTourStep.idle;
     notifyListeners();
   }

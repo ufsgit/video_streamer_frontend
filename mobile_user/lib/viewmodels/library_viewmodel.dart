@@ -51,6 +51,7 @@ class LibraryViewModel extends ChangeNotifier {
   Future<void> fetchDynamicCategoryVideos(
     String category, {
     int? languageId,
+    String? language,
   }) async {
     _isLoading = true;
     _currentPage = 1;
@@ -60,6 +61,7 @@ class LibraryViewModel extends ChangeNotifier {
     final videos = await _videoRepository.getVideosByCategory(
       category: category,
       languageId: languageId,
+      language: language,
       page: _currentPage,
       limit: _limit,
     );
@@ -81,6 +83,7 @@ class LibraryViewModel extends ChangeNotifier {
   Future<void> loadMoreCategoryVideos(
     String category, {
     int? languageId,
+    String? language,
   }) async {
     if (_isLoadingMore || !_hasMore) return;
 
@@ -91,6 +94,7 @@ class LibraryViewModel extends ChangeNotifier {
     final videos = await _videoRepository.getVideosByCategory(
       category: category,
       languageId: languageId,
+      language: language,
       page: _currentPage,
       limit: _limit,
     );

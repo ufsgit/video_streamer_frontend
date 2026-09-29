@@ -2,6 +2,7 @@ import 'dart:developer';
 
 import '../core/constants/api_constants.dart';
 import '../core/network/dio_client.dart';
+import '../core/storage/session_manager.dart';
 import '../models/video_model.dart';
 
 abstract class VideoRepository {
@@ -11,6 +12,7 @@ abstract class VideoRepository {
   Future<List<VideoModel>> getVideosByCategory({
     required String category,
     int? languageId,
+    String? language,
     int page = 1,
     int limit = 10,
   });
@@ -101,18 +103,37 @@ class VideoRepositoryImpl implements VideoRepository {
   Future<List<VideoModel>> getVideosByCategory({
     required String category,
     int? languageId,
+    String? language,
     int page = 1,
     int limit = 10,
   }) async {
     try {
+      int? effectiveLanguageId = languageId;
+      String? effectiveLanguageName = language;
+
+      if (effectiveLanguageId == null || effectiveLanguageId == 0) {
+        effectiveLanguageId = SessionManager.getLanguageId();
+      }
+
+      if (effectiveLanguageName == null || effectiveLanguageName.isEmpty) {
+        effectiveLanguageName = SessionManager.getLanguage();
+      }
+
       final Map<String, dynamic> queryParams = {
         'category': category,
         'page': page,
         'limit': limit,
       };
-      if (languageId != null) {
-        queryParams['language_id'] = languageId;
+
+      if (effectiveLanguageId != null && effectiveLanguageId > 0) {
+        queryParams['language_id'] = effectiveLanguageId;
       }
+      if (effectiveLanguageName != null && effectiveLanguageName.isNotEmpty) {
+        queryParams['language'] = effectiveLanguageName;
+        queryParams['language_name'] = effectiveLanguageName;
+      }
+
+      log('DEBUG: Calling ${ApiConstants.videosListPath} with params: $queryParams');
 
       final response = await _client.dio.get(
         ApiConstants.videosListPath,
@@ -121,13 +142,48 @@ class VideoRepositoryImpl implements VideoRepository {
 
       if (response.statusCode == 200) {
         final data = response.data;
+        List<VideoModel> videos = [];
         if (data is Map<String, dynamic> && data['data'] is List) {
-          return (data['data'] as List)
+          videos = (data['data'] as List)
               .map((json) => VideoModel.fromJson(json))
               .toList();
         } else if (data is List) {
-          return data.map((json) => VideoModel.fromJson(json)).toList();
+          videos = data.map((json) => VideoModel.fromJson(json)).toList();
         }
+
+        // Safety filter: If backend sent unfiltered videos with language info, filter client-side too
+        if (videos.isNotEmpty &&
+            (effectiveLanguageId != null || effectiveLanguageName != null)) {
+          final hasLanguageMetadata = videos.any(
+            (v) =>
+                (v.languageId != null && v.languageId! > 0) ||
+                (v.language != null && v.language!.trim().isNotEmpty),
+          );
+
+          if (hasLanguageMetadata) {
+            final filtered = videos.where((v) {
+              if (effectiveLanguageId != null &&
+                  v.languageId != null &&
+                  v.languageId! > 0) {
+                return v.languageId == effectiveLanguageId;
+              }
+              if (effectiveLanguageName != null &&
+                  v.language != null &&
+                  v.language!.trim().isNotEmpty) {
+                return v.language!.trim().toLowerCase() ==
+                    effectiveLanguageName.toLowerCase();
+              }
+              return true;
+            }).toList();
+
+            if (filtered.isNotEmpty) {
+              log('DEBUG: Client-side filtered ${videos.length} videos down to ${filtered.length} for language: $effectiveLanguageName (ID: $effectiveLanguageId)');
+              return filtered;
+            }
+          }
+        }
+
+        return videos;
       }
     } catch (e) {
       log('Error fetching videos by category: $e');

@@ -3,6 +3,7 @@ import 'package:admin_mobile/core/theme.dart';
 import 'dashboard/dashboard_view.dart';
 import 'library/mobile_library_view.dart';
 import 'patient/mobile_patients_view.dart';
+import 'notifications/mobile_notifications_view.dart';
 import 'profile/mobile_profile_view.dart';
 
 class MainNavigationView extends StatefulWidget {
@@ -21,6 +22,7 @@ class _MainNavigationViewState extends State<MainNavigationView> {
     MobileDashboardView(),
     MobileLibraryView(),
     MobilePatientsView(),
+    MobileNotificationsView(),
     MobileProfileView(),
   ];
 
@@ -83,6 +85,14 @@ class _MainNavigationViewState extends State<MainNavigationView> {
                 color: AppTheme.primary,
               ),
               label: 'Patients',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.notifications_none_rounded),
+              selectedIcon: Icon(
+                Icons.notifications_rounded,
+                color: AppTheme.primary,
+              ),
+              label: 'Notifications',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
