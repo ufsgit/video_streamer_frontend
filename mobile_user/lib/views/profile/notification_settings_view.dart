@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../../core/error_utils.dart';
 import '../../services/notification_service.dart';
 import '../../widgets/scroll_time_picker_sheet.dart';
 
@@ -73,19 +74,40 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF0052CC),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          if (summary.startsWith('Failed:')) {
+            final failureMsg = summary.replaceFirst('Failed:', '').trim();
+            final friendlyMsg = ErrorUtils.format(
+              failureMsg,
+              fallback: 'Unable to schedule reminder. Please check permissions and try again.',
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.redAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                content: Text(
+                  friendlyMsg,
+                  style: const TextStyle(fontSize: 13, color: Colors.white),
+                ),
               ),
-              content: Text(
-                'Daily reminder scheduled: $summary',
-                style: const TextStyle(fontSize: 13, color: Colors.white),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: const Color(0xFF0052CC),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                content: Text(
+                  'Daily reminder scheduled: $summary',
+                  style: const TextStyle(fontSize: 13, color: Colors.white),
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
       } else {
         await _notificationService.cancelDailyReminder(
@@ -111,6 +133,25 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
       }
     } catch (e) {
       debugPrint('Error toggling reminder: $e');
+      if (mounted) {
+        final friendlyMsg = ErrorUtils.format(
+          e,
+          fallback: 'Unable to update reminder. Please try again.',
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.redAccent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            content: Text(
+              friendlyMsg,
+              style: const TextStyle(fontSize: 13, color: Colors.white),
+            ),
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -140,19 +181,40 @@ class _NotificationSettingsViewState extends State<NotificationSettingsView> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF0052CC),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          if (summary.startsWith('Failed:')) {
+            final failureMsg = summary.replaceFirst('Failed:', '').trim();
+            final friendlyMsg = ErrorUtils.format(
+              failureMsg,
+              fallback: 'Unable to schedule reminder. Please check permissions and try again.',
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.redAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                content: Text(
+                  friendlyMsg,
+                  style: const TextStyle(fontSize: 13, color: Colors.white),
+                ),
               ),
-              content: Text(
-                'Reminder scheduled: $summary',
-                style: const TextStyle(fontSize: 13, color: Colors.white),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: const Color(0xFF0052CC),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                content: Text(
+                  'Reminder scheduled: $summary',
+                  style: const TextStyle(fontSize: 13, color: Colors.white),
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
       } else {
         // Even when reminders are disabled, save the new time and sync to server with is_enabled = 0

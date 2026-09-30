@@ -22,17 +22,26 @@ class VideoProgress {
     this.completedAt,
   });
 
+  /// Returns completion threshold in seconds: video is completed if watched
+  /// up to the last 10 seconds (or within 1 second for videos <= 10s).
+  static double getCompletionThreshold(double totalDuration) {
+    if (totalDuration <= 0) return 0.0;
+    return totalDuration > 10.0 ? (totalDuration - 10.0) : (totalDuration - 1.0);
+  }
+
   /// Returns progress value from 0.0 to 1.0
   double get progressFraction {
     if (totalDuration <= 0) return 0.0;
-    if (isCompleted || currentPosition >= totalDuration) return 1.0;
+    if (isActuallyCompleted || currentPosition >= totalDuration) return 1.0;
     return (currentPosition / totalDuration).clamp(0.0, 1.0);
   }
 
-  /// Returns true when marked completed by the backend or watched to the end
+  /// Returns true when marked completed by the backend or watched up to the last 10 seconds
   bool get isActuallyCompleted {
     if (isCompleted) return true;
-    if (totalDuration > 0 && currentPosition >= (totalDuration - 1.0)) return true;
+    if (totalDuration > 0 && currentPosition >= getCompletionThreshold(totalDuration)) {
+      return true;
+    }
     return false;
   }
 
@@ -60,7 +69,7 @@ class VideoProgress {
         compRaw == 1 ||
         compRaw == '1' ||
         compRaw == 'true' ||
-        (dur > 0 && pos >= (dur - 1.0));
+        (dur > 0 && pos >= VideoProgress.getCompletionThreshold(dur));
 
     return VideoProgress(
       totalDuration: dur,
@@ -134,8 +143,9 @@ class VideoProgressManager {
       final double effectiveDur = totalDuration > 0
           ? totalDuration
           : existing.totalDuration;
-      final bool completed =
-          isCompleted ?? (effectiveDur > 0 && currentPosition >= effectiveDur);
+      final bool completed = isCompleted ??
+          (effectiveDur > 0 &&
+              currentPosition >= VideoProgress.getCompletionThreshold(effectiveDur));
 
       final nowIst = nowInIstIso();
 
@@ -216,7 +226,8 @@ class VideoProgressManager {
           isCompVal == '1' ||
           isCompVal == 'true' ||
           statusVal == 'completed' ||
-          (totalDuration > 0 && currentPosition >= (totalDuration - 1.0));
+          (totalDuration > 0 &&
+              currentPosition >= VideoProgress.getCompletionThreshold(totalDuration));
 
       final String? firstOpenedAt = apiData['first_opened_at']?.toString() ??
           apiData['firstOpenedAt']?.toString();

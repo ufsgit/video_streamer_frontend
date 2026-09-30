@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../../core/error_utils.dart';
 import '../../services/notification_service.dart';
 import '../../services/version_service.dart';
 import '../../viewmodels/auth_viewmodel.dart';
@@ -90,10 +91,15 @@ class _LoginViewState extends State<LoginView> {
         }
       }
     } else if (_viewModel.errorMessage != null) {
+      final friendlyMsg = ErrorUtils.format(
+        _viewModel.errorMessage,
+        fallback: 'Incorrect username or password. Please try again.',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_viewModel.errorMessage!),
+          content: Text(friendlyMsg),
           backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -220,8 +226,9 @@ class _LoginViewState extends State<LoginView> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                        'Forgot password link clicked. API integration pending.',
+                                        'To reset your password, please contact your clinic administrator.',
                                       ),
+                                      behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 },

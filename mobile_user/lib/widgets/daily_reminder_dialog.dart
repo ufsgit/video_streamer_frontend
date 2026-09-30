@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/error_utils.dart';
 import '../services/notification_service.dart';
 import 'scroll_time_picker_sheet.dart';
 
@@ -86,10 +87,11 @@ class _DailyReminderDialogState extends State<DailyReminderDialog> {
         persist: true,
         syncToServer: true,
       );
+      if (summary.startsWith('Failed:')) {
+        throw Exception(summary.replaceFirst('Failed:', '').trim());
+      }
       await service.markTimeAsSet();
-    } catch (e) {
-      debugPrint('Error enabling reminder: $e');
-    } finally {
+
       if (mounted) {
         setState(() => _isLoading = false);
         Navigator.of(context).pop();
@@ -108,6 +110,36 @@ class _DailyReminderDialogState extends State<DailyReminderDialog> {
                     summary.isNotEmpty
                         ? 'Reminder scheduled: $summary'
                         : 'Daily reminder set for ${_formatTime(_selectedTime)}!',
+                    style: const TextStyle(fontSize: 13, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error enabling reminder: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        Navigator.of(context).pop();
+
+        final friendlyMsg = ErrorUtils.format(
+          e,
+          fallback: 'Unable to set reminder. Please check permissions and try again.',
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.redAccent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    friendlyMsg,
                     style: const TextStyle(fontSize: 13, color: Colors.white),
                   ),
                 ),

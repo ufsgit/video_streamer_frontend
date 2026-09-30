@@ -192,8 +192,12 @@ class _AuthGateState extends State<AuthGate> {
                     child: ElevatedButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Redirecting to store for update...'),
+                          SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            content: const Text('Opening app store to update...'),
                           ),
                         );
                       },

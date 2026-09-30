@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../core/error_utils.dart';
 import '../models/user_model.dart';
 import '../repositories/auth_repository.dart';
 import '../services/notification_service.dart';
@@ -79,7 +80,10 @@ class AuthViewModel extends ChangeNotifier {
       NotificationService.instance.onUserLoggedIn(userId: _currentUser?.id);
       return true;
     } else {
-      _errorMessage = result['message'] ?? 'Login failed. Please try again.';
+      _errorMessage = ErrorUtils.format(
+        result['message'],
+        fallback: 'Incorrect username or password. Please try again.',
+      );
       notifyListeners();
       return false;
     }

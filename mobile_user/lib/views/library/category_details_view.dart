@@ -334,9 +334,13 @@ class _CategoryDetailsViewState extends State<CategoryDetailsView> {
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Video link is not available',
+                                          SnackBar(
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            content: const Text(
+                                              'This video is currently unavailable. Please try another video or check back later.',
                                             ),
                                           ),
                                         );

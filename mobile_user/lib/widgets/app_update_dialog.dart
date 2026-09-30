@@ -215,8 +215,12 @@ class AppUpdateDialog extends StatelessWidget {
                         } else {
                           // Default action if no custom handler
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Redirecting to update...'),
+                            SnackBar(
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              content: const Text('Opening app store to update...'),
                             ),
                           );
                         }

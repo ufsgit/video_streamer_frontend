@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import '../core/constants/api_constants.dart';
+import '../core/error_utils.dart';
 import '../core/network/dio_client.dart';
 import '../core/storage/session_manager.dart';
 import '../models/user_model.dart';
@@ -197,29 +198,21 @@ class AuthRepositoryImpl implements AuthRepository {
       }
       return {'success': true, 'data': data};
     } on DioException catch (e) {
-      if (e.response != null && e.response?.data != null) {
-        final data = e.response!.data;
-        if (data is Map<String, dynamic>) {
-          final message =
-              data['message'] ?? data['error'] ?? 'Invalid credentials';
-          return {'success': false, 'message': message.toString()};
-        }
-      }
-      if (e.type == DioExceptionType.connectionError) {
-        return {
-          'success': false,
-          'message':
-              'Connection error: Request was blocked by the browser (CORS). Please run on Windows ("flutter run -d windows") or launch Chrome with web security disabled.',
-        };
-      }
       return {
         'success': false,
-        'message': e.response?.statusCode != null
-            ? 'Login failed with status code ${e.response?.statusCode}'
-            : 'Connection error (${e.type}). Please check your connection.',
+        'message': ErrorUtils.format(
+          e,
+          fallback: 'Unable to sign in. Please check your credentials and try again.',
+        ),
       };
     } catch (e) {
-      return {'success': false, 'message': 'Unexpected error: $e'};
+      return {
+        'success': false,
+        'message': ErrorUtils.format(
+          e,
+          fallback: 'Unable to sign in. Please try again.',
+        ),
+      };
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/constants/api_constants.dart';
+import '../../core/error_utils.dart';
 import '../../core/network/dio_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../services/api_service.dart';
@@ -754,10 +755,15 @@ class _LanguageSelectionBottomSheetState
     } catch (e) {
       if (mounted) {
         setState(() => _isUpdating = false);
+        final friendlyMsg = ErrorUtils.format(
+          e,
+          fallback: 'Unable to update language. Please try again.',
+        );
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update language: $e'),
+            content: Text(friendlyMsg),
             backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }

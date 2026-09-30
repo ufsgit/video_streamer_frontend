@@ -411,7 +411,7 @@ class NotificationService {
       }
     } catch (e) {
       debugPrint('Failed to schedule daily reminder: $e');
-      return 'Failed: $e';
+      return 'Failed: Unable to schedule reminder. Please check notification permissions and try again.';
     }
   }
 

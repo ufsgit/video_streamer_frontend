@@ -61,9 +61,13 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog> {
         _selectedLanguage!.trim().isEmpty ||
         _selectedLanguage!.toLowerCase() == 'none') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a language to continue.'),
+        SnackBar(
+          content: const Text('Please select a language to continue.'),
           backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
       return;

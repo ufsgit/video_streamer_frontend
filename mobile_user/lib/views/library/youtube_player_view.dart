@@ -68,9 +68,11 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
     _maxWatchedPosition = saved.currentPosition;
     _videoDuration = saved.totalDuration;
 
-    // Video is completed if marked in storage or watched to the end
-    _isCompleted = saved.isCompleted ||
-        (_videoDuration > 0 && _currentPosition >= (_videoDuration - 1.0));
+    // Video is completed if marked in storage or watched up to the last 10 seconds
+    final double initialCompletionThreshold =
+        VideoProgress.getCompletionThreshold(_videoDuration);
+    _isCompleted = saved.isActuallyCompleted ||
+        (_videoDuration > 0 && _currentPosition >= initialCompletionThreshold);
 
     // Ensure first_opened_at is set on first open in IST
     final nowIst = VideoProgressManager.nowInIstIso();
@@ -116,9 +118,11 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
         final PlayerState currentState = value.playerState;
         final bool isCurrentlyPlaying = currentState == PlayerState.playing;
         final bool ended = currentState == PlayerState.ended;
+        final double completionThreshold =
+            VideoProgress.getCompletionThreshold(_videoDuration);
         final bool isDone = ended ||
             (_videoDuration > 0 &&
-                _maxWatchedPosition >= (_videoDuration - 1.0));
+                _maxWatchedPosition >= completionThreshold);
 
         if (isCurrentlyPlaying) {
           if (!_isPlaying) {
@@ -261,8 +265,22 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
               _maxWatchedPosition = pos;
             }
 
-            // Continuously persist to Hive every ~2 seconds
-            if ((_maxWatchedPosition - _lastSavedPositionToHive).abs() >= 2.0) {
+            final double completionThreshold =
+                VideoProgress.getCompletionThreshold(_videoDuration);
+            final bool newlyCompleted = !_isCompleted &&
+                _videoDuration > 0 &&
+                _maxWatchedPosition >= completionThreshold;
+
+            if (newlyCompleted) {
+              _isCompleted = true;
+              _lastSavedPositionToHive = _maxWatchedPosition;
+              _saveToHiveAndApi(
+                current: _maxWatchedPosition,
+                total: _videoDuration,
+                isCompleted: true,
+              );
+            } else if ((_maxWatchedPosition - _lastSavedPositionToHive).abs() >= 2.0) {
+              // Continuously persist to Hive every ~2 seconds
               _lastSavedPositionToHive = _maxWatchedPosition;
               VideoProgressManager.saveProgress(
                 idOrUrl: widget.videoUrl,
@@ -315,8 +333,10 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
     required double total,
     required bool isCompleted,
   }) async {
+    final double completionThreshold =
+        VideoProgress.getCompletionThreshold(total);
     final bool completed =
-        isCompleted || (total > 0 && current >= (total - 1.0));
+        isCompleted || (total > 0 && current >= completionThreshold);
     final nowIst = VideoProgressManager.nowInIstIso();
 
     // 1. Persist to Hive storage
@@ -358,9 +378,11 @@ class _YoutubePlayerViewState extends State<YoutubePlayerView> with WidgetsBindi
         AppTourController.instance.currentStep == AppTourStep.pauseVideo) {
       AppTourController.instance.setStep(AppTourStep.selectVideosFromHereOnly);
     }
+    final double completionThreshold =
+        VideoProgress.getCompletionThreshold(_videoDuration);
     final bool completed =
         _isCompleted ||
-        (_videoDuration > 0 && _maxWatchedPosition >= (_videoDuration - 1.0));
+        (_videoDuration > 0 && _maxWatchedPosition >= completionThreshold);
     _saveToHiveAndApi(
       current: _maxWatchedPosition,
       total: _videoDuration,
