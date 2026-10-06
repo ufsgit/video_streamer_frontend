@@ -935,6 +935,12 @@ class _MobilePatientDetailViewState extends State<MobilePatientDetailView> {
                     ),
                     const SizedBox(height: 8),
                     _buildInfoRow(
+                      Icons.contact_phone_outlined,
+                      "Emergency Contact",
+                      _patient.emergencyNumber,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildInfoRow(
                       Icons.email_outlined,
                       "Email",
                       _patient.email,

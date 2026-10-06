@@ -187,6 +187,111 @@ class TopWatchedVideo {
   }
 }
 
+class TopPatient {
+  final String id;
+  final String name;
+  final int videosWatched;
+  final int totalVideos;
+  final String imageUrl;
+  final String ward;
+  final double? completionRate;
+  final String lastActive;
+
+  TopPatient({
+    required this.id,
+    required this.name,
+    required this.videosWatched,
+    this.totalVideos = 0,
+    this.imageUrl = '',
+    this.ward = '',
+    this.completionRate,
+    this.lastActive = '',
+  });
+
+  factory TopPatient.fromJson(Map<String, dynamic> json) {
+    int parsedWatched = 0;
+    int parsedTotal = 0;
+    final vwStr = json['videos_watched']?.toString() ??
+        json['videosWatched']?.toString() ??
+        json['total_watched']?.toString() ??
+        json['watch_count']?.toString() ??
+        json['count']?.toString() ??
+        json['videos']?.toString() ??
+        '';
+
+    if (vwStr.contains('/')) {
+      final parts = vwStr.split('/');
+      parsedWatched = int.tryParse(parts[0]) ?? 0;
+      if (parts.length > 1) {
+        parsedTotal = int.tryParse(parts[1]) ?? 0;
+      }
+    } else {
+      parsedWatched = (json['videos_watched'] is num)
+          ? (json['videos_watched'] as num).toInt()
+          : (json['videosWatched'] is num)
+              ? (json['videosWatched'] as num).toInt()
+              : (json['watch_count'] is num)
+                  ? (json['watch_count'] as num).toInt()
+                  : (json['count'] is num)
+                      ? (json['count'] as num).toInt()
+                      : (int.tryParse(vwStr) ?? 0);
+      parsedTotal = (json['total_videos'] is num)
+          ? (json['total_videos'] as num).toInt()
+          : (json['totalVideos'] is num)
+              ? (json['totalVideos'] as num).toInt()
+              : (int.tryParse(json['total_videos']?.toString() ??
+                      json['totalVideos']?.toString() ??
+                      '') ??
+                  0);
+    }
+
+    double? parsedRate;
+    final rawRate = json['completion_rate'] ??
+        json['completionRate'] ??
+        json['progress_percent'] ??
+        json['progressPercentage'] ??
+        json['progress'] ??
+        json['rate'];
+    if (rawRate is num) {
+      parsedRate = rawRate.toDouble();
+    } else if (rawRate != null) {
+      parsedRate =
+          double.tryParse(rawRate.toString().replaceAll('%', '').trim());
+    }
+
+    return TopPatient(
+      id: json['id']?.toString() ??
+          json['user_id']?.toString() ??
+          json['patient_id']?.toString() ??
+          json['_id']?.toString() ??
+          '',
+      name: json['name']?.toString() ??
+          json['patient_name']?.toString() ??
+          json['patientName']?.toString() ??
+          json['username']?.toString() ??
+          'Patient',
+      videosWatched: parsedWatched,
+      totalVideos: parsedTotal,
+      imageUrl: json['image_url']?.toString() ??
+          json['imageUrl']?.toString() ??
+          json['profile_image']?.toString() ??
+          json['avatar']?.toString() ??
+          '',
+      ward: (json['ward'] == null ||
+              json['ward'].toString().trim().isEmpty ||
+              json['ward'].toString().toLowerCase() == 'null' ||
+              json['ward'].toString().trim().toLowerCase() == 'general ward')
+          ? ''
+          : json['ward'].toString(),
+      completionRate: parsedRate,
+      lastActive: json['last_active']?.toString() ??
+          json['last_login']?.toString() ??
+          json['lastLogin']?.toString() ??
+          '',
+    );
+  }
+}
+
 class DashboardViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
@@ -196,6 +301,7 @@ class DashboardViewModel extends ChangeNotifier {
   double completionRate = 0.0;
   List<UserActivity> activityLogs = [];
   List<TopWatchedVideo> topWatchedVideos = [];
+  List<TopPatient> topPatients = [];
   bool isLoading = false;
   String? errorMessage;
 
@@ -216,6 +322,7 @@ class DashboardViewModel extends ChangeNotifier {
         _apiService.getActivityLogs().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
         _apiService.listUsers(limit: 100).catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
         _apiService.getTopWatchedVideos().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
+        _apiService.getTopPatients().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
       ]);
 
       final loginsRes = results[0];
@@ -345,6 +452,32 @@ class DashboardViewModel extends ChangeNotifier {
 
       topWatchedVideos = topList
           .map((json) => TopWatchedVideo.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+
+      // 7. Top Patients (patients who watched the most videos)
+      final patientsRes = results[6];
+      final patientsData = patientsRes.data;
+      List<dynamic> patientsList = [];
+      if (patientsData is Map<String, dynamic>) {
+        final d = patientsData['data'] ??
+            patientsData['patients'] ??
+            patientsData['top_patients'] ??
+            patientsData['topPatients'] ??
+            patientsData['users'] ??
+            patientsData;
+        if (d is List) {
+          patientsList = d;
+        } else if (d is Map && d['patients'] is List) {
+          patientsList = d['patients'];
+        } else if (d is Map && d['data'] is List) {
+          patientsList = d['data'];
+        }
+      } else if (patientsData is List) {
+        patientsList = patientsData;
+      }
+
+      topPatients = patientsList
+          .map((json) => TopPatient.fromJson(Map<String, dynamic>.from(json)))
           .toList();
     } catch (e) {
       errorMessage = "Failed to load dashboard data.";

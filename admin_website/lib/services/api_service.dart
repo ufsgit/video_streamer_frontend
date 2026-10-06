@@ -9,7 +9,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'https://videostreamerapi.ufstech.net.in';
+  static const String baseUrl = 'https://7qh4z02n-3000.inc1.devtunnels.ms';
 
   late Dio _dio;
   String? _authToken;
@@ -148,6 +148,10 @@ class ApiService {
     return await _dio.get('/admin/dashboard/top-watched-videos');
   }
 
+  Future<Response> getTopPatients() async {
+    return await _dio.get('/admin/dashboard/top-patients');
+  }
+
   // --- 4. Admin User Management ---
   Future<Response> listUsers({
     int? page,
@@ -246,11 +250,25 @@ class ApiService {
   }
 
   Future<Response> createUser(dynamic userData) async {
-    return await _dio.post('/admin/users/create', data: userData);
+    try {
+      return await _dio.post('/admin/users/create', data: userData);
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 404) {
+        return await _dio.post('/api/admin/users/create', data: userData);
+      }
+      rethrow;
+    }
   }
 
   Future<Response> editUser(String id, dynamic updateData) async {
-    return await _dio.put('/admin/users/edit/$id', data: updateData);
+    try {
+      return await _dio.put('/admin/users/edit/$id', data: updateData);
+    } catch (e) {
+      if (e is DioException && e.response?.statusCode == 404) {
+        return await _dio.put('/api/admin/users/edit/$id', data: updateData);
+      }
+      rethrow;
+    }
   }
 
   Future<Response> deleteUser(String id) async {

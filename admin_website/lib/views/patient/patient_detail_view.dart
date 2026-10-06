@@ -155,6 +155,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       "Gender",
       "Date of Birth",
       "Phone Number",
+      "Emergency Contact",
       "Email Address",
       "Language",
       "Registration Date",
@@ -189,6 +190,7 @@ class _PatientDetailViewState extends State<PatientDetailView> {
       _csvEscape(patient.gender),
       _csvEscape(patient.dob),
       _csvEscape(patient.phone),
+      _csvEscape(patient.emergencyNumber.isNotEmpty ? patient.emergencyNumber : 'N/A'),
       _csvEscape(patient.email),
       _csvEscape(patient.language),
       _csvEscape(_formatDateTime(patient.date)),
@@ -787,6 +789,13 @@ class _PatientDetailViewState extends State<PatientDetailView> {
                         _buildInfoRow(
                           "PHONE NUMBER",
                           patient.phone.isNotEmpty ? patient.phone : "N/A",
+                        ),
+                        const SizedBox(height: 16),
+                        _buildInfoRow(
+                          "EMERGENCY NUMBER",
+                          patient.emergencyNumber.isNotEmpty
+                              ? patient.emergencyNumber
+                              : "N/A",
                         ),
                         const SizedBox(height: 16),
                         _buildInfoRow(

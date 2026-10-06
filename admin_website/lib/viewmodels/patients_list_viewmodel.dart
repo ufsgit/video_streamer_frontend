@@ -36,7 +36,10 @@ class PatientsListViewModel extends ChangeNotifier {
   }
 
   void goToPage(int page) {
-    if (page < 1 || (totalPages > 0 && page > totalPages) || page == currentPage || isLoading) {
+    if (page < 1 ||
+        (totalPages > 0 && page > totalPages) ||
+        page == currentPage ||
+        isLoading) {
       return;
     }
     fetchPatients(page: page);
@@ -81,15 +84,18 @@ class PatientsListViewModel extends ChangeNotifier {
 
       if (resData is Map<String, dynamic>) {
         // Extract total count from various common backend formats
-        totalPatients = resData['total'] ??
+        totalPatients =
+            resData['total'] ??
             resData['totalCount'] ??
             resData['count'] ??
-            (resData['pagination'] is Map ? resData['pagination']['total'] : null) ??
+            (resData['pagination'] is Map
+                ? resData['pagination']['total']
+                : null) ??
             (resData['meta'] is Map ? resData['meta']['total'] : null) ??
             (resData['data'] is Map
                 ? (resData['data']['total'] ??
-                    resData['data']['totalCount'] ??
-                    resData['data']['count'])
+                      resData['data']['totalCount'] ??
+                      resData['data']['count'])
                 : null) ??
             0;
 
@@ -113,13 +119,18 @@ class PatientsListViewModel extends ChangeNotifier {
 
       if (totalPatients <= 0) {
         totalPatients = (currentPage - 1) * pageSize + patients.length;
-        totalPages = (patients.length == pageSize) ? currentPage + 1 : currentPage;
+        totalPages = (patients.length == pageSize)
+            ? currentPage + 1
+            : currentPage;
       } else {
         totalPages = (totalPatients / pageSize).ceil();
         if (totalPages < 1) totalPages = 1;
       }
     } catch (e) {
-      errorMessage = ErrorUtils.format(e, fallback: "Server error. Please try again.");
+      errorMessage = ErrorUtils.format(
+        e,
+        fallback: "Server error. Please try again.",
+      );
       debugPrint("fetchPatients error: $e");
     } finally {
       isLoading = false;

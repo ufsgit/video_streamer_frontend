@@ -13,6 +13,7 @@ class MobileDashboardView extends StatefulWidget {
 
 class _MobileDashboardViewState extends State<MobileDashboardView> {
   final DashboardViewModel _viewModel = DashboardViewModel();
+  int _selectedTopTab = 0; // 0: Top Watched Videos, 1: Top Active Patients
 
   @override
   void initState() {
@@ -162,8 +163,8 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
               ),
               const SizedBox(height: 18),
 
-              // Top Watched Videos Section
-              _buildTopVideosSection(),
+              // Switchable Top Leaderboard Card (Videos & Patients)
+              _buildTopLeaderboardCard(),
               const SizedBox(height: 20),
 
               // Activity Logs Header
@@ -445,7 +446,8 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
     );
   }
 
-  Widget _buildTopVideosSection() {
+  Widget _buildTopLeaderboardCard() {
+    final isVideosTab = _selectedTopTab == 0;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -467,172 +469,397 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFF59E0B), Color(0xFFEA580C)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                Expanded(
+                  child: Row(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isVideosTab
+                                ? [const Color(0xFFF59E0B), const Color(0xFFEA580C)]
+                                : [const Color(0xFF6366F1), const Color(0xFF4F46E5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(7),
                         ),
-                        borderRadius: BorderRadius.circular(6),
+                        child: Icon(
+                          isVideosTab
+                              ? Icons.local_fire_department_rounded
+                              : Icons.emoji_events_rounded,
+                          color: Colors.white,
+                          size: 15,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.local_fire_department_rounded,
-                        color: Colors.white,
-                        size: 15,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isVideosTab ? "Top Watched Videos" : "Top Active Patients",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      "Top Watched Videos",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFEDD5)),
+                    ],
                   ),
-                  child: Text(
-                    "${_viewModel.topWatchedVideos.length} Ranked",
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFC2410C),
-                    ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTabButton(
+                        title: "Videos",
+                        icon: Icons.play_circle_fill_rounded,
+                        isSelected: isVideosTab,
+                        activeColor: const Color(0xFFEA580C),
+                        onTap: () {
+                          if (_selectedTopTab != 0) {
+                            setState(() => _selectedTopTab = 0);
+                          }
+                        },
+                      ),
+                      _buildTabButton(
+                        title: "Patients",
+                        icon: Icons.people_alt_rounded,
+                        isSelected: !isVideosTab,
+                        activeColor: const Color(0xFF4F46E5),
+                        onTap: () {
+                          if (_selectedTopTab != 1) {
+                            setState(() => _selectedTopTab = 1);
+                          }
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
           const Divider(height: 1, color: AppTheme.border),
-          if (_viewModel.isLoading)
-            const TopVideosSkeleton(itemCount: 4)
-          else if (_viewModel.topWatchedVideos.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Center(
-                child: Text(
-                  "No video watch statistics yet",
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
-                ),
-              ),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              itemCount: _viewModel.topWatchedVideos.take(5).length,
-              separatorBuilder: (context, index) =>
-                  const Divider(height: 1, color: AppTheme.borderSubtle),
-              itemBuilder: (context, index) {
-                final video = _viewModel.topWatchedVideos[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12.0,
-                    vertical: 8.0,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: index < 3
-                              ? (index == 0
-                                  ? const Color(0xFFFBBF24)
-                                  : (index == 1
-                                      ? const Color(0xFFCBD5E1)
-                                      : const Color(0xFFD97706)))
-                              : const Color(0xFFF1F5F9),
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          "${index + 1}",
-                          style: TextStyle(
-                            color: index < 3 ? Colors.white : AppTheme.textSecondary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              video.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: AppTheme.textPrimary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              video.category,
-                              style: const TextStyle(
-                                fontSize: 10.5,
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2.5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.blueBg,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.blueBorder),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.play_circle_fill_rounded,
-                              size: 11,
-                              color: AppTheme.blue,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              "${video.watchCount}",
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.blueText,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+          isVideosTab ? _buildTopVideosBody() : _buildTopPatientsBody(),
         ],
       ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 13,
+              color: isSelected ? activeColor : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? AppTheme.textPrimary : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopVideosBody() {
+    if (_viewModel.isLoading) {
+      return const TopVideosSkeleton(itemCount: 4);
+    } else if (_viewModel.topWatchedVideos.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(20.0),
+        child: Center(
+          child: Text(
+            "No video watch statistics yet",
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          ),
+        ),
+      );
+    }
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: _viewModel.topWatchedVideos.take(5).length,
+      separatorBuilder: (context, index) =>
+          const Divider(height: 1, color: AppTheme.borderSubtle),
+      itemBuilder: (context, index) {
+        final video = _viewModel.topWatchedVideos[index];
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12.0,
+            vertical: 8.0,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: index < 3
+                      ? (index == 0
+                          ? const Color(0xFFFBBF24)
+                          : (index == 1
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFFD97706)))
+                      : const Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "${index + 1}",
+                  style: TextStyle(
+                    color: index < 3 ? Colors.white : AppTheme.textSecondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      video.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppTheme.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      video.category,
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 2.5,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.blueBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.blueBorder),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.play_circle_fill_rounded,
+                      size: 11,
+                      color: AppTheme.blue,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      "${video.watchCount}",
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.blueText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTopPatientsBody() {
+    if (_viewModel.isLoading) {
+      return const TopVideosSkeleton(itemCount: 4);
+    } else if (_viewModel.topPatients.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(20.0),
+        child: Center(
+          child: Text(
+            "No patient watch records yet",
+            style: TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          ),
+        ),
+      );
+    }
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: _viewModel.topPatients.take(5).length,
+      separatorBuilder: (context, index) =>
+          const Divider(height: 1, color: AppTheme.borderSubtle),
+      itemBuilder: (context, index) {
+        final patient = _viewModel.topPatients[index];
+        final avatarColor = AppTheme.getAvatarPalette(patient.name);
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12.0,
+            vertical: 8.0,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: index < 3
+                      ? (index == 0
+                          ? const Color(0xFFFBBF24)
+                          : (index == 1
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFFD97706)))
+                      : const Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  "${index + 1}",
+                  style: TextStyle(
+                    color: index < 3 ? Colors.white : AppTheme.textSecondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: avatarColor['bg'],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: avatarColor['border']!),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  patient.name.isNotEmpty ? patient.name[0].toUpperCase() : 'P',
+                  style: TextStyle(
+                    color: avatarColor['fg'],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      patient.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: AppTheme.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      patient.ward.isNotEmpty
+                          ? patient.ward
+                          : (patient.completionRate != null
+                              ? "${patient.completionRate!.toStringAsFixed(0)}% completion"
+                              : "Active patient"),
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 7,
+                  vertical: 2.5,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE9D5FF)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.play_circle_fill_rounded,
+                      size: 11,
+                      color: Color(0xFF7C3AED),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      "${patient.videosWatched} vids",
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6D28D9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

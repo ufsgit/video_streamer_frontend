@@ -23,6 +23,8 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emergencyNumberController =
+      TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -55,6 +57,9 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       _usernameController.text = p.username;
       _emailController.text = p.email == "N/A" ? "" : p.email;
       _phoneController.text = p.phone == "N/A" ? "" : p.phone;
+      _emergencyNumberController.text = p.emergencyNumber == "N/A"
+          ? ""
+          : p.emergencyNumber;
       _dobController.text = p.dob;
       _ageController.text = p.age > 0 ? p.age.toString() : '';
       _noteController.text = p.note;
@@ -81,6 +86,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
     _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _emergencyNumberController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _dobController.dispose();
@@ -156,6 +162,13 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       return;
     }
 
+    if (!isEditing && _passwordController.text.trim().isEmpty) {
+      setState(() {
+        _errorMessage = 'Password is required.';
+      });
+      return;
+    }
+
     if (_passwordController.text.isNotEmpty) {
       if (_passwordController.text != _confirmPasswordController.text) {
         setState(() {
@@ -196,6 +209,23 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
           return;
         }
         payload['phone_number'] = phone;
+      }
+
+      if (_emergencyNumberController.text.trim().isNotEmpty) {
+        final emergency = _emergencyNumberController.text.trim();
+        if (!RegExp(r'^\d{10}$').hasMatch(emergency)) {
+          setState(() => _errorMessage = 'Incorrect emergency phone number.');
+          return;
+        }
+        payload['emergency_contact_number'] = emergency;
+        payload['emergency_contact'] = emergency;
+        payload['emergency_number'] = emergency;
+        payload['emergency_phone'] = emergency;
+      } else {
+        payload['emergency_contact_number'] = null;
+        payload['emergency_contact'] = null;
+        payload['emergency_number'] = null;
+        payload['emergency_phone'] = null;
       }
 
       if (_ageController.text.trim().isNotEmpty) {
@@ -524,9 +554,8 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                             const SizedBox(height: 8),
                             _buildTextFormField(
                               controller: _nameController,
-                              hint: "e.g. Jane Doe",
-                              validator: (v) =>
-                                  (v == null || v.trim().isEmpty)
+                              hint: "Jane Doe",
+                              validator: (v) => (v == null || v.trim().isEmpty)
                                   ? 'Full Legal Name is required'
                                   : null,
                             ),
@@ -536,11 +565,15 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel(isEditing ? "Username (Unchangeable)" : "Username *"),
+                            _buildLabel(
+                              isEditing
+                                  ? "Username (Unchangeable)"
+                                  : "Username *",
+                            ),
                             const SizedBox(height: 8),
                             _buildTextFormField(
                               controller: _usernameController,
-                              hint: "e.g. janedoe",
+                              hint: "",
                               readOnly: isEditing,
                               enabled: !isEditing,
                             ),
@@ -557,7 +590,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                   const SizedBox(height: 8),
                                   _buildTextFormField(
                                     controller: _nameController,
-                                    hint: "e.g. Jane Doe",
+                                    hint: "Jane Doe",
                                     validator: (v) =>
                                         (v == null || v.trim().isEmpty)
                                         ? 'Full Legal Name is required'
@@ -571,11 +604,15 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildLabel(isEditing ? "Username (Unchangeable)" : "Username *"),
+                                  _buildLabel(
+                                    isEditing
+                                        ? "Username (Unchangeable)"
+                                        : "Username *",
+                                  ),
                                   const SizedBox(height: 8),
                                   _buildTextFormField(
                                     controller: _usernameController,
-                                    hint: "e.g. janedoe",
+                                    hint: "",
                                     readOnly: isEditing,
                                     enabled: !isEditing,
                                   ),
@@ -591,7 +628,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel("Email Address (Optional)"),
+                            _buildLabel("Email Address"),
                             const SizedBox(height: 8),
                             _buildTextFormField(
                               controller: _emailController,
@@ -599,8 +636,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                               keyboardType: TextInputType.emailAddress,
                               validator: (v) {
                                 if (v != null && v.trim().isNotEmpty) {
-                                  if (!v.contains('@') ||
-                                      !v.contains('.')) {
+                                  if (!v.contains('@') || !v.contains('.')) {
                                     return 'Enter a valid email';
                                   }
                                 }
@@ -613,11 +649,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildLabel("Phone Number (Optional)"),
+                            _buildLabel("Phone Number"),
                             const SizedBox(height: 8),
                             _buildTextFormField(
                               controller: _phoneController,
-                              hint: "(555) 000-0000",
+                              hint: "",
                               keyboardType: TextInputType.number,
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
@@ -642,7 +678,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildLabel("Email Address (Optional)"),
+                                  _buildLabel("Email Address"),
                                   const SizedBox(height: 8),
                                   _buildTextFormField(
                                     controller: _emailController,
@@ -666,11 +702,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildLabel("Phone Number (Optional)"),
+                                  _buildLabel("Phone Number"),
                                   const SizedBox(height: 8),
                                   _buildTextFormField(
                                     controller: _phoneController,
-                                    hint: "(555) 000-0000",
+                                    hint: "",
                                     keyboardType: TextInputType.number,
                                     inputFormatters: [
                                       FilteringTextInputFormatter.digitsOnly,
@@ -679,7 +715,9 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                     validator: (v) {
                                       if (v != null && v.trim().isNotEmpty) {
                                         final phone = v.trim();
-                                        if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
+                                        if (!RegExp(
+                                          r'^\d{10}$',
+                                        ).hasMatch(phone)) {
                                           return 'Incorrect phone number.';
                                         }
                                       }
@@ -689,6 +727,73 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 ],
                               ),
                             ),
+                          ],
+                        ),
+                      const SizedBox(height: 16),
+
+                      // Emergency Number
+                      if (isMobile) ...[
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Emergency Contact Number"),
+                            const SizedBox(height: 8),
+                            _buildTextFormField(
+                              controller: _emergencyNumberController,
+                              hint: "e.g. 9876543210",
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                LengthLimitingTextInputFormatter(10),
+                              ],
+                              validator: (v) {
+                                if (v != null && v.trim().isNotEmpty) {
+                                  final emergency = v.trim();
+                                  if (!RegExp(
+                                    r'^\d{10}$',
+                                  ).hasMatch(emergency)) {
+                                    return 'Incorrect emergency phone number.';
+                                  }
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ),
+                      ] else
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel("Emergency Contact Number"),
+                                  const SizedBox(height: 8),
+                                  _buildTextFormField(
+                                    controller: _emergencyNumberController,
+                                    hint: "e.g. 9876543210",
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(10),
+                                    ],
+                                    validator: (v) {
+                                      if (v != null && v.trim().isNotEmpty) {
+                                        final emergency = v.trim();
+                                        if (!RegExp(
+                                          r'^\d{10}$',
+                                        ).hasMatch(emergency)) {
+                                          return 'Incorrect emergency phone number.';
+                                        }
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            const Expanded(child: SizedBox()),
                           ],
                         ),
                       const SizedBox(height: 16),
@@ -710,6 +815,13 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                   ? "Leave blank to keep unchanged"
                                   : "••••••••",
                               obscureText: _obscurePassword,
+                              validator: (v) {
+                                if (!isEditing &&
+                                    (v == null || v.trim().isEmpty)) {
+                                  return 'Password is required';
+                                }
+                                return null;
+                              },
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
@@ -759,9 +871,14 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 },
                               ),
                               validator: (v) {
-                                if (_passwordController.text.isNotEmpty &&
+                                if ((!isEditing ||
+                                        _passwordController.text.isNotEmpty) &&
                                     (v == null || v.isEmpty)) {
                                   return 'Confirm password is required';
+                                }
+                                if (_passwordController.text.isNotEmpty &&
+                                    v != _passwordController.text) {
+                                  return 'Passwords do not match';
                                 }
                                 return null;
                               },
@@ -787,6 +904,13 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                         ? "Leave blank to keep unchanged"
                                         : "••••••••",
                                     obscureText: _obscurePassword,
+                                    validator: (v) {
+                                      if (!isEditing &&
+                                          (v == null || v.trim().isEmpty)) {
+                                        return 'Password is required';
+                                      }
+                                      return null;
+                                    },
                                     suffixIcon: IconButton(
                                       icon: Icon(
                                         _obscurePassword
@@ -838,9 +962,16 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                       },
                                     ),
                                     validator: (v) {
-                                      if (_passwordController.text.isNotEmpty &&
+                                      if ((!isEditing ||
+                                              _passwordController
+                                                  .text
+                                                  .isNotEmpty) &&
                                           (v == null || v.isEmpty)) {
                                         return 'Confirm password is required';
+                                      }
+                                      if (_passwordController.text.isNotEmpty &&
+                                          v != _passwordController.text) {
+                                        return 'Passwords do not match';
                                       }
                                       return null;
                                     },
@@ -876,12 +1007,15 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                             const SizedBox(height: 8),
                             _buildTextFormField(
                               controller: _ageController,
-                              hint: "e.g. 30",
+                              hint: "",
                               keyboardType: TextInputType.number,
                               validator: (v) {
                                 if (v != null && v.trim().isNotEmpty) {
-                                  if (int.tryParse(v.trim()) == null) {
-                                    return 'Invalid';
+                                  final parsed = int.tryParse(v.trim());
+                                  if (parsed == null ||
+                                      parsed < 0 ||
+                                      parsed > 130) {
+                                    return 'Invalid age (0-130)';
                                   }
                                 }
                                 return null;
@@ -958,8 +1092,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                             DropdownButtonFormField<String>(
                               initialValue: _selectedStatus,
                               items: _statusOptions.map((status) {
-                                final isAct =
-                                    status.toLowerCase() == 'active';
+                                final isAct = status.toLowerCase() == 'active';
                                 return DropdownMenuItem<String>(
                                   value: status,
                                   child: Row(
@@ -1026,11 +1159,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                             ),
                           ],
                         ),
-                      ] else
+                      ] else ...[
+                        // Date of Birth & Age
                         Row(
                           children: [
                             Expanded(
-                              flex: 3,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1046,9 +1179,8 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 16),
                             Expanded(
-                              flex: 2,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1056,12 +1188,15 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                   const SizedBox(height: 8),
                                   _buildTextFormField(
                                     controller: _ageController,
-                                    hint: "e.g. 30",
+                                    hint: "",
                                     keyboardType: TextInputType.number,
                                     validator: (v) {
                                       if (v != null && v.trim().isNotEmpty) {
-                                        if (int.tryParse(v.trim()) == null) {
-                                          return 'Invalid';
+                                        final parsed = int.tryParse(v.trim());
+                                        if (parsed == null ||
+                                            parsed < 0 ||
+                                            parsed > 130) {
+                                          return 'Invalid age (0-130)';
                                         }
                                       }
                                       return null;
@@ -1070,9 +1205,14 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Biological Sex & Account Status
+                        Row(
+                          children: [
                             Expanded(
-                              flex: 3,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1103,10 +1243,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                         ? 'Sex is required'
                                         : null,
                                     decoration: InputDecoration(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 12,
+                                          ),
                                       filled: true,
                                       fillColor: Colors.white,
                                       border: OutlineInputBorder(
@@ -1133,9 +1274,8 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 16),
                             Expanded(
-                              flex: 3,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -1183,10 +1323,11 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                                         ? 'Status is required'
                                         : null,
                                     decoration: InputDecoration(
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 12,
+                                          ),
                                       filled: true,
                                       fillColor: Colors.white,
                                       border: OutlineInputBorder(
@@ -1215,6 +1356,7 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                             ),
                           ],
                         ),
+                      ],
                       const SizedBox(height: 16),
 
                       // Registration Date
@@ -1351,65 +1493,67 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                  OutlinedButton(
-                    onPressed: _isLoading ? null : () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.textPrimary,
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 14,
-                      ),
-                    ),
-                    child: const Text(
-                      "Cancel",
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _handleSubmit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D47A1),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 28,
-                        vertical: 14,
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Text(
-                            isEditing ? "Save Changes" : "Create Profile",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
+                      OutlinedButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.textPrimary,
+                          side: const BorderSide(color: Color(0xFFCBD5E1)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                        ),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : _handleSubmit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0D47A1),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 28,
+                            vertical: 14,
+                          ),
+                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                isEditing ? "Save Changes" : "Create Profile",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ],
-    ),
-  ),
-);
+      ),
+    );
   }
 
   Widget _buildLabel(String text) {
@@ -1448,7 +1592,9 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
       onTap: onTap,
       style: TextStyle(
         fontSize: 14,
-        color: isFieldDisabled ? const Color(0xFF64748B) : const Color(0xFF0F172A),
+        color: isFieldDisabled
+            ? const Color(0xFF64748B)
+            : const Color(0xFF0F172A),
       ),
       validator: validator,
       decoration: InputDecoration(
@@ -1466,10 +1612,16 @@ class _CreatePatientDialogState extends State<CreatePatientDialog> {
                     ),
                   )
                 : (isFieldDisabled
-                    ? const Icon(Icons.lock_outline_rounded, color: Color(0xFF94A3B8), size: 18)
-                    : null)),
+                      ? const Icon(
+                          Icons.lock_outline_rounded,
+                          color: Color(0xFF94A3B8),
+                          size: 18,
+                        )
+                      : null)),
         filled: true,
-        fillColor: fillColor ?? (isFieldDisabled ? const Color(0xFFF1F5F9) : Colors.white),
+        fillColor:
+            fillColor ??
+            (isFieldDisabled ? const Color(0xFFF1F5F9) : Colors.white),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 13,

@@ -24,6 +24,8 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emergencyNumberController =
+      TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -56,6 +58,8 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
       _usernameController.text = p.username;
       _emailController.text = p.email == "N/A" ? "" : p.email;
       _phoneController.text = p.phone == "N/A" ? "" : p.phone;
+      _emergencyNumberController.text =
+          p.emergencyNumber == "N/A" ? "" : p.emergencyNumber;
       _dobController.text = p.dob;
       _ageController.text = p.age > 0 ? p.age.toString() : '';
       _noteController.text = p.note;
@@ -82,6 +86,7 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
     _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _emergencyNumberController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _dobController.dispose();
@@ -176,6 +181,18 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
             : null,
         'phone_number': _phoneController.text.trim().isNotEmpty
             ? _phoneController.text.trim()
+            : null,
+        'emergency_contact_number': _emergencyNumberController.text.trim().isNotEmpty
+            ? _emergencyNumberController.text.trim()
+            : null,
+        'emergency_number': _emergencyNumberController.text.trim().isNotEmpty
+            ? _emergencyNumberController.text.trim()
+            : null,
+        'emergency_contact': _emergencyNumberController.text.trim().isNotEmpty
+            ? _emergencyNumberController.text.trim()
+            : null,
+        'emergency_phone': _emergencyNumberController.text.trim().isNotEmpty
+            ? _emergencyNumberController.text.trim()
             : null,
         'sex': _selectedSex,
         'status': _selectedStatus,
@@ -388,6 +405,27 @@ class _MobileCreatePatientViewState extends State<MobileCreatePatientView> {
                       final phone = v.trim();
                       if (!RegExp(r'^\d{10}$').hasMatch(phone)) {
                         return "Incorrect phone number.";
+                      }
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                _buildFieldLabel("Emergency Contact Number"),
+                TextFormField(
+                  controller: _emergencyNumberController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  decoration: _inputDecoration("e.g. 9876543210", Icons.contact_phone_outlined),
+                  validator: (v) {
+                    if (v != null && v.trim().isNotEmpty) {
+                      final emergency = v.trim();
+                      if (!RegExp(r'^\d{10}$').hasMatch(emergency)) {
+                        return "Incorrect emergency phone number.";
                       }
                     }
                     return null;

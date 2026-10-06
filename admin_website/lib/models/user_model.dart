@@ -6,6 +6,7 @@ class UserModel {
   final String gender;
   final String dob;
   final String phone;
+  final String emergencyNumber;
   final String email;
   final String status;
   final String date;
@@ -25,6 +26,7 @@ class UserModel {
     required this.gender,
     this.dob = '',
     required this.phone,
+    this.emergencyNumber = '',
     required this.email,
     required this.status,
     required this.date,
@@ -107,6 +109,14 @@ class UserModel {
           json['phone_number']?.toString() ??
           json['phone']?.toString() ??
           'N/A',
+      emergencyNumber:
+          json['emergency_contact_number']?.toString() ??
+          json['emergency_contact']?.toString() ??
+          json['emergency_number']?.toString() ??
+          json['emergency_phone']?.toString() ??
+          json['emergencyContact']?.toString() ??
+          json['emergencyNumber']?.toString() ??
+          '',
       email: json['email']?.toString() ?? 'N/A',
       status: json['status']?.toString() ?? 'Active',
       date:
@@ -138,6 +148,8 @@ class UserModel {
     );
   }
 
+  String get emergencyContactNumber => emergencyNumber;
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -147,6 +159,8 @@ class UserModel {
       'sex': gender,
       'dob': dob,
       'phone_number': phone,
+      'emergency_contact_number': emergencyNumber,
+      'emergency_number': emergencyNumber,
       'email': email,
       'status': status,
       'date': date,
