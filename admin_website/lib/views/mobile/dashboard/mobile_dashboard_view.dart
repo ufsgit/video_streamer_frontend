@@ -31,10 +31,6 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    final displayedUsers = _viewModel.totalUsers > 0
-        ? _viewModel.totalUsers
-        : _viewModel.totalLogins;
-
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
@@ -124,9 +120,9 @@ class _MobileDashboardViewState extends State<MobileDashboardView> {
                 children: [
                   Expanded(
                     child: _buildMetricCard(
-                      title: "Total Patients",
-                      value: displayedUsers.toString(),
-                      icon: Icons.people_alt_rounded,
+                      title: "Total Logins",
+                      value: _viewModel.totalLogins.toString(),
+                      icon: Icons.login_rounded,
                       iconBgColor: AppTheme.blueBg,
                       iconColor: AppTheme.blue,
                       borderColor: AppTheme.blueBorder,

@@ -2,6 +2,35 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
+String _sanitizeWard(dynamic ward) {
+  if (ward == null) return '';
+  final str = ward.toString().trim();
+  if (str.isEmpty ||
+      str.toLowerCase() == 'null' ||
+      str.toLowerCase() == 'general ward') {
+    return '';
+  }
+  return str;
+}
+
+int _parseInt(dynamic val, [int fallback = 0]) {
+  if (val is num) return val.toInt();
+  if (val != null) {
+    final s = val.toString().replaceAll('%', '').trim();
+    return int.tryParse(s) ?? (double.tryParse(s)?.toInt() ?? fallback);
+  }
+  return fallback;
+}
+
+double _parseDouble(dynamic val, [double fallback = 0.0]) {
+  if (val is num) return val.toDouble();
+  if (val != null) {
+    final s = val.toString().replaceAll('%', '').trim();
+    return double.tryParse(s) ?? fallback;
+  }
+  return fallback;
+}
+
 class UserActivity {
   final String id;
   final String patientName;
@@ -14,7 +43,6 @@ class UserActivity {
   final int totalVideos;
   final String preWatched;
   final String postWatched;
-  final String progressText;
 
   UserActivity({
     required this.id,
@@ -28,7 +56,6 @@ class UserActivity {
     required this.totalVideos,
     this.preWatched = '',
     this.postWatched = '',
-    this.progressText = '',
   });
 
   factory UserActivity.fromJson(Map<String, dynamic> json) {
@@ -42,12 +69,12 @@ class UserActivity {
         parsedTotalVideos = int.tryParse(parts[1]) ?? 0;
       }
     } else {
-      parsedVideosWatched = (json['videosWatched'] is num)
-          ? (json['videosWatched'] as num).toInt()
-          : (int.tryParse(json['videosWatched']?.toString() ?? '') ?? 0);
-      parsedTotalVideos = (json['totalVideos'] is num)
-          ? (json['totalVideos'] as num).toInt()
-          : (int.tryParse(json['totalVideos']?.toString() ?? '') ?? 0);
+      parsedVideosWatched = _parseInt(
+        json['videosWatched'] ?? json['videos_watched'],
+      );
+      parsedTotalVideos = _parseInt(
+        json['totalVideos'] ?? json['total_videos'],
+      );
     }
 
     final dtParts = _formatDateTimeParts(
@@ -57,39 +84,31 @@ class UserActivity {
     );
 
     final rawProg = json['raw_progress_percent'] ?? json['progressPercentage'];
-    int parsedProgress = 0;
-    if (rawProg is num) {
-      parsedProgress = rawProg.toInt();
-    } else if (rawProg != null) {
-      parsedProgress = int.tryParse(rawProg.toString()) ?? 0;
-    }
+    final parsedProgress = _parseInt(rawProg);
 
     return UserActivity(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
-      patientName: json['patient_name']?.toString() ??
+      patientName:
+          json['patient_name']?.toString() ??
           json['patientName']?.toString() ??
           json['name']?.toString() ??
           json['username']?.toString() ??
           'Patient',
-      ward: (json['ward'] == null ||
-              json['ward'].toString().trim().isEmpty ||
-              json['ward'].toString().toLowerCase() == 'null' ||
-              json['ward'].toString().trim().toLowerCase() == 'general ward')
-          ? ''
-          : json['ward'].toString(),
+      ward: _sanitizeWard(json['ward']),
       lastLogin: dtParts['full'] ?? 'Recently',
       lastLoginDate: dtParts['date'] ?? '',
       lastLoginTime: dtParts['time'] ?? '',
       progressPercentage: parsedProgress,
       videosWatched: parsedVideosWatched,
       totalVideos: parsedTotalVideos,
-      preWatched: json['pre_watched']?.toString() ??
+      preWatched:
+          json['pre_watched']?.toString() ??
           json['preWatched']?.toString() ??
           '',
-      postWatched: json['post_watched']?.toString() ??
+      postWatched:
+          json['post_watched']?.toString() ??
           json['postWatched']?.toString() ??
           '',
-      progressText: json['progress']?.toString() ?? '',
     );
   }
 
@@ -112,11 +131,7 @@ class UserActivity {
       final hourStr = displayHour.toString().padLeft(2, '0');
       final dateStr = "$day/$month/$year";
       final timeStr = "$hourStr:$minute $period";
-      return {
-        'date': dateStr,
-        'time': timeStr,
-        'full': "$dateStr, $timeStr",
-      };
+      return {'date': dateStr, 'time': timeStr, 'full': "$dateStr, $timeStr"};
     }
     return {'date': rawDate, 'time': '', 'full': rawDate};
   }
@@ -129,7 +144,6 @@ class TopWatchedVideo {
   final String category;
   final String duration;
   final String thumbnailUrl;
-  final double? completionRate;
 
   TopWatchedVideo({
     required this.id,
@@ -138,12 +152,11 @@ class TopWatchedVideo {
     this.category = 'Pre-op',
     this.duration = '',
     this.thumbnailUrl = '',
-    this.completionRate,
   });
 
   factory TopWatchedVideo.fromJson(Map<String, dynamic> json) {
-    int parsedWatchCount = 0;
-    final rawCount = json['watch_count'] ??
+    final rawCount =
+        json['watch_count'] ??
         json['watchCount'] ??
         json['views'] ??
         json['view_count'] ??
@@ -152,37 +165,32 @@ class TopWatchedVideo {
         json['count'] ??
         json['watched'] ??
         json['plays'];
-    if (rawCount is num) {
-      parsedWatchCount = rawCount.toInt();
-    } else if (rawCount != null) {
-      parsedWatchCount = int.tryParse(rawCount.toString()) ?? 0;
-    }
-
-    double? parsedRate;
-    final rawRate = json['completion_rate'] ?? json['completionRate'] ?? json['rate'];
-    if (rawRate is num) {
-      parsedRate = rawRate.toDouble();
-    } else if (rawRate != null) {
-      parsedRate = double.tryParse(rawRate.toString());
-    }
 
     return TopWatchedVideo(
-      id: json['id']?.toString() ?? json['video_id']?.toString() ?? json['_id']?.toString() ?? '',
-      title: json['title']?.toString() ??
+      id:
+          json['id']?.toString() ??
+          json['video_id']?.toString() ??
+          json['_id']?.toString() ??
+          '',
+      title:
+          json['title']?.toString() ??
           json['video_title']?.toString() ??
           json['videoTitle']?.toString() ??
           json['name']?.toString() ??
           'Video',
-      watchCount: parsedWatchCount,
-      category: json['category']?.toString() ?? json['category_name']?.toString() ?? 'Pre-op',
+      watchCount: _parseInt(rawCount),
+      category:
+          json['category']?.toString() ??
+          json['category_name']?.toString() ??
+          'Pre-op',
       duration: json['duration']?.toString() ?? '',
-      thumbnailUrl: json['thumbnail_url']?.toString() ??
+      thumbnailUrl:
+          json['thumbnail_url']?.toString() ??
           json['thumbnailUrl']?.toString() ??
           json['thumbnail']?.toString() ??
           json['imageUrl']?.toString() ??
           json['image_url']?.toString() ??
           '',
-      completionRate: parsedRate,
     );
   }
 }
@@ -191,27 +199,23 @@ class TopPatient {
   final String id;
   final String name;
   final int videosWatched;
-  final int totalVideos;
   final String imageUrl;
   final String ward;
   final double? completionRate;
-  final String lastActive;
 
   TopPatient({
     required this.id,
     required this.name,
     required this.videosWatched,
-    this.totalVideos = 0,
     this.imageUrl = '',
     this.ward = '',
     this.completionRate,
-    this.lastActive = '',
   });
 
   factory TopPatient.fromJson(Map<String, dynamic> json) {
     int parsedWatched = 0;
-    int parsedTotal = 0;
-    final vwStr = json['videos_watched']?.toString() ??
+    final vwStr =
+        json['videos_watched']?.toString() ??
         json['videosWatched']?.toString() ??
         json['total_watched']?.toString() ??
         json['watch_count']?.toString() ??
@@ -220,74 +224,52 @@ class TopPatient {
         '';
 
     if (vwStr.contains('/')) {
-      final parts = vwStr.split('/');
-      parsedWatched = int.tryParse(parts[0]) ?? 0;
-      if (parts.length > 1) {
-        parsedTotal = int.tryParse(parts[1]) ?? 0;
-      }
+      parsedWatched = int.tryParse(vwStr.split('/')[0]) ?? 0;
     } else {
-      parsedWatched = (json['videos_watched'] is num)
-          ? (json['videos_watched'] as num).toInt()
-          : (json['videosWatched'] is num)
-              ? (json['videosWatched'] as num).toInt()
-              : (json['watch_count'] is num)
-                  ? (json['watch_count'] as num).toInt()
-                  : (json['count'] is num)
-                      ? (json['count'] as num).toInt()
-                      : (int.tryParse(vwStr) ?? 0);
-      parsedTotal = (json['total_videos'] is num)
-          ? (json['total_videos'] as num).toInt()
-          : (json['totalVideos'] is num)
-              ? (json['totalVideos'] as num).toInt()
-              : (int.tryParse(json['total_videos']?.toString() ??
-                      json['totalVideos']?.toString() ??
-                      '') ??
-                  0);
+      parsedWatched = _parseInt(
+        json['videos_watched'] ??
+            json['videosWatched'] ??
+            json['watch_count'] ??
+            json['count'] ??
+            vwStr,
+      );
     }
 
     double? parsedRate;
-    final rawRate = json['completion_rate'] ??
+    final rawRate =
+        json['completion_rate'] ??
         json['completionRate'] ??
         json['progress_percent'] ??
         json['progressPercentage'] ??
         json['progress'] ??
         json['rate'];
-    if (rawRate is num) {
-      parsedRate = rawRate.toDouble();
-    } else if (rawRate != null) {
-      parsedRate =
-          double.tryParse(rawRate.toString().replaceAll('%', '').trim());
+    if (rawRate != null) {
+      final s = rawRate.toString().replaceAll('%', '').trim();
+      parsedRate = double.tryParse(s);
     }
 
     return TopPatient(
-      id: json['id']?.toString() ??
+      id:
+          json['id']?.toString() ??
           json['user_id']?.toString() ??
           json['patient_id']?.toString() ??
           json['_id']?.toString() ??
           '',
-      name: json['name']?.toString() ??
+      name:
+          json['name']?.toString() ??
           json['patient_name']?.toString() ??
           json['patientName']?.toString() ??
           json['username']?.toString() ??
           'Patient',
       videosWatched: parsedWatched,
-      totalVideos: parsedTotal,
-      imageUrl: json['image_url']?.toString() ??
+      imageUrl:
+          json['image_url']?.toString() ??
           json['imageUrl']?.toString() ??
           json['profile_image']?.toString() ??
           json['avatar']?.toString() ??
           '',
-      ward: (json['ward'] == null ||
-              json['ward'].toString().trim().isEmpty ||
-              json['ward'].toString().toLowerCase() == 'null' ||
-              json['ward'].toString().trim().toLowerCase() == 'general ward')
-          ? ''
-          : json['ward'].toString(),
+      ward: _sanitizeWard(json['ward']),
       completionRate: parsedRate,
-      lastActive: json['last_active']?.toString() ??
-          json['last_login']?.toString() ??
-          json['lastLogin']?.toString() ??
-          '',
     );
   }
 }
@@ -296,7 +278,7 @@ class DashboardViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
   int totalLogins = 0;
-  int totalUsers = 0;
+  int get totalUsers => totalLogins;
   double avgVideosWatched = 0.0;
   double completionRate = 0.0;
   List<UserActivity> activityLogs = [];
@@ -316,166 +298,76 @@ class DashboardViewModel extends ChangeNotifier {
 
     try {
       final results = await Future.wait([
-        _apiService.getTotalLogins().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
-        _apiService.getAvgVideosWatched().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
-        _apiService.getCompletionRate().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
-        _apiService.getActivityLogs().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
-        _apiService.listUsers(limit: 100).catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
-        _apiService.getTopWatchedVideos().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
-        _apiService.getTopPatients().catchError((e) => Response(requestOptions: RequestOptions(path: ''), data: null)),
+        _apiService.getTotalLogins().catchError(
+          (e) => Response(requestOptions: RequestOptions(path: ''), data: null),
+        ),
+        _apiService.getAvgVideosWatched().catchError(
+          (e) => Response(requestOptions: RequestOptions(path: ''), data: null),
+        ),
+        _apiService.getCompletionRate().catchError(
+          (e) => Response(requestOptions: RequestOptions(path: ''), data: null),
+        ),
+        _apiService.getActivityLogs().catchError(
+          (e) => Response(requestOptions: RequestOptions(path: ''), data: null),
+        ),
+        _apiService.getTopWatchedVideos().catchError(
+          (e) => Response(requestOptions: RequestOptions(path: ''), data: null),
+        ),
+        _apiService.getTopPatients().catchError(
+          (e) => Response(requestOptions: RequestOptions(path: ''), data: null),
+        ),
       ]);
 
-      final loginsRes = results[0];
-      final avgVideosRes = results[1];
-      final completionRes = results[2];
-      final logsRes = results[3];
-      final usersRes = results[4];
-
-      // 1. Total Logins
-      final loginsData = loginsRes.data;
-      if (loginsData is Map<String, dynamic>) {
-        final d = loginsData['data'] ?? loginsData;
-        if (d is Map) {
-          final val = d['total_logins'] ??
-              d['totalLogins'] ??
-              d['count'] ??
-              d['total'] ??
-              d['logins'];
-          if (val is num) {
-            totalLogins = val.toInt();
-          } else if (val is String) {
-            totalLogins =
-                int.tryParse(val) ?? (double.tryParse(val)?.toInt() ?? 0);
-          }
-        } else if (d is num) {
-          totalLogins = d.toInt();
-        } else if (d is String) {
-          totalLogins =
-              int.tryParse(d) ?? (double.tryParse(d)?.toInt() ?? 0);
-        }
-      }
+      // 1. Total Logins (from /admin/dashboard/total-logins)
+      totalLogins = _extractMetricInt(results[0].data, [
+        'total_logins',
+        'totalLogins',
+        'count',
+        'total',
+        'logins',
+      ]);
 
       // 2. Avg Videos
-      final avgData = avgVideosRes.data;
-      if (avgData is Map<String, dynamic>) {
-        final d = avgData['data'] ?? avgData;
-        if (d is Map) {
-          final val = d['avg_videos_watched'] ??
-              d['avgVideosWatched'] ??
-              d['avg_videos'] ??
-              d['avgVideos'] ??
-              d['average'] ??
-              d['avg'] ??
-              d['count'];
-          if (val is num) {
-            avgVideosWatched = val.toDouble();
-          } else if (val is String) {
-            avgVideosWatched = double.tryParse(val) ?? 0.0;
-          }
-        } else if (d is num) {
-          avgVideosWatched = d.toDouble();
-        } else if (d is String) {
-          avgVideosWatched = double.tryParse(d) ?? 0.0;
-        }
-      }
+      avgVideosWatched = _extractMetricDouble(results[1].data, [
+        'avg_videos_watched',
+        'avgVideosWatched',
+        'avg_videos',
+        'avgVideos',
+        'average',
+        'avg',
+        'count',
+      ]);
 
       // 3. Completion Rate
-      final compData = completionRes.data;
-      if (compData is Map<String, dynamic>) {
-        final d = compData['data'] ?? compData;
-        if (d is Map) {
-          final val = d['completion_rate'] ??
-              d['completionRate'] ??
-              d['rate'] ??
-              d['completion'] ??
-              d['percentage'];
-          if (val is num) {
-            completionRate = val.toDouble();
-          } else if (val is String) {
-            completionRate = double.tryParse(val) ?? 0.0;
-          }
-        } else if (d is num) {
-          completionRate = d.toDouble();
-        } else if (d is String) {
-          completionRate = double.tryParse(d) ?? 0.0;
-        }
-      }
+      completionRate = _extractMetricDouble(results[2].data, [
+        'completion_rate',
+        'completionRate',
+        'rate',
+        'completion',
+        'percentage',
+      ]);
 
       // 4. Activity Logs
-      final logsData = logsRes.data;
-      List<dynamic> logsList = [];
-      if (logsData is Map<String, dynamic>) {
-        final d = logsData['data'] ?? logsData['logs'] ?? logsData;
-        if (d is List) {
-          logsList = d;
-        } else if (d is Map && d['logs'] is List) {
-          logsList = d['logs'];
-        }
-      } else if (logsData is List) {
-        logsList = logsData;
-      }
-
+      final logsList = _extractList(results[3].data, ['logs']);
       activityLogs = logsList
           .map((json) => UserActivity.fromJson(Map<String, dynamic>.from(json)))
           .toList();
 
-      // 5. Total Users count from users list
-      final resData = usersRes.data;
-      if (resData is Map<String, dynamic>) {
-        if (resData['data'] is Map && resData['data']['total'] != null) {
-          totalUsers = (resData['data']['total'] as num).toInt();
-        } else if (resData['total'] != null) {
-          totalUsers = (resData['total'] as num).toInt();
-        } else if (resData['data'] is List) {
-          totalUsers = (resData['data'] as List).length;
-        } else if (resData['users'] is List) {
-          totalUsers = (resData['users'] as List).length;
-        }
-      } else if (resData is List) {
-        totalUsers = resData.length;
-      }
-
-      // 6. Top Watched Videos
-      final topRes = results[5];
-      final topData = topRes.data;
-      List<dynamic> topList = [];
-      if (topData is Map<String, dynamic>) {
-        final d = topData['data'] ?? topData['videos'] ?? topData['top_videos'] ?? topData;
-        if (d is List) {
-          topList = d;
-        } else if (d is Map && d['videos'] is List) {
-          topList = d['videos'];
-        }
-      } else if (topData is List) {
-        topList = topData;
-      }
-
+      // 5. Top Watched Videos
+      final topList = _extractList(results[4].data, ['videos', 'top_videos']);
       topWatchedVideos = topList
-          .map((json) => TopWatchedVideo.fromJson(Map<String, dynamic>.from(json)))
+          .map(
+            (json) => TopWatchedVideo.fromJson(Map<String, dynamic>.from(json)),
+          )
           .toList();
 
-      // 7. Top Patients (patients who watched the most videos)
-      final patientsRes = results[6];
-      final patientsData = patientsRes.data;
-      List<dynamic> patientsList = [];
-      if (patientsData is Map<String, dynamic>) {
-        final d = patientsData['data'] ??
-            patientsData['patients'] ??
-            patientsData['top_patients'] ??
-            patientsData['topPatients'] ??
-            patientsData['users'] ??
-            patientsData;
-        if (d is List) {
-          patientsList = d;
-        } else if (d is Map && d['patients'] is List) {
-          patientsList = d['patients'];
-        } else if (d is Map && d['data'] is List) {
-          patientsList = d['data'];
-        }
-      } else if (patientsData is List) {
-        patientsList = patientsData;
-      }
-
+      // 6. Top Patients
+      final patientsList = _extractList(results[5].data, [
+        'patients',
+        'top_patients',
+        'topPatients',
+        'users',
+      ]);
       topPatients = patientsList
           .map((json) => TopPatient.fromJson(Map<String, dynamic>.from(json)))
           .toList();
@@ -486,5 +378,60 @@ class DashboardViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  static int _extractMetricInt(dynamic data, List<String> candidateKeys) {
+    if (data == null) return 0;
+    if (data is num) return data.toInt();
+    if (data is String) return int.tryParse(data) ?? 0;
+    if (data is Map) {
+      final inner = data['data'] ?? data;
+      if (inner is num) return inner.toInt();
+      if (inner is String) return int.tryParse(inner) ?? 0;
+      if (inner is Map) {
+        for (final key in candidateKeys) {
+          if (inner[key] != null) return _parseInt(inner[key]);
+        }
+      }
+    }
+    return 0;
+  }
+
+  static double _extractMetricDouble(dynamic data, List<String> candidateKeys) {
+    if (data == null) return 0.0;
+    if (data is num) return data.toDouble();
+    if (data is String) return double.tryParse(data) ?? 0.0;
+    if (data is Map) {
+      final inner = data['data'] ?? data;
+      if (inner is num) return inner.toDouble();
+      if (inner is String) return double.tryParse(inner) ?? 0.0;
+      if (inner is Map) {
+        for (final key in candidateKeys) {
+          if (inner[key] != null) return _parseDouble(inner[key]);
+        }
+      }
+    }
+    return 0.0;
+  }
+
+  static List<dynamic> _extractList(
+    dynamic data, [
+    List<String> candidateKeys = const [],
+  ]) {
+    if (data == null) return [];
+    if (data is List) return data;
+    if (data is Map) {
+      final inner = data['data'];
+      if (inner is List) return inner;
+      for (final key in candidateKeys) {
+        if (data[key] is List) return data[key] as List;
+      }
+      if (inner is Map) {
+        for (final key in candidateKeys) {
+          if (inner[key] is List) return inner[key] as List;
+        }
+      }
+    }
+    return [];
   }
 }

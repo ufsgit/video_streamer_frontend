@@ -23,16 +23,16 @@ class PatientCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFE2E8F0)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 8,
+                blurRadius: 6,
                 offset: const Offset(0, 2),
               ),
             ],
@@ -42,7 +42,7 @@ class PatientCard extends StatelessWidget {
             children: [
               // Top & Middle body
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                padding: const EdgeInsets.fromLTRB(12, 11, 12, 7),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -51,7 +51,7 @@ class PatientCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildPatientAvatar(patient, isActive),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +67,7 @@ class PatientCard extends StatelessWidget {
                                                 : 'Unnamed'),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 16,
+                                        fontSize: 14.5,
                                         color: Color(0xFF0F172A),
                                       ),
                                       maxLines: 1,
@@ -75,20 +75,20 @@ class PatientCard extends StatelessWidget {
                                     ),
                                   ),
                                   if (_formatPatientId(patient.id).isNotEmpty) ...[
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 5),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
+                                        horizontal: 5,
+                                        vertical: 1.5,
                                       ),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(5),
                                       ),
                                       child: Text(
                                         _formatPatientId(patient.id),
                                         style: const TextStyle(
-                                          fontSize: 11,
+                                          fontSize: 10,
                                           fontWeight: FontWeight.w600,
                                           color: Color(0xFF64748B),
                                         ),
@@ -97,22 +97,22 @@ class PatientCard extends StatelessWidget {
                                   ],
                                 ],
                               ),
-                              const SizedBox(height: 3),
+                              const SizedBox(height: 2),
                               _buildGenderAndAge(patient),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+                            horizontal: 7,
+                            vertical: 3,
                           ),
                           decoration: BoxDecoration(
                             color: isActive
                                 ? const Color(0xFFECFDF5)
                                 : const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isActive
                                   ? const Color(0xFFA7F3D0)
@@ -123,8 +123,8 @@ class PatientCard extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                width: 6,
-                                height: 6,
+                                width: 5,
+                                height: 5,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: isActive
@@ -132,7 +132,7 @@ class PatientCard extends StatelessWidget {
                                       : const Color(0xFF94A3B8),
                                 ),
                               ),
-                              const SizedBox(width: 5),
+                              const SizedBox(width: 4),
                               Text(
                                 isActive
                                     ? "Active"
@@ -140,7 +140,7 @@ class PatientCard extends StatelessWidget {
                                           ? patient.status
                                           : "Inactive"),
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                   color: isActive
                                       ? const Color(0xFF059669)
@@ -152,7 +152,7 @@ class PatientCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
                     // Middle Row: Phone Tile (hugs content, not full width)
                     Align(
@@ -178,11 +178,11 @@ class PatientCard extends StatelessWidget {
                 decoration: const BoxDecoration(
                   color: Color(0xFFFAFBFC),
                   borderRadius:
-                      BorderRadius.vertical(bottom: Radius.circular(15)),
+                      BorderRadius.vertical(bottom: Radius.circular(13)),
                   border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
                 ),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -191,21 +191,21 @@ class PatientCard extends StatelessWidget {
                       children: [
                         const Icon(
                           Icons.calendar_today_outlined,
-                          size: 13,
+                          size: 11.5,
                           color: Color(0xFF64748B),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 5),
                         const Text(
                           'Registered: ',
                           style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 10.5,
                             color: Color(0xFF64748B),
                           ),
                         ),
                         Text(
                           _formatDate(patient.date),
                           style: const TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1E293B),
                           ),
@@ -218,15 +218,15 @@ class PatientCard extends StatelessWidget {
                         Text(
                           'View Details',
                           style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF4F46E5),
                           ),
                         ),
-                        SizedBox(width: 2),
+                        SizedBox(width: 1),
                         Icon(
                           Icons.chevron_right_rounded,
-                          size: 16,
+                          size: 14,
                           color: Color(0xFF4F46E5),
                         ),
                       ],
@@ -268,21 +268,21 @@ class PatientCard extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(genderIcon, size: 14, color: genderColor),
+        Icon(genderIcon, size: 12.5, color: genderColor),
         const SizedBox(width: 3),
         Text(
           genderText,
           style: const TextStyle(
             color: Color(0xFF475569),
             fontWeight: FontWeight.w500,
-            fontSize: 12,
+            fontSize: 11,
           ),
         ),
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
+          padding: EdgeInsets.symmetric(horizontal: 3),
           child: Text(
             '•',
-            style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 12),
+            style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 11),
           ),
         ),
         Text(
@@ -291,7 +291,7 @@ class PatientCard extends StatelessWidget {
             color: hasAge ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
             fontWeight: hasAge ? FontWeight.w500 : FontWeight.normal,
             fontStyle: hasAge ? FontStyle.normal : FontStyle.italic,
-            fontSize: 12,
+            fontSize: 11,
           ),
         ),
       ],
@@ -305,21 +305,21 @@ class PatientCard extends StatelessWidget {
     required bool hasValue,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4.5),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(9),
         border: Border.all(color: const Color(0xFFF1F5F9)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 22,
-            height: 22,
+            width: 19,
+            height: 19,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(5),
               border: Border.all(
                 color: const Color(0xFFE2E8F0).withValues(alpha: 0.6),
               ),
@@ -331,9 +331,9 @@ class PatientCard extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(icon, size: 14, color: const Color(0xFF64748B)),
+            child: Icon(icon, size: 11.5, color: const Color(0xFF64748B)),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -341,17 +341,17 @@ class PatientCard extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 9.5,
+                  fontSize: 8.5,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF94A3B8),
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.4,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 hasValue ? value : 'Not provided',
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: 10.5,
                   fontWeight: hasValue ? FontWeight.w500 : FontWeight.normal,
                   fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
                   color: hasValue
@@ -390,11 +390,11 @@ class PatientCard extends StatelessWidget {
           if (commaIndex != -1) {
             final bytes = base64Decode(fullUrl.substring(commaIndex + 1));
             avatarContent = ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               child: Image.memory(
                 bytes,
-                width: 50,
-                height: 50,
+                width: 40,
+                height: 40,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) =>
                     _buildInitialsAvatar(patient),
@@ -414,11 +414,11 @@ class PatientCard extends StatelessWidget {
                 snapshot.data != null &&
                 snapshot.data!.isNotEmpty) {
               return ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 child: Image.memory(
                   snapshot.data!,
-                  width: 50,
-                  height: 50,
+                  width: 40,
+                  height: 40,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
                       _buildInitialsAvatar(patient),
@@ -429,11 +429,11 @@ class PatientCard extends StatelessWidget {
             if (fullUrl.startsWith('http://') ||
                 fullUrl.startsWith('https://')) {
               return ClipRRect(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 child: Image.network(
                   fullUrl,
-                  width: 50,
-                  height: 50,
+                  width: 40,
+                  height: 40,
                   headers: const {
                     'bypass-tunnel-reminder': 'true',
                     'X-Tunnel-Bypass': 'true',
@@ -459,14 +459,14 @@ class PatientCard extends StatelessWidget {
           right: -1,
           bottom: -1,
           child: Container(
-            width: 13,
-            height: 13,
+            width: 11,
+            height: 11,
             decoration: BoxDecoration(
               color: isActive
                   ? const Color(0xFF10B981)
                   : const Color(0xFF94A3B8),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2.5),
+              border: Border.all(color: Colors.white, width: 2),
             ),
           ),
         ),
@@ -483,11 +483,11 @@ class PatientCard extends StatelessWidget {
     final initial = rawName.isNotEmpty ? rawName[0].toUpperCase() : 'P';
 
     return Container(
-      width: 50,
-      height: 50,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         color: const Color(0xFFEEF2FF),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE0E7FF), width: 1),
       ),
       alignment: Alignment.center,
@@ -496,7 +496,7 @@ class PatientCard extends StatelessWidget {
         style: const TextStyle(
           color: Color(0xFF4F46E5),
           fontWeight: FontWeight.bold,
-          fontSize: 22,
+          fontSize: 18,
         ),
       ),
     );

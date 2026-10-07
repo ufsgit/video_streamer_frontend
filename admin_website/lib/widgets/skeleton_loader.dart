@@ -458,11 +458,17 @@ class PatientsGridSkeleton extends StatelessWidget {
     return SkeletonPulse(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          int crossAxisCount = 3;
-          if (constraints.maxWidth < 750) {
+          int crossAxisCount = 4;
+          if (constraints.maxWidth < 600) {
             crossAxisCount = 1;
-          } else if (constraints.maxWidth < 1100) {
+          } else if (constraints.maxWidth < 950) {
             crossAxisCount = 2;
+          } else if (constraints.maxWidth < 1350) {
+            crossAxisCount = 3;
+          } else if (constraints.maxWidth < 1750) {
+            crossAxisCount = 4;
+          } else {
+            crossAxisCount = 5;
           }
 
           return GridView.builder(
@@ -471,17 +477,17 @@ class PatientsGridSkeleton extends StatelessWidget {
               crossAxisCount: crossAxisCount,
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
-              mainAxisExtent: 172,
+              mainAxisExtent: 168,
             ),
             itemCount: itemCount,
             itemBuilder: (context, index) {
               return Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(4.0),
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppTheme.border),
                   ),
                   child: Column(
@@ -493,8 +499,8 @@ class PatientsGridSkeleton extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SkeletonBox(
-                            width: 38,
-                            height: 38,
+                            width: 34,
+                            height: 34,
                             shape: BoxShape.circle,
                           ),
                           const SizedBox(width: 10),

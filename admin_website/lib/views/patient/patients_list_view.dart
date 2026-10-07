@@ -176,11 +176,17 @@ class _PatientsListViewState extends State<PatientsListView> {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              int crossAxisCount = 3;
-              if (constraints.maxWidth < 750) {
+              int crossAxisCount = 4;
+              if (constraints.maxWidth < 600) {
                 crossAxisCount = 1;
-              } else if (constraints.maxWidth < 1100) {
+              } else if (constraints.maxWidth < 950) {
                 crossAxisCount = 2;
+              } else if (constraints.maxWidth < 1350) {
+                crossAxisCount = 3;
+              } else if (constraints.maxWidth < 1750) {
+                crossAxisCount = 4;
+              } else {
+                crossAxisCount = 5;
               }
 
               return GridView.builder(
@@ -188,7 +194,7 @@ class _PatientsListViewState extends State<PatientsListView> {
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
-                  mainAxisExtent: 200,
+                  mainAxisExtent: 168,
                 ),
                 itemCount: _viewModel.patients.length,
                 itemBuilder: (context, index) {
@@ -227,8 +233,9 @@ class _PatientsListViewState extends State<PatientsListView> {
     final endIndex =
         (_viewModel.currentPage - 1) * PatientsListViewModel.pageSize +
         _viewModel.patients.length;
-    final total =
-        _viewModel.totalPatients > 0 ? _viewModel.totalPatients : endIndex;
+    final total = _viewModel.totalPatients > 0
+        ? _viewModel.totalPatients
+        : endIndex;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -305,19 +312,11 @@ class _PatientsListViewState extends State<PatientsListView> {
             child: isMobile
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      infoWidget,
-                      const SizedBox(height: 8),
-                      controls,
-                    ],
+                    children: [infoWidget, const SizedBox(height: 8), controls],
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
-                      infoWidget,
-                      const SizedBox(width: 20),
-                      controls,
-                    ],
+                    children: [infoWidget, const SizedBox(width: 20), controls],
                   ),
           ),
         );
@@ -339,26 +338,21 @@ class _PatientsListViewState extends State<PatientsListView> {
         foregroundColor: AppTheme.primaryBlue,
         disabledForegroundColor: Colors.grey.shade400,
         side: BorderSide(
-          color:
-              onPressed != null ? Colors.grey.shade300 : Colors.grey.shade200,
+          color: onPressed != null
+              ? Colors.grey.shade300
+              : Colors.grey.shade200,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (!isEndIcon) ...[
-            Icon(icon, size: 16),
-            const SizedBox(width: 3),
-          ],
-          Text(label,
-              style: const TextStyle(fontSize: 12, color: Colors.black)),
-          if (isEndIcon) ...[
-            const SizedBox(width: 3),
-            Icon(icon, size: 16),
-          ],
+          if (!isEndIcon) ...[Icon(icon, size: 16), const SizedBox(width: 3)],
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.black),
+          ),
+          if (isEndIcon) ...[const SizedBox(width: 3), Icon(icon, size: 16)],
         ],
       ),
     );

@@ -31,10 +31,6 @@ class _DashboardViewState extends State<DashboardView> {
 
   @override
   Widget build(BuildContext context) {
-    final displayedUsersCount = _viewModel.totalUsers > 0
-        ? _viewModel.totalUsers
-        : _viewModel.totalLogins;
-
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SingleChildScrollView(
@@ -84,14 +80,14 @@ class _DashboardViewState extends State<DashboardView> {
               Column(
                 children: [
                   _buildMetricCard(
-                    title: "Total Users",
-                    value: displayedUsersCount.toString(),
-                    icon: Icons.people_alt_rounded,
+                    title: "Total Logins",
+                    value: _viewModel.totalLogins.toString(),
+                    icon: Icons.login_rounded,
                     iconColor: AppTheme.blue,
                     iconBgColor: AppTheme.blueBg,
                     cardBg: AppTheme.blueCardBg,
                     borderColor: AppTheme.blueBorder,
-                    badgeText: "Patients",
+                    badgeText: "Logins",
                     badgeColor: AppTheme.blueText,
                     badgeBg: AppTheme.blueBorder,
                     isLoading: _viewModel.isLoading,
@@ -131,14 +127,14 @@ class _DashboardViewState extends State<DashboardView> {
                 children: [
                   Expanded(
                     child: _buildMetricCard(
-                      title: "Total Users",
-                      value: displayedUsersCount.toString(),
-                      icon: Icons.people_alt_rounded,
+                      title: "Total Logins",
+                      value: _viewModel.totalLogins.toString(),
+                      icon: Icons.login_rounded,
                       iconColor: AppTheme.blue,
                       iconBgColor: AppTheme.blueBg,
                       cardBg: AppTheme.blueCardBg,
                       borderColor: AppTheme.blueBorder,
-                      badgeText: "Patients",
+                      badgeText: "Logins",
                       badgeColor: AppTheme.blueText,
                       badgeBg: AppTheme.blueBorder,
                       isLoading: _viewModel.isLoading,
